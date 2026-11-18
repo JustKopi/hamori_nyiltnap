@@ -355,7 +355,7 @@ App.add((() => {
   S.resize = () => { if (C) { C.resize(); dirty = true } };
   let acc = 0;
   S.tick = dt => {
-    T += dt; if (!L) return;
+    T += dt; if (!L || !aps.length) { if (C) ctx.clearRect(0, 0, C.W, C.H); return }
     if (state === 'play' || state === 'intro') env(dt);
     acc += dt; if (acc > .1) { acc = 0; lastRes = evalAll(true) }
     if (dirty) heat = null;
