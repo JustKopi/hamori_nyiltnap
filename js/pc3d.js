@@ -609,6 +609,7 @@ App.add((() => {
   function pickAt(e) {
     const r = renderer.domElement.getBoundingClientRect(), m = new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(m, camera); const hits = ray.intersectObjects(scene.children, true);
+    if (tool === 'driver') for (const h of hits) { const md = meta(h.object), sc = md.screw || md.screwOf; if (!sc || !sc.m.visible || !sc.item.slot) continue; let vis = true, q = h.object; while (q) { if (!q.visible) { vis = false; break } q = q.parent } if (vis) return { screw: sc } }
     for (const h of hits) { const o = h.object; let vis = true, q = o; while (q) { if (!q.visible) { vis = false; break } q = q.parent } if (!vis) continue;
       const md = meta(o); if (md.screw || md.screwOf) return { screw: md.screw || md.screwOf };
       if (md.ghost) return { ghost: md.ghost }; if (o.userData.power) return { power: true }; if (o.userData.conn) return { conn: o.userData.conn };
@@ -774,8 +775,8 @@ App.add((() => {
     items.forEach(it => it.screws.forEach(s => {
       if (!s.sc0) s.sc0 = s.m.scale.clone();
       const need = it.slot != null && !s.busy && (it === panel ? (panelOpened ? !s.in : s.in) : !s.in);
-      if (need) { s.mats.forEach(m => { m.emissive.setRGB(1, .72, .08); m.emissiveIntensity = .35 + 1.4 * pulse }); s.m.scale.copy(s.sc0).multiplyScalar(1 + .3 * pulse); s.hl = 1 }
-      else if (s.hl) { s.mats.forEach(m => { m.emissive.setHex(0); m.emissiveIntensity = 1 }); s.m.scale.copy(s.sc0); s.hl = 0 }
+      if (need) { if (!s.top) { s.top = 1; s.m.traverse(c => { if (c.isMesh) c.renderOrder = 999 }); s.mats.forEach(m => { m.depthTest = false; m.transparent = true }) } s.mats.forEach(m => { m.emissive.setRGB(1, .72, .08); m.emissiveIntensity = .35 + 1.4 * pulse }); s.m.scale.copy(s.sc0).multiplyScalar(1 + .3 * pulse); s.hl = 1 }
+      else if (s.hl || s.top) { if (s.top) { s.top = 0; s.m.traverse(c => { if (c.isMesh) c.renderOrder = 0 }); s.mats.forEach(m => { m.depthTest = true; m.transparent = false }) } s.mats.forEach(m => { m.emissive.setHex(0); m.emissiveIntensity = 1 }); s.m.scale.copy(s.sc0); s.hl = 0 }
     }));
     if (powered && lastPost && lastPost.lvl >= 3) { acc += dt; if (acc > .5) { acc = 0; sensors = PCSim.tick(.5, load); renderSensors(); $('#b3-sens').style.display = ''; if (sensors && sensors.shutdown) { const m = sensors.shutdown; powerOff(); showRes({ lvl: 1, t: 'Vészleállás!', d: m }) } } }
     if (powered) { accP += dt; if (accP > .6) { accP = 0; if (lastPost && lastPost.lvl >= 4) paintScreen() } }
