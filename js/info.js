@@ -51,7 +51,7 @@ App.add((() => {
   }
   function present() {
     let o = $('#sl'); if (!o) { o = document.createElement('div'); o.id = 'sl'; document.body.appendChild(o) }
-    o.innerHTML = `<div id="sl-stage"></div><div id="sl-bar"><button class="btn" id="sl-p">${icon('back', 18, 2)}</button><div id="sl-dots"></div><button class="btn" id="sl-a">Automatikus lapozás</button><button class="btn" id="sl-n">${icon('arrow', 18, 2)}</button><button class="btn" id="sl-x">Bezárás</button></div>`;
+    o.innerHTML = `<div id="sl-stage"></div><div id="sl-bar"><button class="btn" id="sl-p">${icon('back', 18, 2)}</button><div id="sl-dots"></div><button class="btn" id="sl-a">Automatikus lapozás</button><button class="btn" id="sl-n">${icon('arrow', 18, 2)}</button><button class="btn" id="sl-x">Bezárás</button></div><div id="sl-qr">${typeof QR !== 'undefined' ? QR.svg(SITE_URL, 1) : ''}<span>Próbáld ki otthon is!</span></div>`;
     o.classList.add('show'); show(0);
     try { document.documentElement.requestFullscreen().catch(() => { }) } catch (e) { }
     $('#sl-p').onclick = () => show(si - 1); $('#sl-n').onclick = () => show(si + 1);
@@ -101,6 +101,7 @@ App.add((() => {
       .sl-map{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vw 2vw}.sl-map>div{display:flex;gap:.8vw;align-items:center}
       .sl-mi{width:2.6em;height:2.6em;border-radius:14px;display:grid;place-items:center;background:rgba(96,165,250,.14);color:#60a5fa;flex:none}
       .sl-map b{display:block;font-size:clamp(15px,1.4vw,24px)}.sl-map i{font-style:normal;color:#9aa0ab;font-size:clamp(12px,1vw,17px)}
+      #sl-qr{position:absolute;right:3vw;bottom:2.5vh;display:flex;flex-direction:column;align-items:center;gap:6px;color:#9aa0ab;font-size:13px}#sl-qr svg{width:min(130px,11vw);height:auto;background:#fff;border-radius:10px;padding:6px}
       #sl-bar{display:flex;gap:10px;align-items:center;padding:14px 22px;justify-content:center}
       #sl-dots{display:flex;gap:8px;margin:0 10px}#sl-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .3s}#sl-dots i.on{background:#60a5fa;width:28px;border-radius:5px}
       @media(max-width:900px){.sl-cards,.sl-steps{grid-template-columns:1fr 1fr}.sl-map{grid-template-columns:1fr 1fr}.sl-big{grid-template-columns:1fr}}

@@ -58,6 +58,7 @@ main{position:absolute;top:60px;left:0;right:0;bottom:0}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:50;width:100%;height:100%}
 
 /* ---------- értesítés ---------- */
+@media(max-width:760px){#ph-btns{width:96%}#ph-btns .btn{min-width:0!important;flex:1;font-size:18px!important}}
 #tut{position:fixed;inset:0;z-index:70;display:none;place-items:center;background:rgba(6,7,9,.55);backdrop-filter:blur(3px)}#tut.show{display:grid}
 .tut-card{width:min(440px,92%);background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 50%,var(--line));border-radius:20px;padding:22px 24px;box-shadow:0 30px 80px #000a;animation:tutIn .3s cubic-bezier(.2,.8,.2,1)}
 @keyframes tutIn{from{opacity:0;transform:translateY(14px) scale(.97)}}
@@ -69,6 +70,10 @@ main{position:absolute;top:60px;left:0;right:0;bottom:0}
 .set-r b{display:block;font-size:14px}.set-r small{display:block;font-size:12px;color:var(--muted);line-height:1.35}.set-r input{width:20px;height:20px;accent-color:var(--accent);flex:none}
 #set-ai{width:100%;margin-top:6px;padding:8px 10px;border-radius:9px;border:1px solid var(--line2);background:#101216;color:var(--text);font-family:var(--mono)}
 .set-b{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.set-b .btn{height:36px;font-size:14px;padding:0 12px}
+#qr-card{margin-top:14px;display:flex;align-items:center;gap:20px;padding:18px 22px;border-radius:var(--r-lg);background:var(--panel);border:1px solid var(--line)}
+#qr-card .qr{width:120px;height:120px;background:#fff;border-radius:12px;padding:8px;flex:none}#qr-card .qr svg{width:100%;height:100%;display:block}
+#qr-card h4{margin:0;font-size:20px}#qr-card p{margin:4px 0 0;color:var(--muted);font-size:15px}#qr-card code{color:var(--accent);font-size:14px}
+@media(max-width:760px){header{gap:6px!important;padding:0 8px!important}#lbbtn,#fs,#topic{display:none!important}#homebtn{font-size:0!important;padding:0 8px!important;gap:0!important}#crumb{min-width:0;flex:1 1 auto;overflow:hidden;font-size:14px!important}#crumb>*{min-width:0;overflow:hidden;text-overflow:ellipsis}.hbtn{font-size:0!important;padding:0 10px!important;gap:0!important;min-width:40px;justify-content:center}.spacer{display:none}.hero h2{font-size:30px}.feat-pc{padding:18px!important}.feat-tt{font-size:24px}.grid{grid-template-columns:1fr}#setm{left:10px;right:10px;width:auto}.tut-card h3{font-size:20px}#qr-card{flex-direction:column;text-align:center}}
 #toast{--tc:var(--accent);position:fixed;left:50%;top:76px;transform:translate(-50%,-16px);opacity:0;z-index:60;pointer-events:none;
   display:flex;align-items:center;gap:12px;background:rgba(28,31,38,.92);backdrop-filter:blur(12px);border:1px solid var(--line2);
   border-radius:999px;padding:12px 22px 12px 16px;font-size:17px;font-weight:500;transition:all .25s ease;max-width:90vw;box-shadow:0 20px 40px -10px #000a}
@@ -207,12 +212,12 @@ input[type=range]{accent-color:var(--accent)}
       <div class="hero">
         <div>
           <h2>Próbáld ki, milyen informatikusnak lenni. <span>Játékosan.</span></h2>
-          <p>14 interaktív állomás arról, amit az informatikai rendszer- és alkalmazás-üzemeltető technikusok tanulnak: hálózatok, biztonság, szerverek, hardver és programozás.</p>
+          <p><span class="st-n">18</span> interaktív állomás arról, amit az informatikai rendszer- és alkalmazás-üzemeltető technikusok tanulnak: hálózatok, biztonság, szerverek, hardver és programozás.</p>
           <div class="hero-cta">
             <button class="btn" id="start-btn">Kezdjük az elején</button>
             <button class="btn" id="parents-btn">Szülőknek a szakmáról</button>
           </div>
-          <div class="hero-meta"><div><b>14</b>állomás</div><div><b>1–5 perc</b>játékonként</div><div><b>Egér vagy érintés</b>nem kell előismeret</div></div>
+          <div class="hero-meta"><div><b class="st-n">18</b>állomás</div><div><b>1–5 perc</b>játékonként</div><div><b>Egér vagy érintés</b>nem kell előismeret</div></div>
         </div>
         <div class="hero-art"><canvas id="hero-cv"></canvas><span class="tag">Élő hálózat – így utaznak a csomagok</span></div>
       </div>
@@ -229,6 +234,7 @@ input[type=range]{accent-color:var(--accent)}
 
 <script src="js/core.js"></script>
 <script src="js/gfx.js"></script>
+<script src="js/vendor/qrcode.min.js"></script>
 <script src="js/comp.js"></script>
 <script src="js/extras.js"></script>
 <script src="js/net.js"></script>

@@ -44,6 +44,8 @@ const Tut = (() => {
   return { show, reset: () => { seen = {} }, close: () => { const m = $('#tut'); if (m) m.classList.remove('show') } };
 })();
 
+const SITE_URL = 'https://justkopi.github.io/hamori_nyiltnap/';
+const QR = { svg(text, margin = 2) { try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin, scalable: true }) } catch (e) { return '' } } };
 const Settings = (() => {
   let kiosk = store.get('kiosk', false);
   function upd() { const b = $('#setbtn'); if (b) b.style.display = kiosk ? 'none' : ''; document.body.classList.toggle('kiosk', kiosk) }
@@ -67,6 +69,8 @@ const Settings = (() => {
   function init() {
     const b = document.createElement('button'); b.className = 'iconbtn'; b.id = 'setbtn'; b.title = 'Beállítások'; b.innerHTML = icon('gear', 20); b.onclick = menu;
     const mu = $('#mute'); mu.parentNode.insertBefore(b, mu); upd();
+    $$('.st-n').forEach(e => e.textContent = App.stations.filter(x => x.id !== 'info').length);
+    const pc = $('#parents-card'); if (pc && !$('#qr-card')) { const q = document.createElement('div'); q.id = 'qr-card'; q.innerHTML = `<div class="qr">${QR.svg(SITE_URL)}</div><div><h4>Nyisd meg a telefonodon is!</h4><p>Olvasd be a QR-kódot, és otthon is kipróbálhatod az összes játékot.</p><code>${SITE_URL.replace('https://', '')}</code></div>`; pc.after(q) }
     addEventListener('keydown', e => { if (e.ctrlKey && e.altKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setKiosk(!kiosk) } });
     addEventListener('pointerdown', () => { if (kiosk && !document.fullscreenElement) try { document.documentElement.requestFullscreen().catch(() => { }) } catch (e) { } }, { once: false, passive: true });
     setInterval(() => {
