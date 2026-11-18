@@ -75,7 +75,7 @@ App.add((() => {
         <h2 style="margin:0 0 10px;font-size:28px">Milyen erős a jelszavad?</h2>
         <input id="p-in" placeholder="Írj be egy jelszót…" autocomplete="off" spellcheck="false">
         <div class="p-warn">Ne a saját, igazi jelszavadat írd be! Találj ki egy hasonlót.</div>
-        <div class="p-ex">Próbáld ki: <button class="btn">123456</button><button class="btn">cica2012</button><button class="btn">Fradi!</button><button class="btn">K8#mq2Lp</button><button class="btn">Lila-Zsiráf-Biciklizik-7</button></div>
+        <div class="p-ex">Próbáld ki: <button class="btn">123456</button><button class="btn">cica2012</button><button class="btn">Fradi!</button><button class="btn">K8#mq2Lp</button><button class="btn">r7#Qm!x2V$k9</button><button class="btn">macska macska macska</button></div>
         <div id="p-res"><div id="p-face"></div><div style="color:var(--muted);font-size:16px">Egy profi törőgépnek ennyi idő kell:</div><div id="p-time">–</div>
           <div class="p-mb"><div id="p-meter"></div></div><div id="p-why"></div><div id="p-bits"></div></div>
         <button class="btn go" id="p-hack" style="margin-top:12px;width:100%">Indítsd a törőgépet!</button>
@@ -84,7 +84,7 @@ App.add((() => {
       <div class="panel">
         <h3 style="margin:0 0 8px;color:var(--yellow)">Jó jelszó ellenőrzőlista</h3><div id="p-checks"></div>
         <div class="learn"><b>A hossz a legfontosabb!</b> Minden új karakter sokszorosára növeli a lehetőségek számát.
-        Tipp: használj <b>jelmondatot</b>, például: <i>Lila-Zsiráf-Biciklizik-7</i>. Könnyű megjegyezni, de szinte feltörhetetlen.<br><br>
+        A profi jelszó <b>hosszú és véletlenszerű</b>: kis- és nagybetű, szám és írásjel keverve, például <i>r7#Qm!x2V$k9</i> (12 karakter). Ilyet egy <b>jelszókezelő</b> generál és jegyez meg helyetted.<br><br><b>Vigyázat:</b> attól, hogy több szót írsz egymás után, a jelszó nem lesz automatikusan erős! A törőprogramok szótárakkal dolgoznak, ezért a közismert szavak, nevek és ismétlések (pl. <i>macska macska macska</i>) sokkal gyorsabban kiderülnek, mint amit itt a hossz alapján látsz. Ha jelmondatot használsz, legalább 4-5 <b>véletlenszerű, egymáshoz nem illő</b> szó legyen, számmal és írásjellel.<br><br>
         A számítás feltételezi, hogy a támadó másodpercenként <b>100 milliárd</b> jelszót próbál ki (videókártyás törőgéppel), és a jelszavak felét kell végigpróbálnia.<br><br>
         Még biztonságosabb: <b>kétlépcsős azonosítás</b> és <b>jelszókezelő</b> program. Minden oldalhoz más jelszót használj!</div>
       </div>
