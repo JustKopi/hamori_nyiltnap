@@ -1,137 +1,199 @@
-/* ===== 12. Programozd a robotot! – algoritmus, ciklus, Python ===== */
+/* ===== Programozd a robotot! – blokkos programozás, ciklus, feltétel, Python ===== */
 App.add((() => {
   const S = {
     id: 'robot', icon: '', title: 'Programozd a robotot!', color: '#c084fc',
-    desc: 'Rakd össze a programot, és vezesd el a robotot a töltőig! A kódot Pythonban is látod.',
-    topic: 'Programozás Pythonban, algoritmusok, ciklusok, függvények'
+    desc: '8 pálya: rakd össze a programot blokkokból, gyűjtsd össze a kristályokat, és vezesd a robotot a töltőre! A kódot Pythonban is látod.',
+    topic: 'Programozás Pythonban, algoritmusok, ciklusok, feltételek'
   };
-  // pálya = megoldás lépései (E=előre, J=jobbra, B=balra); a robot jobbra néz induláskor
-  const LEVELS = [
-    { sol: 'EEEE', max: 1, tip: 'Egy parancs elég: az „előre” lépésszámát a ×-gombbal növelheted!' },
-    { sol: 'EEEJEEE', max: 3, tip: 'Előre, fordulj, megint előre!' },
-    { sol: 'EEJEEBEEE', max: 5, tip: 'Két fordulóra lesz szükség.' },
-    { sol: 'EBEJEBEJEBEJ', max: 4, rep: true, tip: 'Lépcső! Ugyanaz ismétlődik… használd a ismétlést!' },
-    { sol: 'EEJEEBEEJEEBEEJEEB', max: 5, rep: true, tip: 'Cikk-cakk. Keresd meg az ismétlődő mintát!' },
-    { sol: 'EEEEEJEEEEJEEEJEEJE', max: 9, tip: 'Csiga-spirál – a nagy finálé! ' },
+  const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]]; // K, D, Ny, É
+  const LV = [
+    { n: 'Első lépések', d: 0, par: 4, blocks: ['fwd', 'left', 'right'], txt: 'A robot jobbra néz. Tegyél be annyi <b>Előre</b> blokkot, hogy elérje a töltőt!', map: ['#######', '#S...G#', '#######'] },
+    { n: 'Kanyar', d: 0, par: 5, blocks: ['fwd', 'left', 'right', 'rep'], txt: 'Új blokk: <b>Ismételd</b>. Ami benne van, annyiszor fut le, ahányat beállítasz. Így rövidebb lesz a program!', map: ['#######', '#S...##', '####.##', '####.##', '####G##', '#######'] },
+    { n: 'Kristályok', d: 0, par: 2, blocks: ['fwd', 'left', 'right', 'rep'], txt: 'A töltő csak akkor kapcsol be, ha <b>minden kristályt</b> összeszedtél!', map: ['#########', '#S.*.*.G#', '#########'] },
+    { n: 'Lépcső', d: 0, par: 6, blocks: ['fwd', 'left', 'right', 'rep'], txt: 'Keresd a <b>mintát</b>! Ami ismétlődik, azt tedd egy Ismételd blokkba.', map: ['########', '#S.#####', '##..####', '###..###', '####..##', '#####.G#', '########'] },
+    { n: 'Okos robot', d: 0, par: 4, blocks: ['fwd', 'left', 'right', 'rep', 'while', 'if'], txt: 'Új blokkok: <b>Amíg nem ér célba</b> és <b>Ha fal van előtte</b>. Így a robot maga dönt! Próbáld: amíg nincs cél → ha fal van, fordulj jobbra → előre.', map: ['#######', '#S....#', '#####.#', '#G....#', '#######'] },
+    { n: 'Körbe-körbe', d: 1, par: 4, blocks: ['fwd', 'left', 'right', 'rep', 'while', 'if'], txt: 'A robot most <b>lefelé</b> néz. Melyik irányba kell fordulnia a falnál?', map: ['#######', '#SG*..#', '#.###.#', '#*###*#', '#.###.#', '#.....#', '#######'] },
+    { n: 'Kígyó', d: 0, par: 14, blocks: ['fwd', 'left', 'right', 'rep', 'while', 'if'], txt: 'Itt a falnál hol jobbra, hol balra kell fordulni. Használj több <b>Ismételd</b> blokkot!', map: ['#########', '#S......#', '#######.#', '#.......#', '#.#######', '#......G#', '#########'] },
+    { n: 'Csigaház', d: 0, par: 4, blocks: ['fwd', 'left', 'right', 'rep', 'while', 'if'], txt: 'A nagy finálé: egy csigaház sok kristállyal. Elég 4 blokk, ha okosan programozol!', map: ['#########', '#S..*...#', '#######.#', '#..*..#.#', '#.###.#*#', '#*#G..#.#', '#.#####.#', '#..*....#', '#########'] }
   ];
-  let lv = 0, prog = [], repeat = 1, run = null, robot, grid, goal, cells, bounds, C, ctx, T = 0, trail = [], done = store.get('robot-done', []);
-  const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1]; // 0 jobb, 1 le, 2 bal, 3 fel
-  function build() {
-    const L = LEVELS[lv]; let x = 0, y = 0, d = 0; cells = new Set(['0,0']);
-    for (const c of L.sol) { if (c === 'E') { x += DX[d]; y += DY[d]; cells.add(x + ',' + y) } else if (c === 'J') d = (d + 1) % 4; else d = (d + 3) % 4 }
-    goal = { x, y }; const xs = [...cells].map(s => +s.split(',')[0]), ys = [...cells].map(s => +s.split(',')[1]);
-    bounds = { x0: Math.min(...xs) - 1, y0: Math.min(...ys) - 1, x1: Math.max(...xs) + 1, y1: Math.max(...ys) + 1 };
-    robot = { x: 0, y: 0, d: 0, ax: 0, ay: 0, ad: 0, crash: 0, win: 0 }; trail = [];
+  const BL = {
+    fwd: { n: 'Előre', py: 'robot.elore()', c: '#5b9dff' }, left: { n: 'Fordulj balra', py: 'robot.balra()', c: '#a78bfa' }, right: { n: 'Fordulj jobbra', py: 'robot.jobbra()', c: '#a78bfa' },
+    rep: { n: 'Ismételd', c: '#fbbf24', box: 1 }, while: { n: 'Amíg nem ér célba', py: 'while not robot.celnal():', c: '#fb923c', box: 1 }, if: { n: 'Ha fal van előtte', py: 'if robot.fal_elotte():', c: '#4ade80', box: 1 }
+  };
+  let C, ctx, lv = 0, L, grid, rb, gems, prog = [], target = null, run = null, T = 0, uid = 0, results = [], racing = false, best = 0, lvT = 0, totT = 0, msg = null;
+  const mk = k => ({ id: ++uid, k, n: k === 'rep' ? 3 : 0, body: BL[k].box ? [] : null });
+  function load(i) {
+    lv = i; L = LV[i]; grid = L.map.map(r => r.split('')); gems = 0;
+    grid.forEach((r, y) => r.forEach((c, x) => { if (c === 'S') rb = { x, y, d: L.d, ax: x, ay: y, ad: L.d * 90 }; if (c === '*') gems++ }));
+    prog = []; target = null; run = null; lvT = 0; msg = null; render(); $('#rb-ov').classList.remove('show');
   }
-  function code() {
-    const lines = ['from robot import *', ''];
-    const ind = repeat > 1 ? '    ' : '';
-    if (repeat > 1) lines.push(`<k>for</k> i <k>in</k> <f>range</f>(<n>${repeat}</n>):`);
-    if (!prog.length) lines.push(ind + '<c># ide kerülnek a parancsok</c>');
-    prog.forEach(p => lines.push(ind + (p.c === 'E' ? `<f>elore</f>(<n>${p.n}</n>)` : p.c === 'J' ? '<f>jobbra</f>()' : '<f>balra</f>()')));
-    $('#ro-code').innerHTML = lines.join('\n');
-    const L = LEVELS[lv]; $('#ro-cnt').innerHTML = `Sorok: <b style="color:${prog.length > L.max ? 'var(--red)' : 'var(--green)'}">${prog.length}</b> / ${L.max} `;
-    $('#ro-prog').innerHTML = prog.map((p, i) => `<div class="ro-blk ${p.c}" data-i="${i}"><span>${icon(p.c === 'E' ? 'up' : p.c === 'J' ? 'turnR' : 'turnL', 18, 2.2)} ${p.c === 'E' ? 'előre' : p.c === 'J' ? 'jobbra' : 'balra'}</span>${p.c === 'E' ? `<button class="ro-n" data-i="${i}">×${p.n}</button>` : ''}<button class="ro-x" data-i="${i}" aria-label="törlés">${icon('x', 14, 2.4)}</button></div>`).join('') || '<div style="color:var(--muted);padding:8px">Kattints a parancsokra lent! </div>';
-    $$('.ro-n').forEach(b => b.onclick = () => { const p = prog[+b.dataset.i]; p.n = p.n % 9 + 1; sfx.click(); code() });
-    $$('.ro-x').forEach(b => b.onclick = () => { prog.splice(+b.dataset.i, 1); sfx.click(); code() });
-    $('#ro-rep').innerHTML = `${icon('repeat', 18, 2)} Ismételd az egészet: ${repeat}×`; $('#ro-rep').classList.toggle('sel', repeat > 1);
-  }
-  function add(c) { if (run) return; const last = prog[prog.length - 1]; if (c === 'E' && last && last.c === 'E' && false) last.n++; else prog.push({ c, n: 1 }); sfx.click(); code() }
-  function start() {
-    if (run || !prog.length) return; build(); const steps = [];
-    for (let r = 0; r < repeat; r++) for (const p of prog) { if (p.c === 'E') for (let k = 0; k < p.n; k++) steps.push('E'); else steps.push(p.c) }
-    run = { steps, i: 0, t: 0 }; beep(500, .1, 'triangle', .06, 300);
-  }
-  function stepRun(dt) {
-    if (!run) return; run.t += dt; if (run.t < .32) return; run.t = 0;
-    if (robot.x === goal.x && robot.y === goal.y && run.i > 0) return win();
-    if (run.i >= run.steps.length) { run = null; sfx.bad(); toast('Elfogytak a parancsok, de a robot nem ért oda. Próbáld újra!', '#fbbf24'); return }
-    const s = run.steps[run.i++];
-    if (s === 'E') {
-      const nx = robot.x + DX[robot.d], ny = robot.y + DY[robot.d];
-      if (!cells.has(nx + ',' + ny)) { robot.crash = 1; run = null; sfx.pop(); toast('Bumm! A robot falnak ütközött.', '#f87171'); return }
-      trail.push([robot.x, robot.y]); robot.x = nx; robot.y = ny; beep(600, .04, 'square', .03);
-    } else { robot.d = s === 'J' ? (robot.d + 1) % 4 : (robot.d + 3) % 4; beep(400, .04, 'square', .03) }
-    if (robot.x === goal.x && robot.y === goal.y) win();
-  }
-  function win() {
-    run = null; robot.win = 1; sfx.win(); FX.confetti();
-    const L = LEVELS[lv], star = prog.length <= L.max; if (!done.includes(lv)) { done.push(lv); store.set('robot-done', done) }
-    setTimeout(() => {
-      const o = $('#ro-over'); o.style.display = 'flex';
-      o.innerHTML = `<div class="card"><h2>Feltöltve!</h2><div class="big" style="display:flex;gap:6px;justify-content:center;color:var(--yellow)">${icon('star', 52, 1.6).repeat(star ? 3 : 1)}</div>
-      <p>${star ? `Szuper! ${prog.length} sorból megoldottad.` : `Sikerült! De meg tudod oldani ${L.max} sorból is? Használd az ismétlést!`}</p>
-      <div style="display:flex;gap:10px;justify-content:center">${lv < LEVELS.length - 1 ? '<button class="btn go" id="ro-next">KÖVETKEZŐ PÁLYA ▶</button>' : '<p><b>Az összes pályát teljesítetted! Igazi programozó vagy!</b></p>'}<button class="btn" id="ro-retry">Újra ezt</button></div>
-      <div class="learn">Amit most csináltál, az egy <b>algoritmus</b>: lépések pontos sorrendje. A <b>for</b> ciklus ismétel, az <b>elore(3)</b> pedig egy <b>függvény</b>, aminek paramétert adunk. Pythonban a technikusok így automatizálják a munkájukat, például a hálózati eszközök beállítását.</div></div>`;
-      $('#ro-retry').onclick = () => { o.style.display = 'none'; build() };
-      const n = $('#ro-next'); if (n) n.onclick = () => { o.style.display = 'none'; setLevel(lv + 1) };
-    }, 700);
-  }
-  function setLevel(i) { lv = i; prog = []; repeat = 1; run = null; build(); code(); levels(); $('#ro-tip').textContent = '' + LEVELS[lv].tip; $('#ro-rep').style.display = LEVELS[lv].rep || lv >= 3 ? '' : 'none' }
-  function levels() { $('#ro-lv').innerHTML = LEVELS.map((_, i) => `<button class="btn ${i === lv ? 'sel' : ''}" data-l="${i}">${done.includes(i) ? '' : ''}${i + 1}</button>`).join(''); $$('[data-l]').forEach(b => b.onclick = () => setLevel(+b.dataset.l)) }
-  function drawBattery(x, y, cs) {
-    const w = cs * .32, h = cs * .56; ctx.save(); ctx.shadowColor = '#4ade80'; ctx.shadowBlur = 16 + Math.sin(T * 4) * 8;
-    ctx.fillStyle = '#d4d7de'; rrect(ctx, x - w * .2, y - h / 2 - 5, w * .4, 6, 2); ctx.fill(); ctx.fillStyle = '#1c1f26'; rrect(ctx, x - w / 2, y - h / 2, w, h, 6); ctx.fill(); ctx.shadowBlur = 0;
-    ctx.strokeStyle = '#d4d7de'; ctx.lineWidth = 2.5; ctx.stroke(); const lv = .55 + Math.sin(T * 3) * .25; ctx.fillStyle = '#4ade80'; rrect(ctx, x - w / 2 + 4, y + h / 2 - 4 - (h - 8) * lv, w - 8, (h - 8) * lv, 3); ctx.fill(); ctx.restore();
-  }
-  function drawBot(cs, win) {
-    const s = cs * .62; ctx.fillStyle = '#9aa0ab'; ctx.fillRect(-1.5, -s * .62, 3, s * .16); ctx.fillStyle = '#f87171'; ctx.beginPath(); ctx.arc(0, -s * .64, s * .06, 0, 7); ctx.fill();
-    const g = ctx.createLinearGradient(0, -s / 2, 0, s / 2); g.addColorStop(0, '#e5e7eb'); g.addColorStop(1, '#9aa0ab'); ctx.fillStyle = g; rrect(ctx, -s / 2, -s * .46, s, s * .86, s * .2); ctx.fill();
-    ctx.fillStyle = '#1c1f26'; rrect(ctx, -s * .38, -s * .32, s * .76, s * .4, s * .12); ctx.fill();
-    ctx.fillStyle = win ? '#4ade80' : '#5b9dff'; for (const ex of [-s * .16, s * .16]) { ctx.beginPath(); if (win) ctx.arc(ex, -s * .1, s * .08, Math.PI, 0); else ctx.arc(ex, -s * .12, s * .07, 0, 7); ctx.fill() }
-    ctx.fillStyle = '#6b7180'; rrect(ctx, -s * .22, s * .16, s * .44, s * .08, 3); ctx.fill();
-  }
-  function draw(dt) {
-    const W = C.W, H = C.H; ctx.clearRect(0, 0, W, H);
-    const gw = bounds.x1 - bounds.x0 + 1, gh = bounds.y1 - bounds.y0 + 1, cs = Math.min((W - 20) / gw, (H - 20) / gh, 90);
-    const ox = (W - gw * cs) / 2 - bounds.x0 * cs, oy = (H - gh * cs) / 2 - bounds.y0 * cs;
-    for (let y = bounds.y0; y <= bounds.y1; y++) for (let x = bounds.x0; x <= bounds.x1; x++) {
-      const on = cells.has(x + ',' + y); ctx.fillStyle = on ? '#262a33' : '#101216';
-      rrect(ctx, ox + x * cs + 2, oy + y * cs + 2, cs - 4, cs - 4, 8); ctx.fill();
-      if (!on) { ctx.fillStyle = '#ffffff08'; ctx.fillRect(ox + x * cs + cs * .2, oy + y * cs + cs * .45, cs * .6, cs * .1) }
+  function resetRobot() { grid = L.map.map(r => r.split('')); gems = 0; grid.forEach((r, y) => r.forEach((c, x) => { if (c === 'S') rb = { x, y, d: L.d, ax: x, ay: y, ad: L.d * 90 }; if (c === '*') gems++ })) }
+  const cell = (x, y) => (grid[y] || [])[x] || '#';
+  const wallAhead = () => cell(rb.x + DIRS[rb.d][0], rb.y + DIRS[rb.d][1]) === '#';
+  const atGoal = () => cell(rb.x, rb.y) === 'G' && gems === 0;
+  const count = list => list.reduce((a, b) => a + 1 + (b.body ? count(b.body) : 0), 0);
+  function* exec(list) {
+    for (const b of list) {
+      if (b.k === 'fwd' || b.k === 'left' || b.k === 'right') yield b.k;
+      else if (b.k === 'rep') for (let i = 0; i < b.n; i++) yield* exec(b.body);
+      else if (b.k === 'while') { let g = 0; while (!atGoal()) { if (++g > 120 || !b.body.length) { yield 'loop'; return } yield* exec(b.body); yield 'tick' } }
+      else if (b.k === 'if') { if (wallAhead()) yield* exec(b.body) }
     }
-    ctx.fillStyle = '#a78bfa55'; trail.forEach(([x, y]) => { ctx.beginPath(); ctx.arc(ox + x * cs + cs / 2, oy + y * cs + cs / 2, cs * .1, 0, 7); ctx.fill() });
-    ctx.font = `${cs * .6}px "Segoe UI Emoji","Noto Color Emoji",serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    drawBattery(ox + goal.x * cs + cs / 2, oy + goal.y * cs + cs / 2, cs);
-    const k = Math.min(1, dt * 12); robot.ax += (robot.x - robot.ax) * k; robot.ay += (robot.y - robot.ay) * k;
-    let td = robot.d * 90; while (td - robot.ad > 180) td -= 360; while (td - robot.ad < -180) td += 360; robot.ad += (td - robot.ad) * k;
-    const rx = ox + robot.ax * cs + cs / 2, ry = oy + robot.ay * cs + cs / 2;
-    ctx.save(); ctx.translate(rx, ry); if (robot.crash) { ctx.rotate(Math.sin(T * 30) * .2); robot.crash = Math.max(0, robot.crash - dt) }
-    drawBot(cs, robot.win);
-    ctx.rotate(robot.ad * Math.PI / 180); ctx.fillStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(cs * .48, 0); ctx.lineTo(cs * .34, -cs * .1); ctx.lineTo(cs * .34, cs * .1); ctx.fill();
+  }
+  function start() {
+    if (run || !prog.length) { if (!prog.length) toast('Előbb rakj össze egy programot!', '#fbbf24'); return }
+    resetRobot(); msg = null; run = { g: exec(prog), steps: 0, anim: 0, act: null }; sfx.click(); render();
+  }
+  function step() {
+    const r = run.g.next(); run.steps++;
+    if (r.done) return finish(atGoal());
+    const a = r.value;
+    if (a === 'tick') return step();
+    if (a === 'loop') return finish(false, 'A ciklus nem ér véget – a robot nem jut el a célba (végtelen ciklus).');
+    if (run.steps > 400) return finish(false, 'Túl sok lépés – lehet, hogy végtelen ciklus van a programban?');
+    if (a === 'left') { rb.d = (rb.d + 3) % 4; beep(500, .05, 'triangle', .04) }
+    if (a === 'right') { rb.d = (rb.d + 1) % 4; beep(560, .05, 'triangle', .04) }
+    if (a === 'fwd') {
+      const nx = rb.x + DIRS[rb.d][0], ny = rb.y + DIRS[rb.d][1];
+      if (cell(nx, ny) === '#') { run.bonk = 1; beep(150, .2, 'sawtooth', .07); return finish(false, 'Bumm! A robot falnak ütközött.') }
+      rb.x = nx; rb.y = ny; beep(700, .03, 'square', .03);
+      if (grid[ny][nx] === '*') { grid[ny][nx] = '.'; gems--; sfx.ok(); FX.burst && 0 }
+      if (cell(nx, ny) === 'G' && gems === 0) { run.anim = .25; return finish(true) }
+    }
+    run.anim = .28;
+  }
+  function finish(ok, why) {
+    const r = run; run = null;
+    if (ok) {
+      const n = count(prog), st = n <= L.par ? 3 : n <= L.par + 3 ? 2 : 1, tb = Math.max(0, Math.round(90 - lvT)), pts = st * 100 + tb * 2;
+      results[lv] = Math.max(results[lv] || 0, pts); sfx.win(); FX.confetti();
+      const last = lv === LV.length - 1;
+      ov(`<div class="w-k">Pálya teljesítve</div><h2>${L.n}</h2><div class="w-stars">${[1, 2, 3].map(i => icon('star', 46, 2).replace('<svg', `<svg class="${i <= st ? 'on' : ''}"`)).join('')}</div>
+        <p>${n} blokkból állt a programod. ${st < 3 ? `${L.par} blokkból is megoldható – az 3 csillagot ér!` : 'Tökéletes, rövidebb nem is lehetne!'}</p><p style="font-size:14px;color:var(--muted)">${st * 100} pont + ${tb * 2} időbónusz = <b style="color:var(--text)">${pts} pont</b></p>
+        <div class="w-b"><button class="btn" id="rb-re">Újra</button><button class="btn go" id="rb-nx">${last ? 'Összesítés' : 'Következő pálya'}</button></div>`);
+      $('#rb-re').onclick = () => { $('#rb-ov').classList.remove('show'); resetRobot() }; $('#rb-nx').onclick = () => last ? final() : load(lv + 1);
+    } else {
+      msg = why || (cell(rb.x, rb.y) === 'G' ? `Még ${gems} kristály hiányzik!` : 'A program véget ért, de a robot nem ért a töltőre.'); sfx.bad();
+    }
+    render();
+  }
+  function final() {
+    const tot = results.reduce((a, b) => a + (b || 0), 0); best = Math.max(best, tot);
+    if (racing) { racing = false; $('#rb-ov').classList.remove('show'); Comp.finish(tot, `${LV.length} pálya, ${Math.round(totT)} másodperc`); results = []; load(0); return }
+    ov(`<div class="w-k">Minden pálya kész!</div><h2>${tot} pont</h2><div class="w-tbl">${LV.map((l, i) => `<div><span>${i + 1}. ${l.n}</span><b>${results[i] || 0}</b></div>`).join('')}</div>
+      <div class="learn">Ezt tanultad: <b>utasítások sorrendje</b> (algoritmus), <b>ciklus</b> (for, while) és <b>feltétel</b> (if). Ugyanezek az alapjai minden programnak, a játékoktól a hálózatautomatizálásig. A képzésben <b>Pythonban</b> programoznak.</div>
+      <div class="w-b"><button class="btn go" id="rb-ag">Újrakezdés</button></div>`);
+    $('#rb-ag').onclick = () => { results = []; load(0) };
+  }
+  function ov(h) { const o = $('#rb-ov'); o.innerHTML = `<div class="w-card">${h}</div>`; o.classList.add('show') }
+
+  /* ---- program-szerkesztő ---- */
+  function find(list, id) { for (const b of list) { if (b.id === id) return [list, b]; if (b.body) { const r = find(b.body, id); if (r) return r } } return null }
+  function add(k) { if (run) return; const list = target ? (find(prog, target) || [, { body: prog }])[1].body : prog; if (count(prog) >= 40) return; list.push(mk(k)); beep(800, .04, 'triangle', .04); if (BL[k].box) target = list[list.length - 1].id; render() }
+  function blockHtml(b, depth) {
+    const B = BL[b.k], tgt = target === b.id;
+    const head = `<div class="rb-b" style="--c:${B.c}" data-bid="${b.id}"><span class="rb-bn">${B.n}${b.k === 'rep' ? ` <button class="rb-m" data-dec="${b.id}">−</button><b>${b.n}×</b><button class="rb-m" data-inc="${b.id}">+</button>` : ''}</span><button class="rb-x" data-del="${b.id}">×</button></div>`;
+    if (!b.body) return head;
+    return `<div class="rb-box ${tgt ? 'tgt' : ''}" style="--c:${B.c}">${head}<div class="rb-in" data-tg="${b.id}">${b.body.map(x => blockHtml(x, depth + 1)).join('') || '<div class="rb-ph">kattints ide, majd egy blokkra</div>'}</div></div>`;
+  }
+  function py(list, ind = '') {
+    return list.map(b => {
+      if (b.k === 'rep') return `${ind}<span class="k">for</span> i <span class="k">in</span> range(${b.n}):\n${py(b.body, ind + '    ') || ind + '    pass'}`;
+      if (b.body) return `${ind}${BL[b.k].py.replace(/^(while not|if)/, '<span class="k">$1</span>')}\n${py(b.body, ind + '    ') || ind + '    pass'}`;
+      return `${ind}${BL[b.k].py}`;
+    }).join('\n');
+  }
+  function render() {
+    if (!$('#rb-prog')) return;
+    $('#rb-lv').innerHTML = LV.map((l, i) => `<span class="${i === lv ? 'on' : results[i] ? 'done' : ''}">${i + 1}</span>`).join('');
+    $('#rb-t').textContent = `${lv + 1}. pálya: ${L.n}`; $('#rb-txt').innerHTML = L.txt;
+    $('#rb-pal').innerHTML = L.blocks.map(k => `<button class="rb-pb" data-add="${k}" style="--c:${BL[k].c}">${BL[k].n}</button>`).join('');
+    $('#rb-prog').innerHTML = `<div class="rb-main ${!target ? 'tgt' : ''}" data-tg="0">${prog.map(b => blockHtml(b, 0)).join('') || '<div class="rb-ph">Kattints a fenti blokkokra a program összerakásához!</div>'}</div>`;
+    $('#rb-py').innerHTML = `<span class="c"># ${L.n}</span>\n` + (py(prog) || '<span class="c"># (üres program)</span>');
+    $('#rb-cnt').innerHTML = `${count(prog)} blokk • 3 csillaghoz: ${L.par}`;
+    $('#rb-msg').innerHTML = msg ? `<div class="rb-err">${msg}</div>` : '';
+    $('#rb-run').disabled = !!run;
+    $$('[data-add]').forEach(e => e.onclick = () => add(e.dataset.add));
+    $$('[data-tg]').forEach(e => e.onclick = ev => { if (ev.target !== e) return; target = +e.dataset.tg || null; render() });
+    $$('.rb-b').forEach(e => e.onclick = ev => { if (ev.target.tagName === 'BUTTON') return; const f = find(prog, +e.dataset.bid); if (f && f[1].body) { target = f[1].id; render() } });
+    $$('[data-del]').forEach(e => e.onclick = () => { if (run) return; const f = find(prog, +e.dataset.del); if (f) { f[0].splice(f[0].indexOf(f[1]), 1); if (target && !find(prog, target)) target = null; render() } });
+    $$('[data-inc]').forEach(e => e.onclick = () => { const f = find(prog, +e.dataset.inc); f[1].n = Math.min(9, f[1].n + 1); render() });
+    $$('[data-dec]').forEach(e => e.onclick = () => { const f = find(prog, +e.dataset.dec); f[1].n = Math.max(1, f[1].n - 1); render() });
+    $('#rb-time').textContent = racing ? `Verseny: ${Math.round(totT)} mp` : '';
+  }
+  /* ---- rajz ---- */
+  function draw() {
+    const W = C.W, H = C.H; ctx.clearRect(0, 0, W, H);
+    const gw = grid[0].length, gh = grid.length, s = Math.min((W - 40) / gw, (H - 40) / gh, 86), ox = (W - gw * s) / 2, oy = (H - gh * s) / 2;
+    for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+      const c = grid[y][x], px = ox + x * s, py = oy + y * s;
+      if (c === '#') { ctx.fillStyle = '#262a35'; rrect(ctx, px + 2, py + 2, s - 4, s - 4, 8); ctx.fill(); ctx.fillStyle = '#323745'; rrect(ctx, px + 2, py + 2, s - 4, s * .55, 8); ctx.fill(); continue }
+      ctx.fillStyle = (x + y) % 2 ? '#15171d' : '#181b22'; ctx.fillRect(px, py, s, s);
+      if (c === 'G') { const on = gems === 0; ctx.fillStyle = on ? 'rgba(74,222,128,.25)' : 'rgba(255,255,255,.06)'; rrect(ctx, px + 6, py + 6, s - 12, s - 12, 12); ctx.fill(); ctx.strokeStyle = on ? '#4ade80' : '#555b68'; ctx.lineWidth = 3; ctx.stroke(); drawIcon(ctx, 'bolt', px + s / 2, py + s / 2, s * .45, on ? '#4ade80' : '#6b7180', 2) }
+      if (c === '*') { const b = Math.sin(T * 3 + x) * 3; ctx.save(); ctx.translate(px + s / 2, py + s / 2 + b); ctx.shadowColor = '#22d3ee'; ctx.shadowBlur = 18; ctx.fillStyle = '#67e8f9'; ctx.beginPath(); ctx.moveTo(0, -s * .26); ctx.lineTo(s * .18, 0); ctx.lineTo(0, s * .26); ctx.lineTo(-s * .18, 0); ctx.closePath(); ctx.fill(); ctx.restore() }
+    }
+    // robot (simított mozgás)
+    const k = Math.min(1, 12 * (1 / 60)); rb.ax += (rb.x - rb.ax) * .25; rb.ay += (rb.y - rb.ay) * .25;
+    let td = rb.d * 90; while (td - rb.ad > 180) td -= 360; while (td - rb.ad < -180) td += 360; rb.ad += (td - rb.ad) * .25;
+    const cx = ox + rb.ax * s + s / 2, cy = oy + rb.ay * s + s / 2, r = s * .34;
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(rb.ad * Math.PI / 180);
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(0, r * .9, r, r * .3, 0, 0, 7); ctx.fill();
+    const g = ctx.createLinearGradient(0, -r, 0, r); g.addColorStop(0, '#d8b4fe'); g.addColorStop(1, '#7c3aed'); ctx.fillStyle = g; rrect(ctx, -r, -r, r * 2, r * 2, r * .45); ctx.fill();
+    ctx.fillStyle = '#1e1b2e'; rrect(ctx, r * .05, -r * .62, r * .8, r * 1.24, r * .3); ctx.fill();
+    ctx.fillStyle = msg ? '#f87171' : '#67e8f9'; ctx.beginPath(); ctx.arc(r * .45, -r * .3, r * .15, 0, 7); ctx.arc(r * .45, r * .3, r * .15, 0, 7); ctx.fill();
     ctx.restore();
   }
   S.build = root => {
     root.innerHTML = `<style>
-      #ro-wrap{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:12px;padding:12px}
-      #ro-map{position:relative;border-radius:18px;background:#0b0c0f;border:1px solid var(--line);min-height:0}
-      #ro-side{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
-      #ro-lv{display:flex;gap:6px;flex-wrap:wrap}#ro-lv .btn{padding:6px 12px;font-size:16px}
-      #ro-prog{display:flex;flex-direction:column;gap:5px;max-height:240px;overflow:auto}
-      .ro-blk{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;font-weight:800;font-size:17px;border:2px solid}
-      .ro-blk.E{border-color:var(--cyan);background:#12304a}.ro-blk.J{border-color:var(--orange);background:#3a2312}.ro-blk.B{border-color:var(--pink);background:#3a1230}
-      .ro-blk span{flex:1;display:flex;gap:6px;align-items:center}.ro-n,.ro-x{font:inherit;font-size:15px;border-radius:8px;border:1px solid var(--line);background:#101216;color:var(--text);cursor:pointer;padding:4px 10px}
-      .ro-n{color:var(--yellow)}
-      #ro-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}#ro-btns .btn{font-size:17px;padding:12px 4px;display:flex;gap:6px;align-items:center;justify-content:center}
-      #ro-code{font-family:var(--mono);font-size:16px;background:#08090b;border-radius:12px;padding:12px;white-space:pre;color:#c9ccd3;margin:0;overflow:auto;min-height:90px}
-      #ro-code k{color:#ff79c6}#ro-code f{color:#50fa7b}#ro-code n{color:#fbbf24}#ro-code c{color:#6272a4}
+      #rb-wrap{position:absolute;inset:0;display:grid;grid-template-columns:360px minmax(0,1fr) 300px;gap:12px;padding:12px}
+      .rb-p{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px;min-height:0}
+      #rb-cv{position:relative;border-radius:16px;overflow:hidden;background:#0e1014;border:1px solid var(--line)}
+      #rb-lv{display:flex;gap:5px}#rb-lv span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:1px solid var(--line2);color:var(--muted);font-size:13px}
+      #rb-lv span.on{background:var(--accent);color:#0b0c0f;border-color:var(--accent)}#rb-lv span.done{border-color:var(--green);color:var(--green)}
+      #rb-t{font-size:18px;font-weight:800}#rb-txt{font-size:14px;color:#c9ccd3;line-height:1.45}
+      #rb-pal{display:flex;flex-wrap:wrap;gap:6px}.rb-pb{border:none;cursor:pointer;font:600 14px Inter,sans-serif;color:#0b0c0f;background:var(--c);border-radius:10px;padding:8px 12px}.rb-pb:hover{filter:brightness(1.12)}
+      #rb-prog{flex:1;overflow:auto;min-height:0}
+      .rb-main{min-height:100%;border:2px dashed transparent;border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:5px}.rb-main.tgt{border-color:#3b3f4c}
+      .rb-b{display:flex;align-items:center;justify-content:space-between;background:var(--c);color:#0b0c0f;border-radius:9px;padding:6px 8px 6px 12px;font-weight:700;font-size:14px;cursor:default}
+      .rb-bn{display:flex;gap:6px;align-items:center}.rb-m{border:none;background:rgba(0,0,0,.2);color:#0b0c0f;border-radius:6px;width:22px;height:22px;font-weight:800;cursor:pointer}
+      .rb-x{border:none;background:rgba(0,0,0,.18);color:#0b0c0f;border-radius:6px;width:24px;height:24px;font-size:16px;font-weight:800;cursor:pointer}
+      .rb-box{border-left:6px solid var(--c);border-radius:10px;background:color-mix(in srgb,var(--c) 8%,transparent)}.rb-box>.rb-b{border-radius:9px 9px 9px 0;cursor:pointer}
+      .rb-box.tgt{box-shadow:0 0 0 2px var(--c)}
+      .rb-in{padding:6px 0 6px 12px;display:flex;flex-direction:column;gap:5px;min-height:30px}
+      .rb-ph{font-size:12.5px;color:var(--muted);padding:6px}
+      #rb-py{flex:1;margin:0;font:14px/1.5 var(--mono);background:#08090b;border-radius:12px;padding:12px;overflow:auto;color:#e5e7eb;white-space:pre}#rb-py .k{color:#c084fc}#rb-py .c{color:#6b7180}
+      #rb-ctl{display:flex;gap:6px}#rb-ctl .btn{flex:1;height:46px;font-size:16px}
+      .rb-err{background:#2a0f14;border:1px solid #7f1d1d;color:#fca5a5;border-radius:10px;padding:8px 10px;font-size:14px}
+      #rb-cnt{font-size:13px;color:var(--muted)}#rb-time{font-size:15px;font-weight:800;color:var(--yellow)}
+      #rb-ov{position:absolute;inset:0;z-index:5;display:none;place-items:center;background:rgba(6,7,9,.6);backdrop-filter:blur(4px)}#rb-ov.show{display:grid}
+      #st-robot .w-card{width:min(540px,92%);background:var(--panel);border:1px solid var(--line2);border-radius:22px;padding:26px 28px;text-align:center}
+      #st-robot .w-card h2{margin:4px 0 10px;font-size:30px}#st-robot .w-k{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+      #st-robot .w-stars{display:flex;justify-content:center;gap:10px;margin:8px 0}#st-robot .w-stars svg{color:#3a3f4a}#st-robot .w-stars svg.on{color:var(--yellow);fill:var(--yellow)}
+      #st-robot .w-b{display:flex;gap:10px;justify-content:center;margin-top:14px}#st-robot .w-b .btn{height:46px;padding:0 20px}
+      #st-robot .w-tbl{margin:12px 0;text-align:left}#st-robot .w-tbl div{display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid var(--line)}
     </style>
-    <div id="ro-wrap"><div id="ro-map"></div>
-      <div id="ro-side">
-        <div class="panel"><div style="display:flex;justify-content:space-between;align-items:center"><b>Pálya:</b><span id="ro-cnt"></span></div><div id="ro-lv" style="margin-top:6px"></div><div id="ro-tip" style="margin-top:6px;color:var(--yellow)"></div></div>
-        <div class="panel"><b>A programod</b><div id="ro-prog" style="margin-top:6px"></div></div>
-        <div id="ro-btns"><button class="btn" data-c="E">${icon('up', 18, 2.2)} előre</button><button class="btn" data-c="B">${icon('turnL', 18, 2.2)} balra</button><button class="btn" data-c="J">${icon('turnR', 18, 2.2)} jobbra</button></div>
-        <button class="btn" id="ro-rep"></button>
-        <div style="display:flex;gap:6px"><button class="btn go" id="ro-run" style="flex:2">▶ FUTTATÁS</button><button class="btn" id="ro-clr" style="flex:1">Törlés</button></div>
-        <div><b style="font-size:14px;color:var(--muted)">Ugyanez Pythonban:</b><pre id="ro-code"></pre></div>
-      </div></div><div class="big-overlay" id="ro-over" style="display:none"></div>`;
-    C = makeCanvas($('#ro-map')); ctx = C.ctx;
-    $$('[data-c]', root).forEach(b => b.onclick = () => add(b.dataset.c));
-    $('#ro-rep').onclick = () => { if (run) return; repeat = repeat % 5 + 1; sfx.click(); code() };
-    $('#ro-run').onclick = start; $('#ro-clr').onclick = () => { if (run) return; prog = []; repeat = 1; build(); code() };
-    setLevel(0);
+    <div id="rb-wrap">
+      <div class="rb-p"><div id="rb-lv"></div><div id="rb-t"></div><div id="rb-txt"></div><div id="rb-pal"></div><div id="rb-prog"></div><div id="rb-cnt"></div></div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-height:0"><div id="rb-cv" style="flex:1"></div><div id="rb-msg"></div>
+        <div id="rb-ctl"><button class="btn go" id="rb-run">${icon('play', 18)} Futtatás</button><button class="btn" id="rb-rs">${icon('refresh', 18)} Robot vissza</button><button class="btn" id="rb-cl">${icon('trash', 18)} Program törlése</button></div></div>
+      <div class="rb-p"><b style="font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Python-kód</b><pre id="rb-py"></pre><div id="rb-time"></div>
+        <div class="learn" style="margin-top:0;font-size:13px">A blokkok mögött igazi <b>Python</b>-kód van. A <b>for</b> ciklus megadott számszor ismétel, a <b>while</b> addig, amíg a feltétel igaz, az <b>if</b> pedig csak akkor fut, ha a feltétel teljesül.</div></div>
+    </div><div id="rb-ov"></div>`;
+    C = makeCanvas($('#rb-cv')); ctx = C.ctx;
+    $('#rb-run').onclick = start; $('#rb-rs').onclick = () => { run = null; msg = null; resetRobot(); render() };
+    $('#rb-cl').onclick = () => { if (run) return; prog = []; target = null; msg = null; resetRobot(); render() };
+    load(0);
   };
   S.resize = () => C && C.resize();
-  S.tick = dt => { T += dt; stepRun(dt); draw(dt) };
+  S.enter = () => { setTimeout(() => C && C.resize(), 30) };
+  S.tick = dt => {
+    T += dt; if (!C || !grid) return;
+    if (!$('#rb-ov').classList.contains('show')) { lvT += dt; if (racing) totT += dt }
+    if (run) { run.anim -= dt; if (run.anim <= 0) step() }
+    draw(); if (racing && Math.random() < .1) $('#rb-time').textContent = `Verseny: ${Math.round(totT)} mp`;
+  };
+  S.comp = { rules: 'Oldd meg mind a 8 pályát egymás után! Pályánként csillag jár a rövid programért, és időbónusz a gyorsaságért. Az összpontszám kerül a ranglistára.', start: () => { racing = true; totT = 0; results = []; load(0) } };
+  S.score = () => results.reduce((a, b) => a + (b || 0), 0) || best;
+  S._dbg = { set: p => { prog = p; render() }, mk, load: i => load(i), start, get run() { return run }, get msg() { return msg } };
   return S;
 })());
