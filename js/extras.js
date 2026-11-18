@@ -1,0 +1,68 @@
+/* ===== Beállítások, kioszk mód, gyenge gépes mód, első lépés súgó ===== */
+ICON_PATHS.gear = '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>';
+window.LOWFX = store.get('lowfx', false);
+
+const Tut = (() => {
+  // állomásonként 3 rövid lépés: mi a cél, hogyan kell irányítani, mire figyelj
+  const T = {
+    internet: [['Mi ez?', 'Az üzenetek kis <b>csomagokra</b> bomlanak, és routereken át utaznak.'], ['Próbáld ki', 'Írj üzenetet és nyomd meg az <b>Üzenet</b> gombot, vagy indíts <b>Videót</b>!'], ['Kísérletezz', 'Kattints egy kábelre az <b>Ollóval</b>, és nézd, hogyan talál új utat a csomag.']],
+    router: [['Te vagy a router', 'Minden csomagon van egy <b>cél IP-cím</b>.'], ['Irányítás', 'Nyilakkal vagy kattintással küldd a jó kimenetre. A bal felső <b>útvonaltábla</b> segít.'], ['Pontok', 'Gyorsaság és kombó = több pont. Rossz válasz: −3 mp.']],
+    kapcsolo: [['Két fül', 'Fent választhatsz: <b>VLAN és STP bemutató</b> vagy <b>Szabad labor</b>.'], ['Szabad labor', 'Tegyél le eszközöket, a <b>Kábel</b> eszközzel kösd össze őket, és adj IP-címet.'], ['Ping', 'A <b>Ping</b> eszközzel kattints két gépre: kiderül, látják-e egymást.']],
+    wifi: [['Válassz nehézséget', '<b>Könnyű</b> vagy <b>Nehéz</b> mód – a nehéz tényleg nehéz!'], ['Tervezés', 'Húzd a routert, vegyél eszközöket, húzz kábelt, válassz sávot és csatornát.'], ['Teszt', 'A <b>Teszt</b> alatt élőben zavar a mikró, a szomszéd WiFi és az emberek.']],
+    tuzfal: [['Te vagy a tűzfal', 'Csomagok jönnek a szerverek felé.'], ['Irányítás', 'Kattints vagy húzd az egeret a <b>veszélyes</b> csomagokon – a lézer megsemmisíti őket.'], ['Vigyázz', 'A hasznos forgalmat engedd át, különben a szerverek megsínylik!']],
+    jelszo: [['Jelszó-mérő', 'Írj be egy <b>kitalált</b> jelszót (ne a sajátodat!).'], ['Figyeld', 'Megmutatja, mennyi idő alatt törhetné fel egy erős gép.'], ['Tipp', 'A hossz és a véletlenszerűség számít a legjobban.']],
+    terminal: [['Parancssor', 'Itt <b>gépeléssel</b> irányítod a gépet, mint a rendszergazdák.'], ['Küldetések', 'Jobbra választhatsz: <b>Éjszakai riasztás</b> vagy <b>Kódfejtő</b>.'], ['Elakadtál?', 'Kattints a <b>Tipp</b> gombra, vagy írd be: <b>help</b>.']],
+    ugyelet: [['Ügyeletes rendszergazda', 'Hat szervered van, és jönnek a kérések is.'], ['Szerverek', 'Ha egy szerver piros, válaszd ki a jó eszközt lent, majd kattints a szerverre.'], ['Kérések', 'Jobbra e-mailek, chatek, hívások: nyisd meg, és válaszd a jó megoldást!']],
+    pc: [['Gépépítés', 'Vegyél alkatrészeket a <b>Webáruházban</b>, vagy teljesíts egy megrendelést.'], ['Szerelés', 'Kattints egy alkatrészre, majd a kék helyre – vagy <b>húzd rá</b>. A sárgán villogó csavarokat csavarhúzóval [S] kezeld.'], ['Kamera', 'Bal gomb: forgatás • jobb gomb: mozgatás • görgő: közelítés • X: röntgen.']],
+    felho: [['Felhő-üzemeltető', 'Ügyfelek virtuális gépeket kérnek.'], ['Irányítás', '<b>Húzd</b> a kérést egy zöld keretes szerverre.'], ['Spórolj', 'Az üres szervert kapcsold ki, a piros szerverről költöztesd el a gépeket!']],
+    robot: [['Programozás', 'Vezesd a robotot a töltőre, és szedd össze a kristályokat.'], ['Blokkok', 'Kattints a blokkokra a program összerakásához. Ismételd/Amíg/Ha blokkba is tehetsz.'], ['Futtatás', 'Nyomd meg a <b>Futtatás</b> gombot. Rövidebb program = több csillag.']],
+    weblap: [['Weblap-műhely', 'Bal oldalt szerkeszted az oldalad, középen látod, jobbra a kódját.'], ['Keretrendszerek', 'A kód fölött válthatsz: HTML, Bootstrap, Tailwind, React.'], ['Összehasonlítás', 'A <b>Melyik eszközzel?</b> fülön: oldalkészítő vs WordPress vs kézi kód.']],
+    kviz: [['Villámkvíz', '10 kérdés az informatikáról.'], ['Gyorsaság', 'Minden kérdésre 15 másodperc jut – a gyors válasz több pont.'], ['Verseny', 'A <b>Verseny</b> gombbal felkerülhetsz a ranglistára.']]
+  };
+  let seen = {};
+  function show(st, then) {
+    const steps = T[st.id]; if (!steps || seen[st.id]) { then && then(); return } seen[st.id] = 1; let i = 0;
+    let m = $('#tut'); if (!m) { m = document.createElement('div'); m.id = 'tut'; document.body.appendChild(m) }
+    const draw = () => {
+      const [h, t] = steps[i];
+      m.innerHTML = `<div class="tut-card"><div class="tut-k">${st.title} • ${i + 1}/${steps.length}</div><h3>${h}</h3><p>${t}</p><div class="tut-dots">${steps.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div><div class="tut-b"><button class="btn" id="tut-x">Kihagyom</button><button class="btn go" id="tut-n">${i < steps.length - 1 ? 'Tovább' : 'Kezdjük!'}</button></div></div>`;
+      m.classList.add('show'); $('#tut-x').onclick = done; $('#tut-n').onclick = () => { if (++i >= steps.length) done(); else { sfx.click(); draw() } };
+    };
+    const done = () => { m.classList.remove('show'); then && then() };
+    draw();
+  }
+  return { show, reset: () => { seen = {} }, close: () => { const m = $('#tut'); if (m) m.classList.remove('show') } };
+})();
+
+const Settings = (() => {
+  let kiosk = store.get('kiosk', false);
+  function upd() { const b = $('#setbtn'); if (b) b.style.display = kiosk ? 'none' : ''; document.body.classList.toggle('kiosk', kiosk) }
+  function setKiosk(v) { kiosk = v; store.set('kiosk', v); upd(); toast(v ? '<b>Kioszk mód bekapcsolva.</b> 2 perc tétlenség után visszaáll a főoldalra. Kikapcsolás: Ctrl + Alt + K' : 'Kioszk mód kikapcsolva.', '#5b9dff', 3500); if (v) try { document.documentElement.requestFullscreen().catch(() => { }) } catch (e) { } }
+  function menu() {
+    let m = $('#setm'); if (m) { m.remove(); return }
+    m = document.createElement('div'); m.id = 'setm';
+    m.innerHTML = `<h4>Beállítások</h4>
+      <label class="set-r"><span><b>Kioszk mód</b><small>Tétlenség után főoldal + új név. Ki: Ctrl+Alt+K</small></span><input type="checkbox" id="set-k" ${kiosk ? 'checked' : ''}></label>
+      <label class="set-r"><span><b>Gyenge gépes mód</b><small>Kevesebb effekt, árnyék nélküli 3D. Újratölti az oldalt.</small></span><input type="checkbox" id="set-l" ${window.LOWFX ? 'checked' : ''}></label>
+      <label class="set-r"><span><b>Saját Claude API-kulcs</b><small>Az AI-labor élő chatjéhez (csak ezen a gépen tárolódik)</small></span></label>
+      <input id="set-ai" type="password" placeholder="sk-ant-…" value="${store.get('aikey', '') ? '••••••••' : ''}" autocomplete="off">
+      <div class="set-b"><button class="btn" id="set-t">Súgók újra</button><button class="btn" id="set-x">Bezárás</button></div>`;
+    document.body.appendChild(m);
+    $('#set-k').onchange = e => setKiosk(e.target.checked);
+    $('#set-l').onchange = e => { store.set('lowfx', e.target.checked); location.reload() };
+    $('#set-ai').onchange = e => { const v = e.target.value.trim(); if (v && !v.startsWith('•')) { store.set('aikey', v); toast('API-kulcs elmentve ezen a gépen.', '#4ade80') } else if (!v) { store.set('aikey', ''); toast('API-kulcs törölve.', '#9aa0ab') } };
+    $('#set-ai').addEventListener('keydown', e => e.stopPropagation());
+    $('#set-t').onclick = () => { Tut.reset(); toast('A súgók újra megjelennek.', '#4ade80'); m.remove() }; $('#set-x').onclick = () => m.remove();
+  }
+  function init() {
+    const b = document.createElement('button'); b.className = 'iconbtn'; b.id = 'setbtn'; b.title = 'Beállítások'; b.innerHTML = icon('gear', 20); b.onclick = menu;
+    const mu = $('#mute'); mu.parentNode.insertBefore(b, mu); upd();
+    addEventListener('keydown', e => { if (e.ctrlKey && e.altKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setKiosk(!kiosk) } });
+    addEventListener('pointerdown', () => { if (kiosk && !document.fullscreenElement) try { document.documentElement.requestFullscreen().catch(() => { }) } catch (e) { } }, { once: false, passive: true });
+    setInterval(() => {
+      if (!kiosk || App.idle < 120) return;
+      if (location.hash || Comp.player) { App.idle = 0; Tut.close(); Tut.reset(); Comp.resetPlayer(); const s = $('#setm'); if (s) s.remove(); location.hash = ''; setTimeout(() => toast('<b>Szia!</b> Válassz egy állomást, és kezdődhet a játék!', '#5b9dff', 4000), 300) }
+    }, 1000);
+  }
+  return { init, get kiosk() { return kiosk } };
+})();

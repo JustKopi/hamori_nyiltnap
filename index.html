@@ -58,6 +58,17 @@ main{position:absolute;top:60px;left:0;right:0;bottom:0}
 #fx{position:fixed;inset:0;pointer-events:none;z-index:50;width:100%;height:100%}
 
 /* ---------- értesítés ---------- */
+#tut{position:fixed;inset:0;z-index:70;display:none;place-items:center;background:rgba(6,7,9,.55);backdrop-filter:blur(3px)}#tut.show{display:grid}
+.tut-card{width:min(440px,92%);background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 50%,var(--line));border-radius:20px;padding:22px 24px;box-shadow:0 30px 80px #000a;animation:tutIn .3s cubic-bezier(.2,.8,.2,1)}
+@keyframes tutIn{from{opacity:0;transform:translateY(14px) scale(.97)}}
+.tut-k{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent)}.tut-card h3{margin:6px 0 8px;font-size:24px}.tut-card p{margin:0;font-size:16.5px;line-height:1.5;color:#d1d5db}
+.tut-dots{display:flex;gap:6px;margin:16px 0 4px}.tut-dots i{width:8px;height:8px;border-radius:50%;background:var(--line2)}.tut-dots i.on{background:var(--accent);width:22px;border-radius:4px}
+.tut-b{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}.tut-b .btn{height:44px;padding:0 18px}
+#setm{position:fixed;top:64px;right:14px;z-index:80;width:320px;background:var(--panel);border:1px solid var(--line2);border-radius:16px;padding:14px 16px;box-shadow:0 20px 60px #000a}
+#setm h4{margin:0 0 8px;font-size:15px}.set-r{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.set-r b{display:block;font-size:14px}.set-r small{display:block;font-size:12px;color:var(--muted);line-height:1.35}.set-r input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+#set-ai{width:100%;margin-top:6px;padding:8px 10px;border-radius:9px;border:1px solid var(--line2);background:#101216;color:var(--text);font-family:var(--mono)}
+.set-b{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.set-b .btn{height:36px;font-size:14px;padding:0 12px}
 #toast{--tc:var(--accent);position:fixed;left:50%;top:76px;transform:translate(-50%,-16px);opacity:0;z-index:60;pointer-events:none;
   display:flex;align-items:center;gap:12px;background:rgba(28,31,38,.92);backdrop-filter:blur(12px);border:1px solid var(--line2);
   border-radius:999px;padding:12px 22px 12px 16px;font-size:17px;font-weight:500;transition:all .25s ease;max-width:90vw;box-shadow:0 20px 40px -10px #000a}
@@ -219,6 +230,7 @@ input[type=range]{accent-color:var(--accent)}
 <script src="js/core.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/comp.js"></script>
+<script src="js/extras.js"></script>
 <script src="js/net.js"></script>
 <script src="js/router.js"></script>
 <script src="js/lab.js"></script>
@@ -239,6 +251,6 @@ input[type=range]{accent-color:var(--accent)}
 <script src="js/web.js"></script>
 <script src="js/quiz.js"></script>
 <script src="js/info.js"></script>
-<script>App.init()</script>
+<script>App.init(); Settings.init()</script>
 </body>
 </html>

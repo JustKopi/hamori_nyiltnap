@@ -49,6 +49,7 @@ const FX = {
   init() { this.cv = $('#fx'); this.ctx = this.cv.getContext('2d'); this.resize(); addEventListener('resize', () => this.resize()) },
   resize() { const d = devicePixelRatio || 1; this.cv.width = innerWidth * d; this.cv.height = innerHeight * d; this.ctx.setTransform(d, 0, 0, d, 0, 0) },
   burst(x, y, n = 20, cols = ['#5b9dff', '#f472b6', '#fbbf24', '#4ade80', '#a78bfa', '#2dd4bf'], spd = 6) {
+    if (window.LOWFX) n = Math.ceil(n / 3);
     for (let k = 0; k < n; k++) {
       const a = Math.random() * Math.PI * 2, s = Math.random() * spd + 1;
       this.parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 2, life: 1, col: pick(cols), r: Math.random() * Math.PI, w: 4 + Math.random() * 5 })

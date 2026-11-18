@@ -690,9 +690,9 @@ App.add((() => {
     <div class="big-overlay" id="b3-over" style="display:none"></div>`;
     try {
       if (THREE.ColorManagement) THREE.ColorManagement.legacyMode = false;
-      renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+      renderer = new THREE.WebGLRenderer({ antialias: !window.LOWFX }); renderer.setPixelRatio(window.LOWFX ? 1 : Math.min(2, devicePixelRatio || 1));
       renderer.outputEncoding = THREE.sRGBEncoding; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
-      renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; $('#b3-cv').appendChild(renderer.domElement);
+      renderer.shadowMap.enabled = !window.LOWFX; renderer.shadowMap.type = THREE.PCFSoftShadowMap; $('#b3-cv').appendChild(renderer.domElement);
     } catch (e) { $('#b3-cv').innerHTML = '<div style="padding:60px;text-align:center;color:var(--muted)">A 3D-s nézethez WebGL-támogatású böngésző kell.</div>'; return }
     scene = new THREE.Scene(); scene.background = new THREE.Color('#0b0c0f'); scene.fog = new THREE.Fog('#0b0c0f', 24, 44);
     camera = new THREE.PerspectiveCamera(38, 1, .1, 100); ray = new THREE.Raycaster();

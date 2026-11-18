@@ -21,7 +21,7 @@ const Comp = (() => {
     const sm = $('#cmp-same'); if (sm) sm.onclick = () => { close(); upd(); then && then() };
   }
   function upd() { const r = $('#racebtn'), p = $('#plbtn'); if (r) r.style.display = cur && cur.comp ? '' : 'none'; if (p) { p.style.display = cur ? '' : 'none'; p.innerHTML = `${icon('user', 16)} ${esc(player || 'Névtelen')}` } }
-  function onEnter(st) { cur = st; racing = false; enterT = performance.now(); upd(); if (st && st.id !== 'info') askName(st) }
+  function onEnter(st) { cur = st; racing = false; enterT = performance.now(); upd(); if (st && st.id !== 'info') askName(st, () => typeof Tut !== 'undefined' && Tut.show(st)) }
   function onLeave(st) { if (!st) return; if (!racing && st.score) { const s = st.score(); if (s > 0) add(st.id, s, false) } racing = false; close(); cur = null; upd() }
   function race() {
     const st = cur; if (!st || !st.comp) return;
@@ -55,5 +55,6 @@ const Comp = (() => {
     $('#cmp-cl').onclick = close; $('#cmp-rs').onclick = () => { if ($('#cmp-rs').dataset.c) { save({}); board() } else { $('#cmp-rs').dataset.c = 1; $('#cmp-rs').textContent = 'Biztosan? Kattints újra' } };
     $('#cmp').firstChild.classList.add('wide');
   }
-  return { onEnter, onLeave, race, finish, board, get racing() { return racing }, get player() { return player } };
+  function resetPlayer() { player = ''; store.set('player', ''); upd() }
+  return { onEnter, onLeave, race, finish, board, resetPlayer, get racing() { return racing }, get player() { return player } };
 })();

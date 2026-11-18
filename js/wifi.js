@@ -153,7 +153,7 @@ App.add((() => {
     res.forEach(r => { r.got = Math.round(r.got || 0); r.ok = r.got >= r.d.need });
     return res;
   }
-  function buildHeat() { links(); const st = 2.5; heat = []; for (let y = 0; y < L.H; y += st) for (let x = 0; x < L.W; x += st) { let m = -999; for (const a of aps) if (a.ok) m = Math.max(m, rx(a, x + st / 2, y + st / 2)); heat.push([x, y, m]) } heat.st = st; dirty = false }
+  function buildHeat() { links(); const st = window.LOWFX ? 4 : 2.5; heat = []; for (let y = 0; y < L.H; y += st) for (let x = 0; x < L.W; x += st) { let m = -999; for (const a of aps) if (a.ok) m = Math.max(m, rx(a, x + st / 2, y + st / 2)); heat.push([x, y, m]) } heat.st = st; dirty = false }
   const col = r => { const t = clamp((r + 85) / 40, 0, 1); return `hsla(${t * 130},95%,55%,${.14 + t * .3})` };
   /* ---- kábel: L alakú útvonal, a kevesebb falfúrással ---- */
   function cablePath(a, b) {
