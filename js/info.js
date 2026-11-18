@@ -9,7 +9,7 @@ App.add((() => {
     ['internet', 'Az internet útja', 'Hálózatok felépítése, IP, TCP/UDP, sávszélesség, késleltetés, redundancia'],
     ['router', 'Légy te a router!', 'IPv4-címzés, CIDR-maszkok, útvonaltábla, leghosszabb egyezés, TTL'],
     ['kapcsolo', 'Kapcsoló-labor', 'VLAN-ok, STP, DHCP, és szabad hálózatépítés IP-címzéssel, átjáróval, pinggel'],
-    ['wifi', 'WiFi-tervező', 'Vezeték nélküli hálózatok, 802.11 szabványok, frekvenciasávok, mesh, lefedettségi terv'],
+    ['wifi', 'WiFi-tervező', 'Vezeték nélküli hálózatok, csatornatervezés, interferencia, mesh, kábelezés, költségkeret'],
     ['tuzfal', 'Te vagy a tűzfal!', 'Hálózatbiztonság, támadástípusok, tűzfal, vírusvédelem'],
     ['jelszo', 'Jelszó-törő', 'Biztonsági alapelvek, erős jelszavak, hitelesítés'],
     ['terminal', 'Parancssor-kaland', 'Linux/Windows parancssor: hibakeresés, átjáró, DNS, naplóelemzés, tűzfal, szolgáltatások, mentés'],

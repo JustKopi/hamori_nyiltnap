@@ -12,7 +12,7 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 | Az internet útja | csomagok, sávszélesség, késleltetés, redundancia, kábelezés |
 | Légy te a router! | IPv4, CIDR, útvonaltábla, leghosszabb egyezés, TTL |
 | Kapcsoló-labor | VLAN, STP, DHCP + szabad hálózatépítő labor (IP, átjáró, ping) |
-| WiFi-tervező | lefedettség, 2,4 / 5 GHz, mesh, 5 pálya |
+| WiFi-tervező | könnyű és nehéz mód: router, mesh, jelismétlő, kábeles AP, powerline, kábelezés, csatornák, valós idejű zavarok |
 | Te vagy a tűzfal! | támadástípusok, portok, DDoS |
 | Jelszó-törő | erős jelszavak, hitelesítés |
 | Parancssor-kaland | „Éjszakai riasztás” küldetéssor: átjáró, DNS, napló, tűzfal, szolgáltatások, mentés |
