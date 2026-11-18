@@ -32,8 +32,11 @@ App.add((() => {
     { k: 'Az út a képzésben', h: 'Két év alapozás, utána szakirány, a végén csapatban készült vizsgaremek.', steps: [['1–2. év', 'Alapok', 'Gépszerelés, hálózat, web, Python, elektronika'], ['Alapvizsga', 'Mérföldkő', 'Weboldal, program és hálózat a gyakorlatban'], ['Szakirány', 'Profi szinten', 'Nagyvállalati hálózat, szerverek, felhő, automatizálás'], ['Technikusi vizsga', 'Vizsgaremek', 'Egy cég teljes hálózata csapatban, angol bemutatással']] },
     { k: 'Valódi, ipari eszközökkel', h: 'Ugyanazt tanulják, amit a munkahelyeken használnak.', tags: ['Cisco routerek és kapcsolók', 'Hardveres tűzfal', 'Packet Tracer', 'Wireshark', 'Windows Server', 'Linux', 'Hyper-V, VMware', 'Docker, Kubernetes', 'AWS, Azure, Google Cloud', 'Python', 'Git, GitHub', 'Arduino, IoT'] },
     { k: 'Merre tovább?', h: 'Minden cégnek, iskolának és kórháznak kell valaki, aki az informatikát működteti.', cards: [['monitor', 'Rendszergazda', 'Cégek, iskolák, intézmények'], ['globe', 'Hálózati technikus', 'Internetszolgáltatók, távközlés'], ['phone', 'IT-támogatás', 'Helpdesk, ügyfélszolgálat'], ['school', 'Továbbtanulás', 'Felsőoktatás, informatikai szakok']] },
+    { k: 'Merre tovább?', h: 'A technikusi oklevéllel munkába állhatsz, vagy továbbtanulhatsz.', next: true },
     { k: 'Ma a nyílt napon', h: 'Minden állomás egy valódi tananyagrészt mutat be játékosan.', map: true }
   ];
+  // Helyi lehetőségek: ide írhatók a környékbeli partnercégek, gyakorlati helyek (ha üres, általános szöveg jelenik meg)
+  const LOCAL = [];
   let si = 0, auto = null;
   function slideHTML(d) {
     let b = '';
@@ -41,6 +44,9 @@ App.add((() => {
     if (d.cards) b = `<div class="sl-cards">${d.cards.map(([i, n, t]) => `<div><span class="sl-ic">${icon(i, 40, 1.6)}</span><b>${n}</b><span>${t}</span></div>`).join('')}</div>`;
     if (d.steps) b = `<div class="sl-steps">${d.steps.map(([y, n, t], i) => `<div><span class="sl-n">${i + 1}</span><em>${y}</em><b>${n}</b><span>${t}</span></div>`).join('')}</div>`;
     if (d.tags) b = `<div class="sl-tags">${d.tags.map(t => `<span>${t}</span>`).join('')}</div>`;
+    if (d.next) b = `<div class="sl-next"><div><h4>${icon('school', 26)} Továbbtanulás</h4><ul><li><b>Egyetem, főiskola:</b> mérnökinformatikus, programtervező informatikus, gazdaságinformatikus</li><li><b>Felsőoktatási szakképzés:</b> 2 év, utána beszámíthat az egyetemen</li><li><b>Nemzetközi minősítések:</b> Cisco CCNA, Microsoft, AWS, CompTIA</li></ul></div>
+      <div><h4>${icon('activity', 26)} Szakmai lépcső</h4><div class="sl-steps2">${['IT-támogatás (helpdesk)', 'Rendszergazda', 'Hálózati / rendszermérnök', 'Felhő-, DevOps- vagy biztonsági szakértő'].map((t, i) => `<div style="margin-left:${i * 1.6}vw"><span>${i + 1}</span>${t}</div>`).join('')}</div></div>
+      <div><h4>${icon('home', 26)} Gyakorlati helyek a környéken</h4>${LOCAL.length ? `<ul>${LOCAL.map(x => `<li>${x}</li>`).join('')}</ul>` : '<ul><li>Cégek és intézmények informatikai osztályai</li><li>Internetszolgáltatók, rendszerintegrátorok</li><li>Iskolák, önkormányzatok, kórházak IT-csapata</li></ul>'}</div></div>`;
     if (d.map) b = `<div class="sl-map">${MAP.map(([i, n, t]) => `<div><span class="sl-mi">${icon(i, 26)}</span><span><b>${n}</b><i>${t}</i></span></div>`).join('')}</div>`;
     return `<div class="sl-k">${d.k}</div><h1>${d.h}</h1>${b}`;
   }
@@ -98,10 +104,14 @@ App.add((() => {
       .sl-n{width:2.4em;height:2.4em;border-radius:50%;background:#60a5fa;color:#0b0c0f;display:grid;place-items:center;font-weight:800;font-size:clamp(14px,1.2vw,20px)}
       .sl-steps em{font-style:normal;color:#60a5fa;font-weight:700;font-size:clamp(13px,1.1vw,18px);text-transform:uppercase;letter-spacing:.05em}
       .sl-tags{display:flex;flex-wrap:wrap;gap:1vw}.sl-tags span{font-size:clamp(18px,1.9vw,32px);padding:.4em .9em;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.05)}
+      .sl-next{display:grid;grid-template-columns:1.1fr 1.1fr 1fr;gap:2vw}.sl-next>div{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:22px;padding:1.6vw 1.8vw}
+      .sl-next h4{display:flex;gap:.6vw;align-items:center;margin:0 0 1vw;font-size:clamp(18px,1.7vw,30px);color:#60a5fa}.sl-next ul{margin:0;padding-left:1.2em;font-size:clamp(14px,1.25vw,22px);line-height:1.5;color:#d1d5db}.sl-next li{margin:.4vw 0}.sl-next li b{color:#fff}
+      .sl-steps2 div{display:flex;gap:.8vw;align-items:center;font-size:clamp(14px,1.3vw,22px);margin:.6vw 0;color:#e5e7eb}.sl-steps2 span{width:2em;height:2em;border-radius:50%;background:#60a5fa;color:#0b0c0f;display:grid;place-items:center;font-weight:800;flex:none}
+      @media(max-width:900px){.sl-next{grid-template-columns:1fr}}
       .sl-map{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2vw 2vw}.sl-map>div{display:flex;gap:.8vw;align-items:center}
       .sl-mi{width:2.6em;height:2.6em;border-radius:14px;display:grid;place-items:center;background:rgba(96,165,250,.14);color:#60a5fa;flex:none}
       .sl-map b{display:block;font-size:clamp(15px,1.4vw,24px)}.sl-map i{font-style:normal;color:#9aa0ab;font-size:clamp(12px,1vw,17px)}
-      #sl-qr{position:absolute;right:3vw;bottom:2.5vh;display:flex;flex-direction:column;align-items:center;gap:6px;color:#9aa0ab;font-size:13px}#sl-qr svg{width:min(130px,11vw);height:auto;background:#fff;border-radius:10px;padding:6px}
+      #sl-qr{position:absolute;right:1.6vw;bottom:1.2vh;display:flex;flex-direction:column;align-items:center;gap:6px;color:#9aa0ab;font-size:13px}#sl-qr svg{width:min(96px,7vw);height:auto;background:#fff;border-radius:10px;padding:6px}
       #sl-bar{display:flex;gap:10px;align-items:center;padding:14px 22px;justify-content:center}
       #sl-dots{display:flex;gap:8px;margin:0 10px}#sl-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .3s}#sl-dots i.on{background:#60a5fa;width:28px;border-radius:5px}
       @media(max-width:900px){.sl-cards,.sl-steps{grid-template-columns:1fr 1fr}.sl-map{grid-template-columns:1fr 1fr}.sl-big{grid-template-columns:1fr}}
@@ -112,7 +122,7 @@ App.add((() => {
     <div id="in-wrap"><div id="in">
       <h2>Informatikai rendszer- és alkalmazás-üzemeltető technikus</h2>
       <p class="lead">Ő az, aki megtervezi, felépíti és működteti egy cég vagy iskola hálózatát, szervereit és felhőszolgáltatásait. Gondoskodik arról, hogy minden gép, program és internetkapcsolat biztonságosan működjön, és segít a kollégáknak, ha elakadnak.</p>
-      <div class="in-pres" id="in-pres"><span style="color:#60a5fa;flex:none">${icon('monitor', 34, 1.6)}</span><span><b>Kivetítős bemutató</b><span>6 dia nagy betűkkel, teljes képernyőn. Lapozás nyilakkal vagy kattintással, automatikus lapozás is van.</span></span><button class="btn go">Bemutató indítása</button></div>
+      <div class="in-pres" id="in-pres"><span style="color:#60a5fa;flex:none">${icon('monitor', 34, 1.6)}</span><span><b>Kivetítős bemutató</b><span>7 dia nagy betűkkel, teljes képernyőn. Lapozás nyilakkal vagy kattintással, automatikus lapozás is van.</span></span><button class="btn go">Bemutató indítása</button></div>
       <div class="in-facts">
         <div class="in-f"><b>5 év</b><span>technikumi képzés, érettségivel és technikusi szakképesítéssel</span></div>
         <div class="in-f"><b>2 év</b><span>érettségi után, csak szakmai képzésként</span></div>
