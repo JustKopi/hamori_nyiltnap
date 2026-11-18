@@ -75,7 +75,7 @@ App.add((() => {
         <h2 style="margin:0 0 10px;font-size:28px">Milyen erős a jelszavad?</h2>
         <input id="p-in" placeholder="Írj be egy jelszót…" autocomplete="off" spellcheck="false">
         <div class="p-warn">Ne a saját, igazi jelszavadat írd be! Találj ki egy hasonlót.</div>
-        <div class="p-ex">Próbáld ki: <button class="btn">123456</button><button class="btn">cica2012</button><button class="btn">Fradi!</button><button class="btn">K8#mq2Lp</button><button class="btn">r7#Qm!x2V$k9</button><button class="btn">macska macska macska</button></div>
+        <div class="p-ex">Próbáld ki: <button class="btn">123456</button><button class="btn">cica2012</button><button class="btn">Fradi!</button><button class="btn">K8#mq2Lp</button><button class="btn">r7#Qm!x2V$k9</button></div>
         <div id="p-res"><div id="p-face"></div><div style="color:var(--muted);font-size:16px">Egy profi törőgépnek ennyi idő kell:</div><div id="p-time">–</div>
           <div class="p-mb"><div id="p-meter"></div></div><div id="p-why"></div><div id="p-bits"></div></div>
         <button class="btn go" id="p-hack" style="margin-top:12px;width:100%">Indítsd a törőgépet!</button>
