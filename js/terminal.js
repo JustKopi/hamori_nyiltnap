@@ -25,6 +25,7 @@ App.add((() => {
     const [c0, ...args] = line.split(/\s+/), c = c0.toLowerCase(), a = args.join(' ');
     if (cisco) return runCisco(c, line);
     if (ST.on && await storyCmd(c, args, line)) return;
+    if (CT.on && await ctfCmd(c, args, line)) return;
     switch (c) {
       case 'help': case 'sugo': case 'súgó': case '?':
         print('Kipróbálható parancsok (kattintással is!):'); print(HELP.map(([k, d]) => `  <span class="t-k">${k.padEnd(24)}</span> ${d}`).join('\n'), 't-pre'); break;
@@ -85,7 +86,7 @@ App.add((() => {
       case 'python': case 'python3':
         print('Python 3.12 – írj egy sort, pl.: <b>print("Szia!")</b> vagy <b>2**100</b>'); $('#t-in').dataset.py = '1'; break;
       case 'matrix': startMatrix(); break;
-      case 'hack': await hack(); break;
+      case 'hack': case 'kodfejto': case 'kódfejtő': startCtf(); break;
       case 'enable': case 'ssh': case 'telnet':
         if (c === 'telnet') { print('Telnet? Titkosítatlan! A jelszavad lehallgatható. Használj inkább SSH-t: ssh admin@router', 't-err'); break }
         print('Csatlakozás a Cisco routerhez… <span class="t-ok">kapcsolódva</span> (Cisco IOS)'); cisco = 1; updPrompt(); print('Írd be: <b>enable</b>, majd <b>show ip route</b>, <b>show vlan</b> vagy <b>exit</b>'); break;
@@ -158,7 +159,8 @@ App.add((() => {
   ];
   function storyPanel() {
     const el = $('#t-story'); if (!el) return;
-    if (!ST.on) { el.innerHTML = `<div class="ts-k">Küldetés</div><h3>Éjszakai riasztás</h3><p>Hajnali kettő. Te vagy a Holdfény Kft. ügyeletes rendszergazdája, és megszólal a telefon… Hat valódi hibát kell elhárítanod <b>valódi parancsokkal</b>.</p><button class="btn go" id="ts-go">Küldetés indítása</button><p class="ts-s">Vagy gépelj szabadon: <b>help</b></p>`; $('#ts-go').onclick = () => startStory(false); return }
+    if (CT.on) return ctfPanel(el);
+    if (!ST.on) { el.innerHTML = `<div class="ts-k">Küldetés</div><h3>Éjszakai riasztás</h3><p>Hajnali kettő. Te vagy a Holdfény Kft. ügyeletes rendszergazdája, és megszólal a telefon… Hat valódi hibát kell elhárítanod <b>valódi parancsokkal</b>.</p><button class="btn go" id="ts-go">Küldetés indítása</button><div class="ts-k" style="margin-top:18px">Másik kihívás</div><h3>Kódfejtő</h3><p>Egy titkos szerver jelszava 4 darabban, négyféleképpen elrejtve: Caesar-rejtjel, Base64, bináris és hexadecimális. Fejtsd meg igazi parancsokkal!</p><button class="btn" id="ts-ctf">${icon('lock', 16)} Kódfejtő kihívás</button><p class="ts-s">Vagy gépelj szabadon: <b>help</b></p>`; $('#ts-go').onclick = () => startStory(false); $('#ts-ctf').onclick = () => { startCtf(); inp.focus() }; return }
     if (ST.step >= MS.length) { el.innerHTML = `<div class="ts-k">Küldetés teljesítve</div><h3>A Holdfény Kft. megmenekült!</h3><p>Idő: <b>${Math.floor(ST.t / 60)} perc ${Math.round(ST.t % 60)} mp</b> • tippek: ${ST.hints}</p><div class="learn" style="margin-top:6px">Ma éjjel ezt csináltad: <b>hálózati hibakeresés</b> (ping, ipconfig), <b>útválasztás</b> (átjáró), <b>névfeloldás</b> (DNS), <b>naplóelemzés és tűzfal</b>, <b>szolgáltatás-üzemeltetés</b> (systemctl, lemezterület) és <b>mentés</b>. Pontosan ezt tanulja egy rendszerüzemeltető!</div><button class="btn go" id="ts-go">Újrakezdés</button>`; $('#ts-go').onclick = () => startStory(false); return }
     const m = MS[ST.step];
     el.innerHTML = `<div class="ts-prog">${MS.map((_, i) => `<i class="${i < ST.step ? 'd' : i === ST.step ? 'c' : ''}"></i>`).join('')}</div>
@@ -235,6 +237,85 @@ App.add((() => {
     if (c === 'rm') { print('Itt csak az elszabadult naplófájlt szabad törölni: /var/log/hatalmas.log', 't-err'); return true }
     return false;
   }
+  /* ---- Kódfejtő kihívás: kódolás és titkosítás valódi parancsokkal ---- */
+  const rot13 = s => s.replace(/[a-z]/gi, ch => { const b = ch <= 'Z' ? 65 : 97; return String.fromCharCode((ch.charCodeAt(0) - b + 13) % 26 + b) });
+  const caesar = (s, k) => s.replace(/[a-z]/gi, ch => { const b = ch <= 'Z' ? 65 : 97; return String.fromCharCode(((ch.charCodeAt(0) - b - k) % 26 + 26) % 26 + b) });
+  const PARTS = ['KOD', 'HALOZAT', 'SZERVER', 'VEDELEM'];
+  const CF = {
+    'uzenet.txt': rot13(`Szia, kodfejto! Az elso jelszoresz: ${PARTS[0]}. A kovetkezo nyom a kulcs.b64 fajlban van.`),
+    'kulcs.b64': btoa(`A masodik resz: ${PARTS[1]}. A harmadik a binaris.txt fajlban rejtozik.`),
+    'binaris.txt': [...PARTS[2]].map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' '),
+    'hex.txt': [...PARTS[3]].map(c => c.charCodeAt(0).toString(16)).join(''),
+    'olvassel.txt': 'KÓDFEJTŐ KIHÍVÁS\n4 fájlban 4 jelszórész rejtőzik. Fejtsd meg őket sorban, aztán:\n  unlock RESZ1-RESZ2-RESZ3-RESZ4\nSegítség: tipp'
+  };
+  const CTS = [
+    { f: 'uzenet.txt', n: 'Caesar-rejtjel (ROT13)', tip: ['cat uzenet.txt', 'rot13 uzenet.txt'], learn: 'A <b>Caesar-rejtjel</b> minden betűt eltol az ábécében (itt 13-mal). Kétezer éves módszer – ma pillanatok alatt feltörhető, mert csak 25 féle eltolás van.' },
+    { f: 'kulcs.b64', n: 'Base64-kódolás', tip: ['cat kulcs.b64', 'base64 -d kulcs.b64'], learn: 'A <b>Base64</b> nem titkosítás, csak <b>kódolás</b>: bárki visszaalakíthatja, kulcs nélkül. E-mail-mellékleteknél és weboldalaknál használják.' },
+    { f: 'binaris.txt', n: 'Bináris számok', tip: ['cat binaris.txt', 'bin2txt binaris.txt'], learn: 'A számítógép mindent <b>0-k és 1-esek</b> formájában tárol. Egy betű 8 bit (1 bájt): az „S” betű például 01010011 (= 83).' },
+    { f: 'hex.txt', n: 'Hexadecimális', tip: ['cat hex.txt', 'xxd -r -p hex.txt'], learn: 'A <b>hexadecimális</b> (16-os) számrendszerben 2 jegy = 1 bájt. MAC-címek, színkódok (#ff0000) és memóriacímek is így néznek ki.' }
+  ];
+  const CT = { on: false, step: 0, found: [], t: 0, hints: 0 };
+  function startCtf() {
+    Object.assign(CT, { on: true, step: 0, found: [], t: 0, hints: 0 }); ST.on = false; out.innerHTML = '';
+    print('<div class="t-story">' + icon('lock', 18) + ' <b>KÓDFEJTŐ KIHÍVÁS</b> – egy titkos szerver jelszava 4 darabban, 4 különböző módon elrejtve.</div>');
+    print('Kezdd így: <span class="t-k">ls</span>, majd <span class="t-k">cat olvassel.txt</span>'); storyPanel(); beep(300, .2, 'sawtooth', .04); beep(600, .2, 'sawtooth', .04, 0, .15);
+  }
+  // „kirajzolódó” megfejtés: véletlen jelekből áll össze a szöveg
+  async function reveal(txt, cls = 't-ok') {
+    busy = true; const d = document.createElement('div'); d.className = cls + ' t-rev'; out.appendChild(d); const pool = '01#$%&@ABCDEFGHIJKLMNOPQRSTUVWXYZ<>/\\';
+    for (let k = 0; k <= 22; k++) { d.textContent = [...txt].map((c, i) => c === ' ' || i < txt.length * k / 22 ? c : pool[rnd(0, pool.length - 1)]).join(''); out.scrollTop = out.scrollHeight; if (k % 3 === 0) sfx.blip(); await new Promise(r => setTimeout(r, 40)) }
+    d.textContent = txt; busy = false;
+  }
+  async function found(i, txt) {
+    await reveal(txt);
+    if (!CT.found.includes(i)) { CT.found.push(i); CT.step = Math.max(CT.step, i + 1); sfx.ok(); print(`<div class="t-story ok">${icon('check', 18, 2.4)} ${i + 1}. jelszórész megtalálva: <b>${PARTS[i]}</b></div>`); print(`<div class="t-learn">${CTS[i].learn}</div>`); if (i === 2) print('Utolsó nyom: a <span class="t-k">hex.txt</span> fájl.') }
+    storyPanel();
+  }
+  const fileArg = a => (a || '').split(/\s+/).find(x => CF[x]);
+  async function ctfCmd(c, args, line) {
+    const l = line.trim(), a = args.join(' '), f = fileArg(a);
+    if (c === 'ls' || c === 'dir') { print(Object.keys(CF).map(k => k === 'olvassel.txt' ? `<span class="t-k">${k}</span>` : k).join('    ')); return true }
+    if ((c === 'cat' || c === 'type') && f) { print(esc(CF[f]), 't-pre'); if (f !== 'olvassel.txt') print(`<span class="t-d">Ez olvashatatlan… ${f === 'uzenet.txt' ? 'Mintha a betűk el lennének tolva. (rot13 vagy caesar)' : f === 'kulcs.b64' ? 'A .b64 végződés árulkodó. (base64 -d)' : f === 'binaris.txt' ? 'Csupa 0 és 1, 8-as csoportokban. (bin2txt)' : 'Csupa 0-9 és a-f karakter. (xxd -r -p)'}</span>`); return true }
+    if (c === 'rot13' || c === 'caesar') {
+      let k = 13, src = a; const km = a.match(/-k\s*(\d+)/); if (km) { k = +km[1]; src = a.replace(km[0], '').trim() }
+      const txt = CF[src.trim()] || src; if (!txt) { print('Használat: rot13 uzenet.txt  vagy  caesar -k 3 szöveg', 't-err'); return true }
+      const dec = c === 'rot13' ? rot13(txt) : caesar(txt, k);
+      if (src.trim() === 'uzenet.txt' && k === 13) { await found(0, dec); return true }
+      print(esc(dec), 't-pre'); if (src.trim() === 'uzenet.txt') print(`Ez még nem értelmes. Próbálj más eltolást! (a ROT13 = 13-mal tol)`, 't-err'); return true;
+    }
+    if (c === 'base64') { if (!/-d|--decode/.test(a) || !f) { print('Visszafejtés: base64 -d kulcs.b64', 't-err'); return true } try { const dec = atob(CF[f]); if (f === 'kulcs.b64') { await found(1, dec); return true } print(esc(dec)) } catch (e) { print('base64: érvénytelen bemenet', 't-err') } return true }
+    if (c === 'bin2txt' || c === 'binary') { if (!f) { print('Használat: bin2txt binaris.txt', 't-err'); return true } const dec = CF[f].split(/\s+/).map(b => String.fromCharCode(parseInt(b, 2))).join(''); if (f === 'binaris.txt') { print(CF[f].split(' ').map(b => `${b} = ${parseInt(b, 2)} = „${String.fromCharCode(parseInt(b, 2))}”`).join('\n'), 't-pre'); { await found(2, `A harmadik resz: ${dec}`); return true } } return true }
+    if (c === 'xxd' || c === 'hex2txt' || c === 'unhex') { if (!f) { print('Használat: xxd -r -p hex.txt', 't-err'); return true } const dec = CF[f].match(/../g).map(h => String.fromCharCode(parseInt(h, 16))).join(''); if (f === 'hex.txt') { await found(3, `A negyedik resz: ${dec}`); return true } return true }
+    if (c === 'tipp' || c === 'hint') { const s = CTS[Math.min(CT.step, 3)]; CT.hints++; if (CT.found.length === 4) print(`Írd be: <span class="t-k">unlock ${PARTS.join('-')}</span>`); else print(`Tipp: ${s.tip.map(t => `<span class="t-k">${t}</span>`).join(' , majd ')}`); return true }
+    if (c === 'unlock') {
+      if (a.toUpperCase() === PARTS.join('-')) { await finale(); return true }
+      print('HOZZÁFÉRÉS MEGTAGADVA. ' + (CT.found.length < 4 ? `Még ${4 - CT.found.length} jelszórész hiányzik.` : 'Formátum: unlock RESZ1-RESZ2-RESZ3-RESZ4'), 't-err'); sfx.bad(); return true;
+    }
+    if (c === 'hack') { print('Itt nem „hekkelünk”: fejtsd meg a fájlokat! Írd be: tipp', 't-k'); return true }
+    if (c === 'kilep' || c === 'exit') { CT.on = false; storyPanel(); print('Kiléptél a kihívásból.'); return true }
+    return false;
+  }
+  async function finale() {
+    busy = true; const box = $('#t-box'); box.classList.add('hack'); startMatrix();
+    await new Promise(r => setTimeout(r, 1800)); clearInterval(matrix); $('#t-mx').style.display = 'none';
+    print(`<pre class="t-big">█▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▄ █▀▀▄ ▄▀▀▄ ▄▀▀▄\n█▄▄▀ █▄▄█ █  █ █▄▄▀ █▄▄▀ █▄▄█ █▄▄▄\n▀    ▀  ▀ ▀  ▀ ▀ ▀▀ ▀    ▀  ▀ ▄▄▄▀</pre>`);
+    await reveal('HOZZÁFÉRÉS MEGADVA – A TITKOS SZERVER NYITVA', 't-ok t-huge');
+    const secs = Math.round(CT.t); print(`<div class="t-secret">Kódfejtő kihívás teljesítve!<br><small>${Math.floor(secs / 60)} perc ${secs % 60} mp • ${CT.hints} tipp</small></div>`);
+    print(`<div class="t-learn"><b>Mit tanultál?</b> A <b>kódolás</b> (Base64, bináris, hex) csak más formába írja az adatot – bárki visszaalakíthatja. A <b>titkosítás</b> kulcs nélkül megfejthetetlen: a Caesar-rejtjel ennek ősi, gyenge változata, ma <b>AES</b> és <b>RSA</b> védi a banki és üzenetküldő forgalmat. A rendszergazdák ezeket naponta használják: tanúsítványok, VPN, SSH-kulcsok.</div>`);
+    box.classList.remove('hack'); busy = false; sfx.win(); FX.confetti(); setTimeout(() => FX.confetti(), 500);
+    CT.done = true; CT.on = false; ctfBest = Math.max(ctfBest, Math.max(100, Math.round(1500 - secs * 3 - CT.hints * 100)));
+    if (CT.race) { CT.race = false; Comp.finish(Math.max(100, Math.round(1500 - secs * 3 - CT.hints * 100)), `Kódfejtő: ${Math.floor(secs / 60)} p ${secs % 60} mp, ${CT.hints} tipp`) }
+    storyPanel();
+  }
+  let ctfBest = 0;
+  function ctfPanel(el) {
+    el.innerHTML = `<div class="ts-k">Kódfejtő kihívás</div><h3>Titkos szerver</h3>
+      <div class="ts-prog">${CTS.map((_, i) => `<i class="${CT.found.includes(i) ? 'd' : i === CT.step ? 'c' : ''}"></i>`).join('')}</div>
+      ${CTS.map((s, i) => `<div class="ts-ct ${CT.found.includes(i) ? 'ok' : ''}"><b>${i + 1}. ${s.f}</b><span>${s.n}</span><em>${CT.found.includes(i) ? PARTS[i] : '????'}</em></div>`).join('')}
+      <div class="ts-goal"><b>Cél:</b> unlock ${CT.found.length ? PARTS.map((p, i) => CT.found.includes(i) ? p : '????').join('-') : '????-????-????-????'}</div>
+      <button class="btn" id="ts-h">${icon('bulb', 16)} Tipp</button><div class="ts-time" id="ts-time"></div>`;
+    $('#ts-h').onclick = () => { run('tipp'); inp.focus() };
+  }
   S.build = root => {
     root.innerHTML = `<style>
       #t-box{position:absolute;inset:14px 360px 92px 14px;background:#08090b;border:2px solid #1d3b2b;border-radius:14px;box-shadow:0 0 40px #4ade8022, inset 0 0 80px #4ade800a;overflow:hidden;display:flex;flex-direction:column;font-family:var(--mono)}
@@ -258,12 +339,16 @@ App.add((() => {
       .ts-goal{background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--yellow);border-radius:10px;padding:8px 10px;font-size:14px}
       #ts-hint{display:flex;flex-direction:column;gap:6px;margin-top:10px}#ts-hint .btn{font-family:var(--mono);font-size:13px;height:auto;padding:7px 10px;text-align:left;margin:0;white-space:normal}
       .ts-time{margin-top:12px;text-align:center;font-size:26px;font-weight:800;color:var(--yellow);font-variant-numeric:tabular-nums}
+      .t-rev{font-size:19px;font-weight:700;letter-spacing:.5px}.t-huge{font-size:26px;text-shadow:0 0 18px #4ade80}
+      .t-big{color:#4ade80;font-size:20px;line-height:1.05;text-shadow:0 0 14px #4ade8099;margin:8px 0}
+      .t-learn{font-family:Inter,sans-serif;font-size:14.5px;line-height:1.5;color:#d1d5db;border-left:3px solid #fbbf24;background:#16140c;padding:8px 12px;border-radius:0 8px 8px 0;margin:6px 0;white-space:normal}
+      .ts-ct{display:grid;grid-template-columns:1fr auto;gap:2px 8px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px}.ts-ct b{font-family:var(--mono);font-size:13.5px}.ts-ct span{grid-column:1;font-size:12.5px;color:var(--muted)}.ts-ct em{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;font-family:var(--mono);font-weight:800;color:#6b7180}.ts-ct.ok{border-color:#1f5134}.ts-ct.ok em{color:var(--green)}
       .t-story{font-family:Inter,sans-serif;font-size:15px;border:1px solid #2b3b5c;background:#101a2b;color:#cfe0ff;border-radius:10px;padding:8px 12px;margin:8px 0;display:flex;gap:8px;align-items:center}.t-story.ok{border-color:#1f5134;background:#0d2117;color:#86efac}
       #t-chips .btn{font-family:var(--mono);font-size:15px;padding:6px 10px;min-height:36px}
     </style>
     <div id="t-box"><div id="t-bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>&nbsp; diak@nyiltnap – terminál</div>
       <div id="t-out"></div><div id="t-line"><span id="t-pr"></span><input id="t-in" autocomplete="off" spellcheck="false" autocapitalize="off"></div><canvas id="t-mx"></canvas></div><div id="t-story"></div>
-    <div id="t-chips">${['help', 'ping google.com', 'tracert youtube.com', 'ipconfig', 'nslookup iskola.hu', 'ls', 'cat titok.txt', 'neofetch', 'docker run hello-world', 'enable', 'matrix', 'hack'].map(c => `<button class="btn">${c}</button>`).join('')}</div>`;
+    <div id="t-chips">${['help', 'ping google.com', 'tracert youtube.com', 'ipconfig', 'nslookup iskola.hu', 'ls', 'cat titok.txt', 'neofetch', 'docker run hello-world', 'enable', 'matrix', 'kodfejto'].map(c => `<button class="btn">${c}</button>`).join('')}</div>`;
     out = $('#t-out'); inp = $('#t-in'); updPrompt();
     print('<b style="color:#4ade80">Üdv a terminálban! </b> Itt <b>parancsokkal</b> irányítjuk a gépet – ahogy a rendszergazdák is.');
     print('Írd be: <span class="t-k">help</span> és nyomj Entert. Küldetés: találd meg a <span class="t-err">titkos fájlt</span>!');
@@ -279,7 +364,7 @@ App.add((() => {
     storyPanel();
   };
   S.enter = () => setTimeout(() => inp.focus(), 50);
-  S.tick = dt => { if (ST.on && ST.step < MS.length) { ST.t += dt; const e = $('#ts-time'); if (e) e.textContent = `${Math.floor(ST.t / 60)}:${String(Math.floor(ST.t % 60)).padStart(2, '0')}` } };
+  S.tick = dt => { if (CT.on) { CT.t += dt; const e = $('#ts-time'); if (e) e.textContent = `${Math.floor(CT.t / 60)}:${String(Math.floor(CT.t % 60)).padStart(2, '0')}` } if (ST.on && ST.step < MS.length) { ST.t += dt; const e = $('#ts-time'); if (e) e.textContent = `${Math.floor(ST.t / 60)}:${String(Math.floor(ST.t % 60)).padStart(2, '0')}` } };
   S.comp = { rules: 'Éjszakai riasztás: oldd meg a 6 egymás utáni feladatot valódi parancsokkal, a lehető leggyorsabban! Minden másodperc és minden kért tipp pontlevonással jár.', start: () => startStory(true) };
   S.score = () => best;
   S.leave = () => { clearInterval(matrix); $('#t-mx').style.display = 'none' };
