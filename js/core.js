@@ -99,6 +99,7 @@ const ICON_PATHS = {
   ugyelet: '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6"/>',
   pc: '<rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx=".5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',
   led: '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>',
+  felho: '<path d="M7 18a4.5 4.5 0 0 1-.5-8.97A6 6 0 0 1 18 8a4 4 0 0 1 .5 7.97"/><path d="M8 18h10"/>',
   iot: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M9.5 15a3.5 3.5 0 0 1 5 0M12 18h.01"/>',
   robot: '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4.5V8M9 13h.01M15 13h.01M9.5 16h5"/><circle cx="12" cy="3.5" r="1"/>',
   weblap: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 8.5h18M10 12.5l-2 2 2 2M14 12.5l2 2-2 2"/>',
@@ -114,12 +115,12 @@ const icon = (k, sz = 24, sw = 1.8) => `<svg width="${sz}" height="${sz}" viewBo
 const CATS = [
   ['net', 'Hálózatok', ['internet', 'router', 'kapcsolo', 'wifi']],
   ['sec', 'Biztonság', ['tuzfal', 'jelszo']],
-  ['ops', 'Rendszerüzemeltetés', ['terminal', 'ugyelet']],
-  ['hw', 'Hardver és elektronika', ['pc', 'iot']],
+  ['ops', 'Rendszerüzemeltetés és felhő', ['terminal', 'ugyelet', 'felho']],
+  ['hw', 'Hardver', ['pc']],
   ['dev', 'Programozás és web', ['robot', 'weblap']],
   ['quiz', 'Kvíz', ['kviz']],
 ];
-const MINS = { internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, led: 2, iot: 3, robot: 5, weblap: 3, kviz: 3 };
+const MINS = { internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, robot: 5, weblap: 3, kviz: 3 };
 
 /* ---- nyitólap: élő hálózat-illusztráció ---- */
 const Hero = {

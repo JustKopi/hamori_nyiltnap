@@ -15,7 +15,7 @@ App.add((() => {
     ['terminal', 'Parancssor-kaland', 'Linux/Windows parancssor: hibakeresés, átjáró, DNS, naplóelemzés, tűzfal, szolgáltatások, mentés'],
     ['ugyelet', 'Rendszergazda-ügyelet', 'Alkalmazás-üzemeltetés, monitorozás, virtualizáció, konténerek, mentés'],
     ['pc', 'Gépépítő műhely 3D', 'Számítógép felépítése, összeszerelés, alkatrészcsere, hibakeresés'],
-    ['iot', 'Okosotthon (IoT)', 'Dolgok internete, szenzorok, felhőszolgáltatások'],
+    ['felho', 'Felhő-üzemeltető', 'Virtualizáció, konténerek, felhőszolgáltatások, élő migráció, energiahatékonyság'],
     ['robot', 'Programozd a robotot!', 'Python programozás, algoritmusok, automatizálás'],
     ['weblap', 'Weblap-műhely', 'HTML5, CSS3, reszponzív weboldalak'],
   ];

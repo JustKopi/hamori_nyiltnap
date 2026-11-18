@@ -54,7 +54,7 @@ App.add((() => {
     }
     const open = G.tk.filter(t => !t.done);
     el.innerHTML = `<div class="o-ih">Beérkező kérések <span>${open.length}</span></div>` + (open.map(t => `<div class="o-tk ${t.ch} ${t.left < 6 ? 'urg' : ''}" data-t="${t.id}"><span class="o-chi ${t.ch}">${icon(CH[t.ch][0], 16)}</span><div class="o-tx"><b>${t.d[1]}</b><span>${t.d[2]}</span><i><em style="width:${t.left / t.sla * 100}%"></em></i></div></div>`).join('') || '<div class="o-empty">Nincs nyitott kérés. Figyeld a szervereket!</div>');
-    $$('.o-tk').forEach(e => e.onclick = () => { G.open = +e.dataset.t; sfx.click(); renderInbox() });
+    $$('.o-tk').forEach(e => e.onpointerdown = () => { G.open = +e.dataset.t; sfx.click(); renderInbox() });
   }
   function answer(t, o) {
     t.done = true; G.open = null;
@@ -72,7 +72,7 @@ App.add((() => {
       ${[['CPU', s.cpu], ['RAM', s.ram], ['Lemez', s.disk]].map(([k, v]) => `<div class="o-m"><span>${k}</span><div class="o-b"><i style="width:${v}%;background:${v > 85 ? 'var(--red)' : v > 65 ? 'var(--yellow)' : 'var(--green)'}"></i></div><span>${Math.round(v)}%</span></div>`).join('')}
       <div class="o-c">${'▣'.repeat(s.cont)} <span>${s.cont} konténer</span></div>
       <div class="o-p">${s.p ? PROB[s.p].t : 'Minden rendben'}</div></div>`).join('');
-    $$('.o-srv').forEach(e => e.onclick = () => { G.sel = +e.dataset.i; sfx.click(); tryFix() });
+    $$('.o-srv').forEach(e => e.onpointerdown = () => { G.sel = +e.dataset.i; sfx.click(); tryFix() });
   }
   function log(t, cls = '') { const l = $('#o-log'); const d = document.createElement('div'); d.className = cls; d.textContent = `${new Date().toLocaleTimeString('hu-HU')}  ${t}`; l.prepend(d); while (l.children.length > 30) l.lastChild.remove() }
   function tryFix() {
@@ -139,7 +139,7 @@ App.add((() => {
       #o-log .err{color:#ff8080}#o-log .ok{color:#4ade80}
       #o-inbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:6px}
       .o-ih{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between}.o-ih span{background:var(--red);color:#fff;border-radius:999px;padding:0 8px}
-      .o-tk{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:9px;cursor:pointer;animation:oIn .35s}
+      .o-tk{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:9px;cursor:pointer}
       .o-tk:hover{border-color:var(--line2)}.o-tk.urg{border-color:var(--red);animation:obad 1s infinite}
       @keyframes oIn{from{opacity:0;transform:translateX(20px)}}
       .o-chi{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none}.o-chi.mail{background:rgba(91,157,255,.15);color:#5b9dff}.o-chi.chat{background:rgba(74,222,128,.15);color:#4ade80}.o-chi.call{background:rgba(251,113,133,.18);color:#fb7185}

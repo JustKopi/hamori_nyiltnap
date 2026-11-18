@@ -18,6 +18,7 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 | Parancssor-kaland | Windows/Linux parancssor |
 | Rendszergazda-ügyelet | üzemeltetés, monitorozás |
 | Gépépítő műhely 3D | alkatrészek, összeszerelés, hibakeresés, rendszertelepítés |
+| Felhő-üzemeltető | virtualizáció, konténerek, élő migráció |
 | Programozd a robotot! | algoritmusok |
 | Weblap-műhely | HTML, CSS |
 | Villámkvíz | vegyes |
