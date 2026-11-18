@@ -14,7 +14,8 @@ App.add((() => {
   const CNAME = { c24: '24 tűs alaplapi tápkábel', ceps: '8 tűs processzor-tápkábel', cgpu: 'Videokártya-tápkábel', csata: 'SATA adat- és tápkábel', cfp: 'Előlapi csatlakozók (bekapcsológomb)', cfan: 'Processzorhűtő ventilátorkábele (CPU_FAN)' };
 
   let root, renderer, scene, camera, ray, T = 0, built = false;
-  const cam = { th: .62, ph: 1.08, r: 12.5, tgt: V(1.9, 1.7, -.3), goalTgt: V(1.9, 1.7, -.3), goalR: 12.5 };
+  const cam = { th: .62, ph: 1.08, r: 12.5, tgt: V(1.9, 1.7, -.3), goalTgt: V(1.9, 1.7, -.3), goalR: 12.5, vth: 0, vph: 0 };
+  let xray = true, shell = [];
   let rotors = [], rgbM = [], tweens = [], items = [], uidN = 1, slots = {}, conns = {}, cableMesh = {}, caseP = null, caseG = null, caseFans = [], panel = null, panelOpened = false;
   let paste = { state: 'none', p: null }, blob = null, os = new Set(), sel = null, ghosts = [], hover = null, tool = 'hand', auto = false, driver = null, busy = false;
   let powered = false, load = 0, monitorTex = null, monitorCtx = null, mode = 'orders', order = null, wallet = store.get('pc-wallet', 0), spent = 0, lastPost = null, sensors = null, shopCat = 'case', cart = [], filt = { col: 'all', rgb: false };
@@ -146,11 +147,13 @@ App.add((() => {
     if (caseG) { scene.remove(caseG); const old = caseFans.map(f => f.r); rotors = rotors.filter(r => !old.includes(r)) }
     caseP = p; caseFans = []; const { W, H, D, az, ay } = G(); caseG = new THREE.Group(); scene.add(caseG);
     const st = mat(p.col, { m: light(p.col) ? .15 : .35, r: .42 }), dark = mat(light(p.col) ? '#d0d3d9' : '#0f1013', { m: .3, r: .5 });
-    box(.05, H, D, st, -W / 2, H / 2, 0, caseG); box(W, .05, D, st, 0, .03, 0, caseG);
-    box(W, .05, D, mat(p.col, { r: .6, map: meshTex(p.col) }), 0, H, 0, caseG); box(W, H, .06, st, 0, H / 2, -D / 2, caseG);
+    shell = [];
+    const sh = (m, n) => { m.material = m.material.clone(); m.material.transparent = true; shell.push({ m, n }); return m };
+    sh(box(.05, H, D, st, -W / 2, H / 2, 0, caseG), V(-1, 0, 0)); box(W, .05, D, st, 0, .03, 0, caseG);
+    sh(box(W, .05, D, mat(p.col, { r: .6, map: meshTex(p.col) }), 0, H, 0, caseG), V(0, 1, 0)); sh(box(W, H, .06, st, 0, H / 2, -D / 2, caseG), V(0, 0, -1));
     if (p.glassFront) box(W, H, .04, mat('#9ec5ff', { op: .16, r: .05, m: 0 }), 0, H / 2, D / 2, caseG);
-    else if (p.wood) { box(W, H, .08, st, 0, H / 2, D / 2, caseG); box(W * .55, H * .92, .03, mat('#ffffff', { map: woodTex(), r: .7 }), -W * .1, H / 2, D / 2 + .05, caseG) }
-    else box(W, H, .08, mat(p.col, { r: .7, map: meshTex(p.col) }), 0, H / 2, D / 2, caseG);
+    else if (p.wood) { sh(box(W, H, .08, st, 0, H / 2, D / 2, caseG), V(0, 0, 1)); box(W * .55, H * .92, .03, mat('#ffffff', { map: woodTex(), r: .7 }), -W * .1, H / 2, D / 2 + .05, caseG) }
+    else sh(box(W, H, .08, mat(p.col, { r: .7, map: meshTex(p.col) }), 0, H / 2, D / 2, caseG), V(0, 0, 1));
     for (const [x, y, z, w, h, d] of [[W / 2, H, 0, .06, .06, D], [W / 2, .04, 0, .06, .06, D], [W / 2, H / 2, D / 2, .06, H, .06], [W / 2, H / 2, -D / 2, .06, H, .06]]) box(w, h, d, st, x, y, z, caseG);
     box(W - .1, .85, D - 1.9, dark, 0, .45, D / 2 - (D - 1.9) / 2 - .05, caseG);
     decal(caseG, 1.1, .4, textPanel(512, 180, light(p.col) ? '#d0d3d9' : '#0f1013', [{ t: p.name.split(' (')[0].toUpperCase(), s: 40, y: .5, c: light(p.col) ? '#55595f' : '#6b7180' }]), W / 2 - .045, .5, D / 2 - .9, Math.PI / 2);
@@ -519,6 +522,7 @@ App.add((() => {
     if (order && !order.repair) { const miss = ['mb', 'cpu', 'cooler', 'paste', 'ram', 'storage', 'psu'].filter(c => !has(c)); if (miss.length) out.push(['warn', 'Még hiányzik: ' + miss.map(c => PCCATS.find(x => x[0] === c)[1].toLowerCase()).join(', ')]) }
     return out;
   }
+  const MULTI = ['ram', 'storage', 'fans'];
   function renderShop() {
     const free = free_(), budget = order ? order.budget : Infinity, tot = cart.reduce((s, c) => s + c.p.price, 0);
     const list = DB[shopCat].filter(p => (filt.col === 'all' || (filt.col === 'white' ? light(p.col) : !light(p.col))) && (!filt.rgb || p.rgb || (p.fans && p.fans.rgb)));
@@ -526,7 +530,7 @@ App.add((() => {
     $('#b3-shop').innerHTML = `<div class="b3-shopc"><div class="b3-sh"><div><div class="b3-st1">${icon('box', 22)} NYN Webáruház</div><div class="b3-st2">${free ? 'Szabad építés: minden ingyenes – kísérletezz!' : `Keret: ${huf(budget)} · eddig elköltve: ${huf(spent)}`} · Az árak tájékoztató jellegűek.</div></div><button class="iconbtn" id="b3-shx">${icon('x', 18)}</button></div>
       <div class="b3-sbody"><div class="b3-tabs">${PCCATS.map(([k, n, ic]) => `<button class="b3-tab ${k === shopCat ? 'on' : ''}" data-c="${k}">${icon(ic, 18)} ${n}${cart.some(c => c.cat === k) ? icon('check', 14, 2.6) : ''}</button>`).join('')}</div>
       <div style="display:flex;flex-direction:column;min-height:0"><div class="b3-filt"><button class="chip ${filt.col === 'all' ? 'on' : ''}" data-f="all">Mind</button><button class="chip ${filt.col === 'black' ? 'on' : ''}" data-f="black">Sötét</button><button class="chip ${filt.col === 'white' ? 'on' : ''}" data-f="white">Fehér</button><button class="chip ${filt.rgb ? 'on' : ''}" data-f="rgb">RGB</button></div>
-      <div class="b3-prods">${list.map(p => { const c = compat(shopCat, p), inC = cart.filter(x => x.p === p).length; return `<div class="b3-prod ${inC ? 'on' : ''} ${c ? 'bad' : ''}" data-p="${p.id}"><div class="b3-sw" style="background:${p.col || '#333'}">${p.rgb || (p.fans && p.fans.rgb) ? '<i></i>' : ''}</div><div class="b3-pn">${p.name}</div><div class="b3-ps">${p.spec}</div>${c ? `<div class="b3-pc">${c}</div>` : ''}<div class="b3-pf"><b>${free ? 'ingyenes' : huf(p.price)}</b><span class="btn ${inC ? 'sel' : ''}">${inC ? 'Kosárban: ' + inC : 'Kosárba'}</span></div></div>` }).join('') || '<div class="b3-hint">Nincs ilyen termék ebben a kategóriában.</div>'}</div></div>
+      <div class="b3-prods">${list.map(p => { const c = compat(shopCat, p), inC = cart.filter(x => x.p === p).length; return `<div class="b3-prod ${inC ? 'on' : ''} ${c ? 'bad' : ''}" data-p="${p.id}"><div class="b3-sw" style="background:${p.col || '#333'}">${p.rgb || (p.fans && p.fans.rgb) ? '<i></i>' : ''}</div><div class="b3-pn">${p.name}</div><div class="b3-ps">${p.spec}</div>${c ? `<div class="b3-pc">${c}</div>` : ''}<div class="b3-pf"><b>${free ? 'ingyenes' : huf(p.price)}</b><span class="b3-pa">${inC && MULTI.includes(shopCat) ? `<span class="btn b3-plus" data-plus="${p.id}">+1</span>` : ''}<span class="btn ${inC ? 'sel' : ''}">${inC ? (MULTI.includes(shopCat) ? `${inC} db • kivesz` : 'Kosárban • kivesz') : 'Kosárba'}</span></span></div></div>` }).join('') || '<div class="b3-hint">Nincs ilyen termék ebben a kategóriában.</div>'}</div></div>
       <div class="b3-cart"><div class="b3-ct">Kosár</div>${cart.map((c, i) => `<div class="b3-cl"><span>${c.p.name}</span><b>${free ? '' : huf(c.p.price)}</b><button class="b3-rm" data-r="${i}">${icon('x', 12, 2.4)}</button></div>`).join('') || '<div class="b3-hint">A kosár üres.</div>'}
         ${free ? '' : `<div class="b3-tot"><span>Összesen</span><b>${huf(tot)}</b></div><div class="b3-bud"><i style="width:${Math.min(100, (tot + spent) / budget * 100)}%;background:${tot + spent > budget ? 'var(--red)' : 'var(--accent)'}"></i></div><div class="b3-hint">${tot + spent > budget ? 'Túllépnéd a keretet!' : 'Maradék keret: ' + huf(budget - spent - tot)}</div>`}
         ${chk.map(([t, m]) => `<div class="b3-chk ${t}">${icon(t === 'ok' ? 'check' : t === 'warn' ? 'bolt' : 'x', 15, 2.4)}<span>${m}</span></div>`).join('')}
@@ -534,7 +538,13 @@ App.add((() => {
     $('#b3-shx').onclick = () => $('#b3-shop').style.display = 'none';
     $$('.b3-tab').forEach(b => b.onclick = () => { shopCat = b.dataset.c; renderShop() });
     $$('[data-f]').forEach(b => b.onclick = () => { const f = b.dataset.f; if (f === 'rgb') filt.rgb = !filt.rgb; else filt.col = f; renderShop() });
-    $$('.b3-prod').forEach(b => b.onclick = () => { const p = DB[shopCat].find(x => x.id === b.dataset.p), c = compat(shopCat, p); if (c) { sfx.bad(); toast(c, '#f87171', 2000); return } if (shopCat === 'case') cart = cart.filter(x => x.cat !== 'case'); cart.push({ cat: shopCat, p }); beep(900, .04, 'triangle', .05); renderShop() });
+    $$('.b3-prod').forEach(b => b.onclick = () => {
+      const p = DB[shopCat].find(x => x.id === b.dataset.p);
+      if (cart.some(x => x.p === p)) { cart = cart.filter(x => x.p !== p); beep(500, .05, 'triangle', .05); renderShop(); return } // újrakattintás = kivétel a kosárból
+      const c = compat(shopCat, p); if (c) { sfx.bad(); toast(c, '#f87171', 2000); return }
+      if (!MULTI.includes(shopCat)) cart = cart.filter(x => x.cat !== shopCat); // egyből csere a kategórián belül
+      cart.push({ cat: shopCat, p }); beep(900, .04, 'triangle', .05); renderShop() });
+    $$('[data-plus]').forEach(b => b.onclick = e => { e.stopPropagation(); const p = DB[shopCat].find(x => x.id === b.dataset.plus); cart.push({ cat: shopCat, p }); beep(1000, .04, 'triangle', .05); renderShop() });
     $$('.b3-rm').forEach(b => b.onclick = e => { e.stopPropagation(); cart.splice(+b.dataset.r, 1); renderShop() });
     $('#b3-order').onclick = placeOrder;
   }
@@ -574,7 +584,7 @@ App.add((() => {
     $$('.b3-item[data-u]').forEach(b => b.onclick = () => { const it = items.find(i => String(i.uid) === b.dataset.u); sfx.click(); if (sel === it.uid) select(null); else select(it) });
     $$('.b3-item[data-c]').forEach(b => b.onclick = () => conns[b.dataset.c] ? disconnect(b.dataset.c) : connect(b.dataset.c));
     const it = items.find(i => i.uid === sel), bx = $('#b3-sel');
-    if (!it) bx.innerHTML = `<div class="b3-hint"><b>Kéz:</b> kattints egy alkatrészre, majd a kék szellemképre. <b>Csavarhúzó [S]:</b> kattints a csavarokra – be- vagy kicsavarja őket. Húzással forgathatsz, görgővel közelíthetsz.</div>`;
+    if (!it) bx.innerHTML = `<div class="b3-hint"><b>Kéz:</b> kattints egy alkatrészre, majd a kék szellemképre – vagy <b>húzd rá</b>. <b>Csavarhúzó [S]:</b> kattints a csavarokra.<br><b>Kamera:</b> bal gomb húzás = forgatás • jobb gomb / Shift + húzás = mozgatás • görgő = közelítés • dupla katt = ráközelítés • nyilak, +/−, R = alapnézet, X = röntgen</div>`;
     else { const inst = !!it.slot, b = inst ? removeBlock(it) : it === panel ? panelBlock() : installBlock(it), p = it.p;
       const extra = it.cat === 'cpu' && inst && paste.state === 'old' && !slots.cooler ? `<button class="btn" id="b3-wipe">Régi paszta letörlése</button>` : '';
       bx.innerHTML = `<div class="b3-sn">${p.name}</div>${p.spec ? `<div class="b3-spec">${p.spec}</div>` : ''}${b ? `<div class="b3-warn">${b}</div>` : ''}${it.screws.length && inst ? `<div class="b3-hint">Csavarok: ${it.screws.filter(s => s.in).length} / ${it.screws.length} becsavarozva</div>` : ''}
@@ -649,7 +659,7 @@ App.add((() => {
       .b3-filt{display:flex;gap:6px;padding:10px 14px 0}.b3-filt .chip{height:30px;font-size:12.5px}
       .b3-prods{padding:12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;overflow:auto;align-content:start;flex:1}
       .b3-prod{position:relative;border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:5px;background:var(--bg2)}
-      .b3-prod:hover{border-color:var(--line2)}.b3-prod.on{border-color:var(--accent)}.b3-prod.bad{opacity:.55}
+      #b3-chip{position:fixed;display:none;z-index:50;pointer-events:none;background:var(--panel);border:1px solid var(--accent);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600;box-shadow:0 8px 24px #0008}#b3-chip.ok{border-color:var(--green);color:var(--green)}.b3-pa{display:flex;gap:5px}.b3-plus{padding:4px 10px!important}.b3-prod:hover{border-color:var(--line2)}.b3-prod.on{border-color:var(--accent)}.b3-prod.bad{opacity:.55}
       .b3-sw{width:22px;height:22px;border-radius:6px;border:1px solid #ffffff33;position:relative}.b3-sw i{position:absolute;inset:-4px;border-radius:9px;border:2px solid #f472b6;box-shadow:0 0 8px #a78bfa}
       .b3-pn{font-weight:700;font-size:14px;line-height:1.3}.b3-ps{font-size:12px;color:var(--muted);flex:1}.b3-pc{font-size:12px;color:#fca5a5}
       .b3-pf{display:flex;justify-content:space-between;align-items:center;margin-top:4px}.b3-pf b{font-size:15px;font-variant-numeric:tabular-nums}.b3-pf .btn{font-size:12px;min-height:30px;padding:5px 10px}
@@ -672,7 +682,7 @@ App.add((() => {
     <div id="b3-res" class="b3-res"></div>
     <div id="b3-bottom"><div class="panel">
       <button class="btn sel" data-tool="hand">${icon('hand', 16)} Kéz</button><button class="btn" data-tool="driver">${icon('key', 16)} Csavarhúzó [S]</button><button class="btn" id="b3-auto" title="A csavarokat automatikusan be- és kicsavarja">${icon('refresh', 16)} Auto-csavar</button>
-      <span class="b3-sep"></span><button class="btn" data-v="all">Teljes</button><button class="btn" data-v="in">Belül</button><button class="btn" data-v="back">Hátul</button><button class="btn" data-v="bench">Asztal</button>
+      <span class="b3-sep"></span><button class="btn" data-v="all">Teljes</button><button class="btn" data-v="in">Belül</button><button class="btn" data-v="back">Hátul</button><button class="btn" data-v="bench">Asztal</button><button class="btn" data-v="top">Felülről</button><button class="btn sel" data-v="xray">Röntgen</button>
       <span class="b3-sep"></span><button class="btn" id="b3-monb">${icon('monitor', 16)} Monitor</button><button class="btn" id="b3-power">${icon('bolt', 18, 2)} Bekapcsolás</button></div></div>
     <div class="b3-modal" id="b3-shop"></div><div class="b3-modal" id="b3-orders"></div>
     <div class="b3-modal" id="b3-mon"><button class="btn" id="b3-monx">${icon('x', 16)} Vissza a műhelybe</button><div class="mon"><div id="b3-scr"></div></div></div>
@@ -699,15 +709,37 @@ App.add((() => {
     const scr = new THREE.Mesh(new THREE.PlaneGeometry(3.05, 1.72), new THREE.MeshBasicMaterial({ map: monitorTex, toneMapped: false })); scr.rotation.y = Math.PI / 2; scr.position.set(.056, 1.97, 0); scr.userData.monitor = true; mg.add(scr);
     WinSim.open(winCtx); paintScreen(); driver = makeDriver(); built = true;
     const el = renderer.domElement; let down = null, moved = 0;
-    el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, th: cam.th, ph: cam.ph }; moved = 0; el.setPointerCapture(e.pointerId) });
+    const ptrs = new Map(); let pinch = null, dragIt = null, lastT = 0, lastX = 0, lastY = 0;
+    el.addEventListener('contextmenu', e => e.preventDefault());
+    const chip = document.createElement('div'); chip.id = 'b3-chip'; r.appendChild(chip);
+    el.addEventListener('pointerdown', e => {
+      ptrs.set(e.pointerId, [e.clientX, e.clientY]); el.setPointerCapture(e.pointerId);
+      if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), r: cam.goalR, mx: (a[0] + b[0]) / 2, my: (a[1] + b[1]) / 2 }; down = null; return }
+      const pan = e.button === 2 || e.button === 1 || e.shiftKey;
+      down = { x: e.clientX, y: e.clientY, pan, tgt: cam.goalTgt.clone() }; moved = 0; lastX = e.clientX; lastY = e.clientY; lastT = performance.now(); cam.vth = cam.vph = 0;
+      if (!pan && tool === 'hand' && !busy) { const h = pickAt(e); if (h.item && !h.item.slot && h.item !== panel) { dragIt = h.item; dragIt._s = 0 } } cam.drag = !pan;
+    });
     el.addEventListener('pointermove', e => {
-      if (down) { const dx = e.clientX - down.x, dy = e.clientY - down.y; moved = Math.max(moved, Math.hypot(dx, dy)); if (moved > 4) { cam.th = down.th - dx * .006; cam.ph = clamp(down.ph - dy * .005, .3, 1.5) } return }
+      if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+      if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); cam.goalR = clamp(pinch.r * pinch.d / Math.max(20, d), 3, 24); const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2; panBy(mx - pinch.mx, my - pinch.my); pinch.mx = mx; pinch.my = my; return }
+      if (down) {
+        const dx = e.clientX - down.x, dy = e.clientY - down.y; moved = Math.max(moved, Math.hypot(dx, dy));
+        if (dragIt && moved > 6) { if (!dragIt._s) { dragIt._s = 1; select(dragIt) } chip.style.display = 'block'; chip.style.left = e.clientX + 14 + 'px'; chip.style.top = e.clientY + 10 + 'px'; const h = pickAt(e); chip.textContent = h.ghost ? 'Engedd el: beszerelés ide' : `${dragIt.p.name} – húzd a kék helyre`; chip.classList.toggle('ok', !!h.ghost); return }
+        if (moved > 4) {
+          const mx = e.clientX - lastX, my = e.clientY - lastY, now = performance.now(), dt = Math.max(1, now - lastT); lastX = e.clientX; lastY = e.clientY; lastT = now;
+          if (down.pan) panBy(mx, my); else { cam.th -= mx * .006; cam.ph = clamp(cam.ph - my * .005, .25, 1.52); cam.vth = -mx * .006 / dt * 16; cam.vph = -my * .005 / dt * 16 }
+        }
+        return;
+      }
       const h = pickAt(e); setHover(tool === 'hand' ? (h.item || null) : null);
       if (tool === 'driver') { el.style.cursor = h.screw ? 'pointer' : 'crosshair'; if (!anyBusy()) { if (h.screw && (h.screw.item.slot)) { const w = new THREE.Vector3(), q = new THREE.Quaternion(); h.screw.m.getWorldPosition(w); h.screw.obj.getWorldQuaternion(q); const n = h.screw.n.clone().applyQuaternion(q); driver.g.visible = true; driver.g.quaternion.setFromUnitVectors(V(0, 1, 0), n); driver.g.position.copy(w).addScaledVector(n, .22) } else driver.g.visible = false } }
       else el.style.cursor = h.item || h.ghost || h.power || h.conn ? 'pointer' : 'grab';
     });
     el.addEventListener('pointerup', e => {
+      ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; cam.drag = false;
+      if (dragIt) { const it = dragIt; dragIt = null; chip.style.display = 'none'; if (moved > 6) { down = null; const h = pickAt(e); if (h.ghost) return install(h.ghost.it, h.ghost.t); return } }
       if (!down) return; const click = moved <= 4; down = null; if (!click) return; const h = pickAt(e);
+      const nowc = performance.now(); if (nowc - (el._lc || 0) < 320 && h.item) { const w = new THREE.Vector3(); (h.item.objs[0].o).getWorldPosition(w); cam.goalTgt = w; cam.goalR = 5.5; el._lc = 0; return } el._lc = nowc;
       if (h.power) return powerOn();
       if (tool === 'driver') { if (h.screw) { if (!h.screw.item.slot) return; if (powered) return powerOff('Csavarozás előtt kapcsold ki a gépet!'); turnScrew(h.screw, !h.screw.in) } else if (h.item) toast('Csavarhúzóval a csavarokra kattints! Alkatrész mozgatásához válts Kéz módra.', '#9aa0ab', 2000); return }
       if (h.ghost) return install(h.ghost.it, h.ghost.t);
@@ -715,12 +747,13 @@ App.add((() => {
       if (h.blob && paste.state === 'old') { paste = { state: 'none', p: null }; updBlob(); toast('Letörölted a régi pasztát.', '#4ade80'); return renderUI() }
       if (h.item) { const it = h.item; sfx.click(); if (it === panel) return panel.slot ? uninstall(panel) : install(panel); if (sel === it.uid && !it.slot) return install(it); select(it) } else select(null);
     });
-    el.addEventListener('wheel', e => { e.preventDefault(); cam.goalR = clamp(cam.goalR * (1 + Math.sign(e.deltaY) * .1), 3.5, 22) }, { passive: false });
+    el.addEventListener('wheel', e => { e.preventDefault(); cam.goalR = clamp(cam.goalR * Math.exp(clamp(e.deltaY, -120, 120) * .0016), 3, 24) }, { passive: false });
+    function panBy(dx, dy) { const k = cam.r * .0016, f = new THREE.Vector3(), rt = new THREE.Vector3(), up = new THREE.Vector3(); camera.getWorldDirection(f); rt.crossVectors(f, camera.up).normalize(); up.crossVectors(rt, f).normalize(); cam.goalTgt.addScaledVector(rt, -dx * k).addScaledVector(up, dy * k); cam.goalTgt.x = clamp(cam.goalTgt.x, -6, 10); cam.goalTgt.y = clamp(cam.goalTgt.y, -1, 6); cam.goalTgt.z = clamp(cam.goalTgt.z, -6, 6) }
     $$('[data-tool]', r).forEach(b => b.onclick = () => { sfx.click(); setTool(b.dataset.tool) });
     $('#b3-auto').onclick = () => { auto = !auto; renderUI(); toast(auto ? 'Automatikus csavarozás bekapcsolva.' : 'Kézi csavarozás: használd a csavarhúzót!', '#5b9dff', 1500) };
-    $$('[data-v]', r).forEach(b => b.onclick = () => { const v = b.dataset.v, D = caseP ? caseP.dim[2] : 4.6; if (v === 'all') { cam.goalTgt = V(1.9, 1.7, -.3); cam.goalR = 12.5; cam.th = .62; cam.ph = 1.08 } if (v === 'in') { cam.goalTgt = V(-.4, 2.5, -.5); cam.goalR = 7; cam.th = .12; cam.ph = 1.2 } if (v === 'back') { cam.goalTgt = V(0, 1.8, -D / 2); cam.goalR = 7; cam.th = -1.45; cam.ph = 1.15 } if (v === 'bench') { cam.goalTgt = V(4.6, .3, -.1); cam.goalR = 9; cam.th = .9; cam.ph = .75 } });
+    $$('[data-v]', r).forEach(b => b.onclick = () => { const v = b.dataset.v, D = caseP ? caseP.dim[2] : 4.6; if (v === 'all') { cam.goalTgt = V(1.9, 1.7, -.3); cam.goalR = 12.5; cam.th = .62; cam.ph = 1.08 } if (v === 'in') { cam.goalTgt = V(-.4, 2.5, -.5); cam.goalR = 7; cam.th = .12; cam.ph = 1.2 } if (v === 'back') { cam.goalTgt = V(0, 1.8, -D / 2); cam.goalR = 7; cam.th = -1.45; cam.ph = 1.15 } if (v === 'bench') { cam.goalTgt = V(4.6, .3, -.1); cam.goalR = 9; cam.th = .9; cam.ph = .75 } if (v === 'top') { cam.goalTgt = V(.2, 2, -.3); cam.goalR = 9; cam.ph = .28 } if (v === 'xray') { xray = !xray; b.classList.toggle('sel', xray); toast(xray ? 'Röntgen: a kamera felőli házfal áttetsző.' : 'Röntgen kikapcsolva.', '#5b9dff', 1400) } });
     $('#b3-power').onclick = powerOn; $('#b3-monb').onclick = openMonitor; $('#b3-monx').onclick = closeMonitor;
-    addEventListener('keydown', e => { if (App.cur !== S || e.target.tagName === 'INPUT') return; if (e.key === 's' || e.key === 'S') setTool(tool === 'driver' ? 'hand' : 'driver'); if (e.key === 'Escape') { select(null); closeMonitor() } });
+    addEventListener('keydown', e => { if (App.cur !== S || e.target.tagName === 'INPUT') return; if (e.key === 's' || e.key === 'S') setTool(tool === 'driver' ? 'hand' : 'driver'); if (e.key === 'Escape') { select(null); closeMonitor() } if (e.key === 'ArrowLeft') cam.th += .12; if (e.key === 'ArrowRight') cam.th -= .12; if (e.key === 'ArrowUp') cam.ph = clamp(cam.ph - .08, .25, 1.52); if (e.key === 'ArrowDown') cam.ph = clamp(cam.ph + .08, .25, 1.52); if (e.key === '+') cam.goalR = clamp(cam.goalR * .88, 3, 24); if (e.key === '-') cam.goalR = clamp(cam.goalR * 1.14, 3, 24); if (e.key === 'r' || e.key === 'R') $('[data-v=all]').click(); if (e.key === 'x' || e.key === 'X') $('[data-v=xray]').click() });
     renderUI(); showOrders();
   };
   S.debug = () => ({ idle: !busy && !anyBusy() && !tweens.length, panel: panel && { slot: panel.slot, screws: panel.screws.map(s => [s.in, !!s.busy]) }, busy, tool, auto, sel, slots: { ...slots }, conns: { ...conns } });
@@ -729,7 +762,9 @@ App.add((() => {
   let acc = 0, accP = 0, accU = 0;
   S.tick = dt => {
     if (!built) return; T += dt; stepTweens(dt);
-    cam.tgt.lerp(cam.goalTgt, Math.min(1, dt * 4)); cam.r += (cam.goalR - cam.r) * Math.min(1, dt * 4);
+    if (!cam.drag) { cam.th += cam.vth; cam.ph = clamp(cam.ph + cam.vph, .25, 1.52); cam.vth *= Math.pow(.02, dt); cam.vph *= Math.pow(.02, dt) }
+    cam.tgt.lerp(cam.goalTgt, Math.min(1, dt * 6)); cam.r += (cam.goalR - cam.r) * Math.min(1, dt * 6);
+    if (shell.length) { const cp = camera.position, w = new THREE.Vector3(); for (const s2 of shell) { s2.m.getWorldPosition(w); const face = s2.n.dot(cp.clone().sub(w)) > 0, tg = xray && face ? .1 : 1, mt = s2.m.material; mt.opacity += (tg - mt.opacity) * Math.min(1, dt * 8); mt.depthWrite = mt.opacity > .95; s2.m.castShadow = mt.opacity > .5 } }
     camera.position.set(cam.tgt.x + cam.r * Math.sin(cam.ph) * Math.cos(cam.th), cam.tgt.y + cam.r * Math.cos(cam.ph), cam.tgt.z + cam.r * Math.sin(cam.ph) * Math.sin(cam.th)); camera.lookAt(cam.tgt);
     if (powered && lastPost && (lastPost.fans || lastPost.lvl >= 2)) { const sp = 6 + (sensors ? sensors.fanC / 120 : 0); rotors.forEach(r => r.rotation.z += sp * dt) }
     if (powered && lastPost && lastPost.lvl >= 4) rgbM.forEach((m, i) => { m.emissive.setHSL((T * .08 + i * .07) % 1, .9, .55); m.emissiveIntensity = 1.3 });

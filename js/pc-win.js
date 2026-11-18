@@ -2,13 +2,14 @@
 const WinSim = (() => {
   let C = null, el = null, step = 'off', st = {}, timer = null, benchT = null, tmT = null;
   const CSS = `
-  .w-scr{position:absolute;inset:0;font-family:"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;color:#1b1b1b;overflow:hidden;user-select:none}
+  .w-scr option{background:#fff;color:#1b1b1b}.w-scr input,.w-scr select{color:#1b1b1b}
+  .w-scr{color-scheme:light;position:absolute;inset:0;font-family:"Segoe UI Variable","Segoe UI",Inter,system-ui,sans-serif;color:#1b1b1b;overflow:hidden;user-select:none}
   .w-dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(760px,86%);background:#f3f3f3;border-radius:10px;box-shadow:0 20px 60px #0007;padding:28px 34px;min-height:340px;display:flex;flex-direction:column}
   .w-dlg h2{font-weight:600;font-size:26px;margin:0 0 6px}.w-dlg p{font-size:14px;color:#444;margin:4px 0 14px;line-height:1.5}
   .w-row{display:flex;flex-direction:column;gap:4px;margin:8px 0}.w-row label{font-size:13px;color:#333}
   .w-sel{appearance:none;border:1px solid #c8c8c8;border-radius:5px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;width:100%}
   .w-btns{margin-top:auto;display:flex;justify-content:flex-end;gap:10px;padding-top:18px}
-  .w-b{border:1px solid #c8c8c8;background:#fdfdfd;border-radius:5px;padding:7px 26px;font:inherit;font-size:14px;cursor:pointer}.w-b.p{background:#005fb8;color:#fff;border-color:#005fb8}.w-b:disabled{opacity:.45;cursor:default}
+  .w-b{color:#1b1b1b;border:1px solid #c8c8c8;background:#fdfdfd;border-radius:5px;padding:7px 26px;font:inherit;font-size:14px;cursor:pointer}.w-b.p{background:#005fb8;color:#fff;border-color:#005fb8}.w-b:disabled{opacity:.45;cursor:default}
   .w-opt{display:flex;gap:12px;align-items:flex-start;padding:10px 12px;border:1px solid #d6d6d6;border-radius:6px;margin:6px 0;cursor:pointer;background:#fff;font-size:14px}.w-opt.on{border-color:#005fb8;box-shadow:inset 0 0 0 1px #005fb8}
   .w-opt small{display:block;color:#666;font-size:12.5px;margin-top:2px}
   .w-chk{display:flex;gap:10px;align-items:center;font-size:14px;margin:10px 0;cursor:pointer}.w-chk input{width:18px;height:18px}
@@ -34,7 +35,7 @@ const WinSim = (() => {
   .w-clock{position:absolute;right:14px;bottom:6px;color:#fff;font-size:12px;text-align:right;line-height:1.3}
   .w-win{position:absolute;background:#f9f9f9;border-radius:8px;box-shadow:0 18px 50px #000a;overflow:hidden;display:flex;flex-direction:column;font-size:13.5px}
   .w-win .tb{height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 4px 0 12px;background:#f0f0f0;font-size:12.5px}
-  .w-win .tb b{font-weight:600}.w-win .x{width:40px;height:30px;border:0;background:transparent;cursor:pointer;font-size:14px}.w-win .x:hover{background:#c42b1c;color:#fff}
+  .w-win .tb b{font-weight:600}.w-win .x{color:#1b1b1b;width:40px;height:30px;border:0;background:transparent;cursor:pointer;font-size:14px}.w-win .x:hover{background:#c42b1c;color:#fff}
   .w-win .bd{padding:14px 16px;overflow:auto;flex:1}
   .w-start{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);width:440px;background:#1f2633f2;border-radius:10px;padding:18px;color:#fff;box-shadow:0 20px 50px #000a}
   .w-start .g{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.w-start .a{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;padding:10px 4px;border-radius:6px;cursor:pointer}.w-start .a:hover{background:#ffffff1a}
