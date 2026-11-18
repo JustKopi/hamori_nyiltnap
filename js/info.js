@@ -12,7 +12,7 @@ App.add((() => {
     ['wifi', 'WiFi-tervező', 'Vezeték nélküli hálózatok, 802.11 szabványok, frekvenciasávok, mesh, lefedettségi terv'],
     ['tuzfal', 'Te vagy a tűzfal!', 'Hálózatbiztonság, támadástípusok, tűzfal, vírusvédelem'],
     ['jelszo', 'Jelszó-törő', 'Biztonsági alapelvek, erős jelszavak, hitelesítés'],
-    ['terminal', 'Parancssor-kaland', 'Windows és Linux parancssor, Cisco IOS, jogosultságok, SSH'],
+    ['terminal', 'Parancssor-kaland', 'Linux/Windows parancssor: hibakeresés, átjáró, DNS, naplóelemzés, tűzfal, szolgáltatások, mentés'],
     ['ugyelet', 'Rendszergazda-ügyelet', 'Alkalmazás-üzemeltetés, monitorozás, virtualizáció, konténerek, mentés'],
     ['pc', 'Gépépítő műhely 3D', 'Számítógép felépítése, összeszerelés, alkatrészcsere, hibakeresés'],
     ['iot', 'Okosotthon (IoT)', 'Dolgok internete, szenzorok, felhőszolgáltatások'],

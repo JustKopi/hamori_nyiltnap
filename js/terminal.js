@@ -2,7 +2,7 @@
 App.add((() => {
   const S = {
     id: 'terminal', icon: '', title: 'Parancssor-kaland', color: '#4ade80',
-    desc: 'Gépelj be igazi parancsokat, mint a rendszergazdák! Van egy titkos fájl is… megtalálod?',
+    desc: 'Hajnali kettő, csörög a telefon: a cégnél semmi nem működik! Mentsd meg igazi parancsokkal – vagy kísérletezz szabadon.',
     topic: 'Linux és Windows parancssor, Cisco IOS, hálózati diagnosztika, jogosultságok'
   };
   let out, inp, hist = [], hi = 0, busy = false, matrix = null, cisco = 0, cwd = '~';
@@ -24,6 +24,7 @@ App.add((() => {
     hist.push(line); hi = hist.length;
     const [c0, ...args] = line.split(/\s+/), c = c0.toLowerCase(), a = args.join(' ');
     if (cisco) return runCisco(c, line);
+    if (ST.on && await storyCmd(c, args, line)) return;
     switch (c) {
       case 'help': case 'sugo': case 'súgó': case '?':
         print('Kipróbálható parancsok (kattintással is!):'); print(HELP.map(([k, d]) => `  <span class="t-k">${k.padEnd(24)}</span> ${d}`).join('\n'), 't-pre'); break;
@@ -144,9 +145,99 @@ App.add((() => {
     }, 40);
     print('Matrix mód: kattints a képernyőre a kilépéshez.', 't-ok');
   }
+  /* ---- Történet: Éjszakai riasztás a Holdfény Kft.-nél ---- */
+  const ATT = '203.0.113.66';
+  const ST = { on: false, step: 0, t: 0, hints: 0, gw: false, dns: false, blocked: false, disk: false, nginx: false, backup: false, saw: {}, race: false };
+  const MS = [
+    { who: 'Kovács úr, a főnök', ic: 'phone', kind: 'Bejövő hívás, 02:14', msg: '„Elnézést, hogy felébresztem! Holnap reggel nagy bemutatónk lesz, de az irodában <b>semmi nem megy az interneten</b>! Megnézné távolról?”', goal: 'Derítsd ki, mi a baj: próbáld ki, eléred-e a netet, és nézd meg a gép hálózati beállításait!', hint: ['ping google.com', 'ipconfig'], ok: () => ST.saw.ping && ST.saw.ipconfig },
+    { who: 'Te', ic: 'search', kind: 'Hibakeresés', msg: 'Az <b>alapértelmezett átjáró</b> üres! A gép nem tudja, merre küldje a csomagokat a helyi hálózaton kívülre. Az irodai router címe: <b>192.168.1.1</b>.', goal: 'Állítsd be az alapértelmezett átjárót a routerre (192.168.1.1)!', hint: ['ip route add default via 192.168.1.1'], ok: () => ST.gw },
+    { who: 'Kovács úr', ic: 'mail', kind: 'Chat, 02:21', msg: '„A pingelés már megy, de a <b>weboldalak még mindig nem jönnek be</b>. Azt írja: nem található a kiszolgáló.”', goal: 'IP-címre megy, névre nem: a DNS a hibás. Nézd meg a DNS-beállítást, és állíts be egy működő DNS-szervert (pl. 8.8.8.8)!', hint: ['ping 8.8.8.8', 'cat /etc/resolv.conf', 'echo "nameserver 8.8.8.8" > /etc/resolv.conf'], ok: () => ST.dns },
+    { who: 'Biztonsági rendszer', ic: 'siren', kind: 'RIASZTÁS, 02:29', msg: '<b>Szokatlanul sok sikertelen bejelentkezés</b> a szerveren az elmúlt órában! Valaki jelszavakat próbálgat.', goal: 'Nézd meg a bejelentkezési naplót, keresd meg a támadó IP-címét, és tiltsd ki a tűzfalon!', hint: ['tail /var/log/auth.log', `ufw deny from ${ATT}`], ok: () => ST.blocked },
+    { who: 'Monitorozó rendszer', ic: 'activity', kind: 'Riasztás, 02:36', msg: 'A cég weboldala (holdfeny.hu) <b>nem válaszol</b>. A webszerver (nginx) leállt.', goal: 'Derítsd ki, miért állt le a webszerver, hárítsd el az okát, és indítsd újra!', hint: ['systemctl status nginx', 'df -h', 'du -sh /var/log/*', 'rm /var/log/hatalmas.log', 'systemctl restart nginx'], ok: () => ST.nginx },
+    { who: 'Kovács úr', ic: 'mail', kind: 'Chat, 02:47', msg: '„Minden megy! Hihetetlen! Csak nehogy újra baj legyen… Van <b>mentés</b> a weboldalról?”', goal: 'Készíts mentést a weboldal fájljairól (/var/www) egy tömörített archívumba!', hint: ['tar -czf mentes.tar.gz /var/www'], ok: () => ST.backup }
+  ];
+  function storyPanel() {
+    const el = $('#t-story'); if (!el) return;
+    if (!ST.on) { el.innerHTML = `<div class="ts-k">Küldetés</div><h3>Éjszakai riasztás</h3><p>Hajnali kettő. Te vagy a Holdfény Kft. ügyeletes rendszergazdája, és megszólal a telefon… Hat valódi hibát kell elhárítanod <b>valódi parancsokkal</b>.</p><button class="btn go" id="ts-go">Küldetés indítása</button><p class="ts-s">Vagy gépelj szabadon: <b>help</b></p>`; $('#ts-go').onclick = () => startStory(false); return }
+    if (ST.step >= MS.length) { el.innerHTML = `<div class="ts-k">Küldetés teljesítve</div><h3>A Holdfény Kft. megmenekült!</h3><p>Idő: <b>${Math.floor(ST.t / 60)} perc ${Math.round(ST.t % 60)} mp</b> • tippek: ${ST.hints}</p><div class="learn" style="margin-top:6px">Ma éjjel ezt csináltad: <b>hálózati hibakeresés</b> (ping, ipconfig), <b>útválasztás</b> (átjáró), <b>névfeloldás</b> (DNS), <b>naplóelemzés és tűzfal</b>, <b>szolgáltatás-üzemeltetés</b> (systemctl, lemezterület) és <b>mentés</b>. Pontosan ezt tanulja egy rendszerüzemeltető!</div><button class="btn go" id="ts-go">Újrakezdés</button>`; $('#ts-go').onclick = () => startStory(false); return }
+    const m = MS[ST.step];
+    el.innerHTML = `<div class="ts-prog">${MS.map((_, i) => `<i class="${i < ST.step ? 'd' : i === ST.step ? 'c' : ''}"></i>`).join('')}</div>
+      <div class="ts-msg"><span class="ts-av">${icon(m.ic, 22)}</span><div><div class="ts-who">${m.who}</div><div class="ts-kind">${m.kind}</div></div></div>
+      <p class="ts-txt">${m.msg}</p><div class="ts-goal"><b>Feladat:</b> ${m.goal}</div>
+      <div id="ts-hint"></div><button class="btn" id="ts-h">${icon('bulb', 16)} Tipp${ST.race ? ' (−100 pont)' : ''}</button>
+      ${ST.race ? `<div class="ts-time" id="ts-time"></div>` : ''}`;
+    $('#ts-h').onclick = () => { ST.hints++; $('#ts-hint').innerHTML = m.hint.map(h => `<button class="btn ts-c">${esc(h)}</button>`).join(''); $$('.ts-c').forEach(b => b.onclick = () => { if (!busy) { run(b.textContent).then(storyCheck); inp.focus() } }); $('#ts-h').style.display = 'none' };
+  }
+  function startStory(race) {
+    Object.assign(ST, { on: true, step: 0, t: 0, hints: 0, gw: false, dns: false, blocked: false, disk: false, nginx: false, backup: false, saw: {}, race });
+    out.innerHTML = ''; cisco = 0; cwd = '~'; updPrompt();
+    print(`<div class="t-story">${icon('phone', 18)} BRRR… BRRR… <b>Bejövő hívás: Kovács úr</b></div>`); ring();
+    storyPanel(); inp.focus();
+  }
+  function ring() { [0, .25, 1, 1.25].forEach(d => beep(880, .18, 'sine', .05, 0, d)) }
+  function storyCheck() {
+    if (!ST.on || ST.step >= MS.length) return;
+    if (MS[ST.step].ok()) {
+      ST.step++; sfx.win();
+      print(`<div class="t-story ok">${icon('check', 18, 2.4)} Feladat teljesítve! ${ST.step < MS.length ? 'Új esemény érkezett…' : ''}</div>`);
+      if (ST.step < MS.length) { const m = MS[ST.step]; setTimeout(() => { print(`<div class="t-story">${icon(m.ic, 18)} <b>${m.kind}</b> – ${m.who}</div>`); if (m.ic === 'siren') beep(600, .4, 'sawtooth', .05); else ring() }, 600) }
+      else { FX.confetti(); finishStory() }
+      storyPanel();
+    }
+  }
+  let best = 0;
+  function finishStory() {
+    const sc = Math.max(100, Math.round(2400 - ST.t * 4 - ST.hints * 100)); best = Math.max(best, sc);
+    if (ST.race) { ST.race = false; Comp.finish(sc, `6 feladat ${Math.floor(ST.t / 60)} perc ${Math.round(ST.t % 60)} mp alatt, ${ST.hints} tipp`) }
+  }
+  async function storyCmd(c, args, line) {
+    const l = line.trim(), a = args.join(' ');
+    if (c === 'ping') {
+      const h = args[0] || 'google.com'; ST.saw.ping = true;
+      if (!ST.gw && !/^192\.168\.1\./.test(h)) { print(`ping: connect: <b>A hálózat nem érhető el</b> (Network is unreachable)`, 't-err'); storyCheck(); return true }
+      if (!ST.dns && !/^\d+\.\d+\.\d+\.\d+$/.test(h)) { print(`ping: ${esc(h)}: <b>Ismeretlen gépnév</b> (a névfeloldás nem működik)`, 't-err'); return true }
+      if (h === ATT && ST.blocked) { print('ping: a tűzfal blokkolja ezt a címet.', 't-err'); return true }
+      return false;
+    }
+    if (['ipconfig', 'ifconfig', 'ip'].includes(c) && !/route/.test(a)) {
+      ST.saw.ipconfig = true;
+      await slow(['Ethernet-adapter Ethernet:', '   IPv4-cím . . . . . . . . . : <b>192.168.1.23</b>', '   Alhálózati maszk . . . . . : 255.255.255.0', `   Alapértelmezett átjáró . . : ${ST.gw ? '192.168.1.1' : '<span class="t-err">(nincs beállítva)</span>'}`, `   DNS-kiszolgáló . . . . . . : ${ST.dns ? '8.8.8.8' : '<span class="t-err">(nincs)</span>'}`], 60);
+      storyCheck(); return true;
+    }
+    let m;
+    if ((m = l.match(/^(?:sudo\s+)?(?:ip\s+route\s+add\s+default\s+via|route\s+add\s+default\s+(?:gw\s+)?|route\s+add\s+0\.0\.0\.0\s+mask\s+0\.0\.0\.0)\s*(\S+)/i))) {
+      if (m[1] !== '192.168.1.1') { print(`Hiba: a(z) ${esc(m[1])} nem a router címe. Az átjáró az irodai router: 192.168.1.1`, 't-err'); return true }
+      ST.gw = true; print('Alapértelmezett útvonal hozzáadva: 0.0.0.0/0 → 192.168.1.1', 't-ok'); print('Próbáld ki most: <b>ping google.com</b>'); storyCheck(); return true;
+    }
+    if (/^(cat|type|more|less)\s+\/etc\/resolv\.conf/.test(l)) { print(ST.dns ? 'nameserver 8.8.8.8' : '# DNS-kiszolgáló:\nnameserver <span class="t-err">0.0.0.0</span>   ← ez nem valódi szerver!', 't-pre'); return true }
+    if ((m = l.match(/nameserver\s+(\d+\.\d+\.\d+\.\d+).*>\s*\/etc\/resolv\.conf/))) {
+      if (m[1] === '0.0.0.0') { print('Ez ugyanaz a hibás cím.', 't-err'); return true }
+      ST.dns = true; print(`DNS-kiszolgáló beállítva: ${m[1]}`, 't-ok'); print('Próbáld: <b>ping google.com</b> vagy <b>nslookup holdfeny.hu</b>'); storyCheck(); return true;
+    }
+    if (/^(sudo\s+)?(tail|cat|less|grep.*)\s*.*\/var\/log\/auth\.log/.test(l)) {
+      const L = []; for (let i = 0; i < 7; i++) L.push(`Nov 18 02:${String(20 + i).padStart(2, '0')}:${rnd(10, 59)} holdfeny sshd: <span class="t-err">Failed password for admin from ${ATT}</span> port ${rnd(40000, 60000)}`);
+      L.splice(3, 0, `Nov 18 02:22:41 holdfeny sshd: Accepted publickey for rendszergazda from 192.168.1.23 (ez te vagy)`);
+      await slow(L, 70); print('Melyik IP-címről jönnek a sikertelen próbálkozások? Azt kell kitiltani: <b>ufw deny from &lt;IP&gt;</b>', 't-k'); return true;
+    }
+    if ((m = l.match(/^(?:sudo\s+)?ufw\s+deny\s+from\s+(\S+)/))) {
+      if (m[1] === '192.168.1.23') { print('Hoppá! Ez a saját géped címe – kizárnád magad!', 't-err'); return true }
+      if (m[1] !== ATT) { print(`Szabály hozzáadva: ${esc(m[1])} tiltva. De a támadások továbbra is jönnek… biztos ez a jó cím?`, 't-err'); return true }
+      ST.blocked = true; print(`Szabály hozzáadva: <b>${ATT}</b> minden forgalma tiltva.`, 't-ok'); print('A támadó próbálkozásai megszűntek. Tipp: a valóságban erős jelszó és kulcsos belépés is kell!'); storyCheck(); return true;
+    }
+    if (/^(sudo\s+)?systemctl\s+status\s+nginx/.test(l)) { await slow(ST.nginx ? ['● nginx.service – webszerver', '   Active: <span class="t-ok">active (running)</span>'] : ['● nginx.service – webszerver', '   Active: <span class="t-err">failed</span>', '   nginx: [emerg] write() failed: <b>No space left on device</b> (nincs hely a lemezen)'], 80); return true }
+    if (/^df(\s|$)/.test(l)) { await slow(['Fájlrendszer   Méret  Fogl.  Szabad  Fogl%  Csatolási pont', `/dev/sda1       50G   ${ST.disk ? '3,1G   47G     6%' : '<span class="t-err">50G    0     100%</span>'}  /`], 80); return true }
+    if (/^du\s/.test(l) && /\/var\/log/.test(l)) { await slow(['12K    /var/log/auth.log', '4,0K   /var/log/boot.log', ST.disk ? '' : '<span class="t-err">47G    /var/log/hatalmas.log</span>   ← egy elszabadult program teleírta a lemezt!', '88K    /var/log/syslog'].filter(Boolean), 80); return true }
+    if (/^(sudo\s+)?(rm|truncate.*)\s+.*\/var\/log\/hatalmas\.log/.test(l)) { if (ST.disk) { print('Ez a fájl már nincs meg.'); return true } ST.disk = true; print('hatalmas.log törölve, felszabadult <b>47 GB</b>.', 't-ok'); print('A naplóbejegyzéseket a valóságban <b>logrotate</b> forgatja, hogy ez ne fordulhasson elő.'); return true }
+    if (/^(sudo\s+)?systemctl\s+(re)?start\s+nginx/.test(l)) { if (!ST.disk) { print('Job for nginx.service failed: No space left on device. Előbb szabadíts fel helyet!', 't-err'); return true } ST.nginx = true; print('nginx.service elindítva. <span class="t-ok">active (running)</span>', 't-ok'); print('Próbáld: <b>curl holdfeny.hu</b>'); storyCheck(); return true }
+    if (/^curl\s/.test(l)) { if (!ST.gw || !ST.dns) { print('curl: (6) Could not resolve host', 't-err'); return true } print(ST.nginx || !/holdfeny/.test(l) ? '&lt;html&gt;&lt;h1&gt;Holdfény Kft. – Üdvözöljük!&lt;/h1&gt;&lt;/html&gt;' : 'curl: (7) Failed to connect: Connection refused', ST.nginx ? 't-ok' : 't-err'); return true }
+    if (/^tar\s+.*-?c.*\.tar(\.gz)?\s+\/var\/www/.test(l)) { if (ST.backup) { print('A mentés már elkészült.'); return true } await slow(['var/www/index.html', 'var/www/css/stilus.css', 'var/www/kepek/logo.png', '<span class="t-ok">mentes.tar.gz elkészült (14 MB)</span>'], 200); ST.backup = true; storyCheck(); return true }
+    if (c === 'nslookup' && !ST.dns) { print(';; connection timed out; no servers could be reached (nincs DNS-kiszolgáló)', 't-err'); return true }
+    if (c === 'rm') { print('Itt csak az elszabadult naplófájlt szabad törölni: /var/log/hatalmas.log', 't-err'); return true }
+    return false;
+  }
   S.build = root => {
     root.innerHTML = `<style>
-      #t-box{position:absolute;inset:14px 14px 92px 14px;background:#08090b;border:2px solid #1d3b2b;border-radius:14px;box-shadow:0 0 40px #4ade8022, inset 0 0 80px #4ade800a;overflow:hidden;display:flex;flex-direction:column;font-family:var(--mono)}
+      #t-box{position:absolute;inset:14px 360px 92px 14px;background:#08090b;border:2px solid #1d3b2b;border-radius:14px;box-shadow:0 0 40px #4ade8022, inset 0 0 80px #4ade800a;overflow:hidden;display:flex;flex-direction:column;font-family:var(--mono)}
       #t-box.hack{border-color:var(--green);box-shadow:0 0 60px #4ade8088}
       #t-bar{background:#0b1a12;padding:6px 12px;font-size:13px;color:#7fd8a0;display:flex;gap:8px;align-items:center}
       #t-bar i{width:12px;height:12px;border-radius:50%;display:inline-block}
@@ -156,26 +247,41 @@ App.add((() => {
       .t-p{color:#4ade80;font-weight:700}.t-d{color:#60a5fa;font-weight:700}.t-cmd{color:#fff}.t-err{color:#ff7b7b}.t-ok{color:#4ade80}.t-k{color:#fbbf24}.t-pre{white-space:pre}
       .t-secret{border:3px dashed var(--yellow);color:var(--yellow);font-size:26px;text-align:center;padding:16px;margin:10px 0;border-radius:12px;font-family:"Segoe UI",sans-serif;font-weight:800}
       #t-mx{position:absolute;inset:0;width:100%;height:100%;display:none;z-index:5;background:#000;cursor:pointer}
-      #t-chips{position:absolute;left:14px;right:14px;bottom:14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+      #t-chips{position:absolute;left:14px;right:360px;bottom:14px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+      #t-story{position:absolute;top:14px;right:14px;width:332px;bottom:14px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;font-size:15px;line-height:1.5}
+      #t-story h3{margin:4px 0 8px;font-size:22px}#t-story .btn{width:100%;margin-top:10px;height:42px}
+      .ts-k{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green)}.ts-s{font-size:13px;color:var(--muted)}
+      .ts-prog{display:flex;gap:5px;margin-bottom:12px}.ts-prog i{flex:1;height:6px;border-radius:3px;background:#262a33}.ts-prog i.d{background:var(--green)}.ts-prog i.c{background:var(--yellow);animation:tsP 1s infinite alternate}
+      @keyframes tsP{to{opacity:.4}}
+      .ts-msg{display:flex;gap:10px;align-items:center}.ts-av{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:rgba(74,222,128,.12);color:var(--green);flex:none}
+      .ts-who{font-weight:800}.ts-kind{font-size:12.5px;color:var(--muted)}.ts-txt{margin:10px 0;color:#d1d5db}
+      .ts-goal{background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--yellow);border-radius:10px;padding:8px 10px;font-size:14px}
+      #ts-hint{display:flex;flex-direction:column;gap:6px;margin-top:10px}#ts-hint .btn{font-family:var(--mono);font-size:13px;height:auto;padding:7px 10px;text-align:left;margin:0;white-space:normal}
+      .ts-time{margin-top:12px;text-align:center;font-size:26px;font-weight:800;color:var(--yellow);font-variant-numeric:tabular-nums}
+      .t-story{font-family:Inter,sans-serif;font-size:15px;border:1px solid #2b3b5c;background:#101a2b;color:#cfe0ff;border-radius:10px;padding:8px 12px;margin:8px 0;display:flex;gap:8px;align-items:center}.t-story.ok{border-color:#1f5134;background:#0d2117;color:#86efac}
       #t-chips .btn{font-family:var(--mono);font-size:15px;padding:6px 10px;min-height:36px}
     </style>
     <div id="t-box"><div id="t-bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i>&nbsp; diak@nyiltnap – terminál</div>
-      <div id="t-out"></div><div id="t-line"><span id="t-pr"></span><input id="t-in" autocomplete="off" spellcheck="false" autocapitalize="off"></div><canvas id="t-mx"></canvas></div>
+      <div id="t-out"></div><div id="t-line"><span id="t-pr"></span><input id="t-in" autocomplete="off" spellcheck="false" autocapitalize="off"></div><canvas id="t-mx"></canvas></div><div id="t-story"></div>
     <div id="t-chips">${['help', 'ping google.com', 'tracert youtube.com', 'ipconfig', 'nslookup iskola.hu', 'ls', 'cat titok.txt', 'neofetch', 'docker run hello-world', 'enable', 'matrix', 'hack'].map(c => `<button class="btn">${c}</button>`).join('')}</div>`;
     out = $('#t-out'); inp = $('#t-in'); updPrompt();
     print('<b style="color:#4ade80">Üdv a terminálban! </b> Itt <b>parancsokkal</b> irányítjuk a gépet – ahogy a rendszergazdák is.');
     print('Írd be: <span class="t-k">help</span> és nyomj Entert. Küldetés: találd meg a <span class="t-err">titkos fájlt</span>!');
     inp.addEventListener('keydown', e => {
       e.stopPropagation();
-      if (e.key === 'Enter' && !busy) { const v = inp.value; inp.value = ''; run(v) }
+      if (e.key === 'Enter' && !busy) { const v = inp.value; inp.value = ''; run(v).then(storyCheck) }
       if (e.key === 'ArrowUp' && hi > 0) { inp.value = hist[--hi]; e.preventDefault() }
       if (e.key === 'ArrowDown') { inp.value = hi < hist.length - 1 ? hist[++hi] : (hi = hist.length, ''); e.preventDefault() }
     });
     $('#t-box').onclick = () => inp.focus();
     $('#t-mx').onclick = e => { e.stopPropagation(); clearInterval(matrix); $('#t-mx').style.display = 'none'; inp.focus() };
-    $$('#t-chips .btn', root).forEach(b => b.onclick = () => { if (!busy) { run(b.textContent); inp.focus() } });
+    $$('#t-chips .btn', root).forEach(b => b.onclick = () => { if (!busy) { run(b.textContent).then(storyCheck); inp.focus() } });
+    storyPanel();
   };
   S.enter = () => setTimeout(() => inp.focus(), 50);
+  S.tick = dt => { if (ST.on && ST.step < MS.length) { ST.t += dt; const e = $('#ts-time'); if (e) e.textContent = `${Math.floor(ST.t / 60)}:${String(Math.floor(ST.t % 60)).padStart(2, '0')}` } };
+  S.comp = { rules: 'Éjszakai riasztás: oldd meg a 6 egymás utáni feladatot valódi parancsokkal, a lehető leggyorsabban! Minden másodperc és minden kért tipp pontlevonással jár.', start: () => startStory(true) };
+  S.score = () => best;
   S.leave = () => { clearInterval(matrix); $('#t-mx').style.display = 'none' };
   return S;
 })());
