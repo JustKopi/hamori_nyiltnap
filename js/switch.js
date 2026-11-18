@@ -158,7 +158,7 @@ App.add((() => {
     $('#k-stp').textContent = stp ? 'STP: BEKAPCSOLVA' : 'STP: KIKAPCSOLVA'; $('#k-stp').classList.toggle('sel', stp);
     $$('[data-m]').forEach(b => b.classList.toggle('sel', (b.dataset.m === 'shout' && mode === 'shout') || (mode === 'paint' && +b.dataset.m === paint)));
   }
-  S.build = root => {
+  function buildDemo(root) {
     root.innerHTML = `<style>
       #k-side{position:absolute;top:12px;left:12px;width:300px;font-size:15px;line-height:1.45;z-index:2}
       #k-side h3{margin:0 0 6px;color:var(--yellow);font-size:17px}
@@ -209,7 +209,19 @@ App.add((() => {
     });
     updBtns();
   };
-  S.resize = () => C && C.resize();
-  S.tick = dt => { T += dt; step(dt); draw() };
+  let tab = 'demo';
+  function setTab(t) { tab = t; $('#k-demo').style.display = t === 'demo' ? '' : 'none'; $('#k-lab').style.display = t === 'lab' ? '' : 'none'; $$('[data-tab]').forEach(b => b.classList.toggle('sel', b.dataset.tab === t)); S.resize() }
+  S.build = root => {
+    root.innerHTML = `<style>.k-pane{position:absolute;inset:0}#k-tabs{position:absolute;left:50%;transform:translateX(-50%);top:10px;z-index:6;display:flex;gap:6px;background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:6px}#k-tabs .btn{height:40px;font-size:15px;padding:0 16px}</style>
+      <div class="k-pane" id="k-demo"></div><div class="k-pane" id="k-lab" style="display:none"></div>
+      <div id="k-tabs"><button class="btn sel" data-tab="demo">VLAN és STP bemutató</button><button class="btn" data-tab="lab">Szabad labor (kötögetés)</button></div>`;
+    buildDemo($('#k-demo')); Lab.mount($('#k-lab'));
+    $$('[data-tab]', root).forEach(b => b.onclick = () => { setTab(b.dataset.tab); sfx.click() });
+  };
+  S.resize = () => { C && C.resize(); Lab.resize() };
+  S.tick = dt => { if (tab === 'demo') { T += dt; step(dt); draw() } else Lab.tick(dt) };
+  S.leave = () => Lab.stopRace();
+  S.comp = { rules: 'Szabad laborban kell megoldanod a 3 feladatot (két gép egy kapcsolón, két hálózat routerrel, DHCP). Feladatonként 400 pont, és ha mindhárom kész, időbónusz is jár.', start: () => { setTab('lab'); Lab.startRace() } };
+  S.score = () => Lab.best;
   return S;
 })());
