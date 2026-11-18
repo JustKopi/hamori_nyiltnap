@@ -2,7 +2,7 @@
 App.add((() => {
   const S = {
     id: 'kapcsolo', icon: '', title: 'Kapcsoló-labor', color: '#a78bfa',
-    desc: 'Színezd VLAN-okba a gépeket, kiabálj a hálózatba, és okozz szórási vihart! Megmenti az STP?',
+    desc: 'VLAN-ok, szórási vihar és STP – vagy építs saját hálózatot a szabad laborban: kábelezz, adj IP-címet, állíts be átjárót, és pingelj!',
     topic: 'Kapcsolók, VLAN, 2. rétegbeli redundancia (STP), DHCP'
   };
   const VL = { 10: { c: '#5b9dff', n: 'Diákok' }, 20: { c: '#fb923c', n: 'Tanárok' }, 30: { c: '#4ade80', n: 'Vendég' } };
