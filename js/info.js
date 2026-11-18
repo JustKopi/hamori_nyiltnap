@@ -6,7 +6,7 @@ App.add((() => {
     topic: 'Képzési és kimeneti követelmények (KKK)'
   };
   const MAP = [
-    ['internet', 'Az internet útja', 'Hálózatok felépítése, protokollok (IP, TCP), redundáns hálózatok'],
+    ['internet', 'Az internet útja', 'Hálózatok felépítése, IP, TCP/UDP, sávszélesség, késleltetés, redundancia'],
     ['router', 'Légy te a router!', 'IPv4-címzés, CIDR-maszkok, útvonaltábla, leghosszabb egyezés, TTL'],
     ['kapcsolo', 'Kapcsoló-labor', 'VLAN-ok, trönkölés, 2. rétegbeli redundancia (STP), DHCP'],
     ['wifi', 'WiFi-tervező', 'Vezeték nélküli hálózatok, 802.11 szabványok, frekvenciasávok, mesh, lefedettségi terv'],
