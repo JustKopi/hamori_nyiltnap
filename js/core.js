@@ -119,9 +119,11 @@ const CATS = [
   ['ops', 'Rendszerüzemeltetés és felhő', ['terminal', 'ugyelet', 'felho']],
   ['hw', 'Hardver', ['pc']],
   ['dev', 'Programozás és web', ['robot', 'weblap']],
+  ['you', 'Te és az informatika', ['szakma', 'ai']],
+  ['play', 'Gyakorlati kihívások', ['rj45', 'phish', 'detektiv']],
   ['quiz', 'Kvíz', ['kviz']],
 ];
-const MINS = { internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, robot: 5, weblap: 3, kviz: 3 };
+const MINS = { internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, szakma: 3, ai: 5, rj45: 2, phish: 2, detektiv: 3, robot: 5, weblap: 3, kviz: 3 };
 
 /* ---- nyitólap: élő hálózat-illusztráció ---- */
 const Hero = {
@@ -181,7 +183,7 @@ const App = {
     const f = this.filter;
     const fe = $('#feat'); if (fe) { fe.innerHTML = this.feat(); const lb = $('#hub-lb'); if (lb) lb.onclick = e => { e.stopPropagation(); Comp.board() } }
     $('#cats').innerHTML = [['all', 'Összes'], ...CATS.map(c => [c[0], c[1]])].map(([k, n]) => `<button class="chip ${k === f ? 'on' : ''}" data-cat="${k}">${n}</button>`).join('');
-    $('#tiles').innerHTML = CATS.filter(c => f === 'all' || c[0] === f).map(c => `<section class="cat"><h3>${c[1]}</h3><div class="grid">${c[2].map(id => this.card(this.byId(id))).join('')}</div></section>`).join('');
+    $('#tiles').innerHTML = CATS.filter(c => f === 'all' || c[0] === f).map(c => `<section class="cat"><h3>${c[1]}</h3><div class="grid">${c[2].map(id => this.byId(id)).filter(Boolean).map(s => this.card(s)).join('')}</div></section>`).join('');
     $$('.chip').forEach(b => b.onclick = () => { this.filter = b.dataset.cat; sfx.click(); this.renderHub() });
     $$('.tile').forEach(t => t.onclick = () => { sfx.click(); location.hash = t.dataset.id });
   },
