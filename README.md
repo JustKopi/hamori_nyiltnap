@@ -15,9 +15,9 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 | WiFi-tervező | könnyű és nehéz mód: router, mesh, jelismétlő, kábeles AP, powerline, kábelezés, csatornák, valós idejű zavarok |
 | Te vagy a tűzfal! | támadástípusok, portok, DDoS |
 | Jelszó-törő | erős jelszavak, hitelesítés |
-| Parancssor-kaland | „Éjszakai riasztás” küldetéssor: átjáró, DNS, napló, tűzfal, szolgáltatások, mentés |
+| Parancssor-kaland | „Éjszakai riasztás” küldetéssor: átjáró, DNS, napló, tűzfal, szolgáltatások, mentés; Kódfejtő kihívás (Caesar, Base64, bináris, hex) |
 | Rendszergazda-ügyelet | szerverhibák + e-mail, chat, telefonos kérések |
-| Gépépítő műhely 3D | alkatrészek, összeszerelés, hibakeresés, rendszertelepítés |
+| Gépépítő műhely 3D | alkatrészek, összeszerelés, hibakeresés, rendszertelepítés, röntgen-nézet, játék a kész gépen |
 | Felhő-üzemeltető | virtualizáció, konténerek, élő migráció; 90 mp-es vagy végtelen mód, fogd és vidd |
 | Programozd a robotot! | blokkos programozás, ciklus, feltétel, Python, 8 pálya |
 | Weblap-műhely | HTML, CSS, Bootstrap/Tailwind/React, WordPress vs oldalkészítő vs kézi kód |
