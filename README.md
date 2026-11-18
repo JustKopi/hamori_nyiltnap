@@ -11,16 +11,16 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 |---|---|
 | Az internet útja | csomagok, sávszélesség, késleltetés, redundancia, kábelezés |
 | Légy te a router! | IPv4, CIDR, útvonaltábla, leghosszabb egyezés, TTL |
-| Kapcsoló-labor | VLAN, STP, DHCP |
+| Kapcsoló-labor | VLAN, STP, DHCP + szabad hálózatépítő labor (IP, átjáró, ping) |
 | WiFi-tervező | lefedettség, 2,4 / 5 GHz, mesh, 5 pálya |
 | Te vagy a tűzfal! | támadástípusok, portok, DDoS |
 | Jelszó-törő | erős jelszavak, hitelesítés |
-| Parancssor-kaland | Windows/Linux parancssor |
-| Rendszergazda-ügyelet | üzemeltetés, monitorozás |
+| Parancssor-kaland | „Éjszakai riasztás” küldetéssor: átjáró, DNS, napló, tűzfal, szolgáltatások, mentés |
+| Rendszergazda-ügyelet | szerverhibák + e-mail, chat, telefonos kérések |
 | Gépépítő műhely 3D | alkatrészek, összeszerelés, hibakeresés, rendszertelepítés |
 | Felhő-üzemeltető | virtualizáció, konténerek, élő migráció |
-| Programozd a robotot! | algoritmusok |
-| Weblap-műhely | HTML, CSS |
+| Programozd a robotot! | blokkos programozás, ciklus, feltétel, Python, 8 pálya |
+| Weblap-műhely | HTML, CSS, Bootstrap/Tailwind/React, WordPress vs oldalkészítő vs kézi kód |
 | Villámkvíz | vegyes |
 | Szülőknek | a szakma bemutatása, kivetíthető diasor |
 

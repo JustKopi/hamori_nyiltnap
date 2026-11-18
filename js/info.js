@@ -17,7 +17,7 @@ App.add((() => {
     ['pc', 'Gépépítő műhely 3D', 'Számítógép felépítése, összeszerelés, alkatrészcsere, hibakeresés'],
     ['felho', 'Felhő-üzemeltető', 'Virtualizáció, konténerek, felhőszolgáltatások, élő migráció, energiahatékonyság'],
     ['robot', 'Programozd a robotot!', 'Algoritmusok, ciklusok (for, while), feltételek (if), Python'],
-    ['weblap', 'Weblap-műhely', 'HTML5, CSS3, reszponzív weboldalak'],
+    ['weblap', 'Weblap-műhely', 'HTML5, CSS3, reszponzív dizájn, keretrendszerek, WordPress vs oldalkészítő vs kézi kód'],
   ];
 
   /* ---- Kivetíthető, tömör diasor ---- */
