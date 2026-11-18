@@ -18,6 +18,10 @@ App.add((() => {
     ['felho', 'Felhő-üzemeltető', 'Virtualizáció, konténerek, felhőszolgáltatások, élő migráció, energiahatékonyság'],
     ['robot', 'Programozd a robotot!', 'Algoritmusok, ciklusok (for, while), feltételek (if), Python'],
     ['weblap', 'Weblap-műhely', 'HTML5, CSS3, reszponzív dizájn, keretrendszerek, WordPress vs oldalkészítő vs kézi kód'],
+    ['rj45', 'RJ45-krimpelő', 'Strukturált kábelezés, T568B szabvány, kábeltesztelés'],
+    ['phish', 'Adathalász-felismerő', 'Kiberbiztonság, adathalászat felismerése, biztonságos internethasználat'],
+    ['detektiv', 'Hibakereső detektív', 'Rendszeres hibaelhárítás a fizikai rétegtől az alkalmazásig'],
+    ['szakma', 'Melyik IT-szakma való nekem?', 'Pályaorientáció az informatikai szakterületek között'],
   ];
 
   /* ---- Kivetíthető, tömör diasor ---- */
