@@ -123,6 +123,27 @@ const CATS = [
   ['play', 'Gyakorlati kihívások', ['rj45', 'phish', 'detektiv']],
   ['quiz', 'Kvíz', ['kviz']],
 ];
+const ORDER = ['pc', 'internet', 'ai', 'ugyelet', 'wifi', 'robot', 'rj45', 'tuzfal', 'weblap', 'phish', 'router', 'felho', 'detektiv', 'terminal', 'kapcsolo', 'szakma', 'jelszo', 'kviz'];
+const HOW = {
+  internet: ['Küldj videókat, játékokat, letöltéseket a suli hálózatára', 'Keresd meg a leggyengébb pontját', 'Terheld túl – és elmarad az óra!'],
+  router: ['Csomagok érkeznek IP-címmel', 'Döntsd el villámgyorsan, merre menjenek', 'Ne hagyd, hogy feltorlódjanak!'],
+  kapcsolo: ['Tegyél le gépeket, kapcsolót, routert', 'Kösd össze őket kábellel', 'Adj IP-címet, és pingeld meg a másik gépet'],
+  wifi: ['Tegyél le routert, jelerősítőt, kábelt', 'Kerüld ki a mikrót és a vastag falakat', 'Legyen mindenhol erős a jel!'],
+  tuzfal: ['Csomagok száguldanak a hálózat felé', 'Engedd át a jókat, állítsd meg a támadókat', 'Egyre gyorsabb lesz!'],
+  jelszo: ['Írj be egy jelszót', 'Nézd meg, mennyire erős', 'Tanuld meg, milyen a jó jelszó'],
+  terminal: ['Írj parancsokat, mint egy filmbeli hekker', 'Fejts meg rejtett kódokat', 'Mentsd meg a szervert!'],
+  ugyelet: ['Bajba kerülnek a szerverek', 'Húzd rájuk a jó szerszámot', 'Mentsd meg őket, mielőtt leállnak!'],
+  pc: ['Vásárolj alkatrészeket', 'Szereld össze 3D-ben, csavarhúzóval', 'Telepíts rendszert, és játssz rajta!'],
+  felho: ['Ügyfelek szervereket rendelnek', 'Húzd a virtuális gépeket a hosztokra', 'Keress minél több pénzt!'],
+  robot: ['Rakj össze programot blokkokból', 'Vezesd el a robotot a célig', 'Gyűjtsd össze a kristályokat!'],
+  weblap: ['Válassz sablont és színeket', 'Nézd meg 7 különböző keretrendszerben', 'Lásd a kódot is!'],
+  kviz: ['Gyors kérdések az informatikáról', 'Válaszolj, mielőtt lejár az idő', 'Gyűjts minél több pontot!'],
+  szakma: ['Válaszolj 14 kérdésre magadról', 'A gép kiszámolja, mi illik hozzád', 'Fedezd fel az informatikai szakmákat!'],
+  ai: ['Taníts be egy neurális hálót', 'Rajzolj – a gép kitalálja, mi az', 'Nézd, ahogy az autók megtanulnak vezetni!'],
+  rj45: ['Nézd meg, milyen egy hálózati kábel', 'Krimpelj saját RJ45 dugót', 'Dugd a kábeleket a jó aljzatba!'],
+  phish: ['E-mailek, SMS-ek, üzenetek érkeznek', 'Döntsd el: valódi vagy csaló?', 'Ne dőlj be a trükköknek!'],
+  detektiv: ['Valakinek elromlott a gépe', 'Nyomozz vizsgálatokkal', 'Találd meg, mi a hiba!'],
+};
 const MINS = { internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, szakma: 3, ai: 5, rj45: 2, phish: 2, detektiv: 3, robot: 5, weblap: 3, kviz: 3 };
 
 /* ---- nyitólap: élő hálózat-illusztráció ---- */
@@ -159,32 +180,20 @@ const App = {
   stations: [], cur: null, idle: 0, filter: 'all',
   add(s) { this.stations.push(s) },
   byId(id) { return this.stations.find(s => s.id === id) },
-  card(s) {
-    return `<button class="tile" style="--accent:${s.color}" data-id="${s.id}">
-      <span class="tile-ic">${icon(s.id, 26)}</span>
-      <span class="tile-tt">${s.title}</span><span class="tile-ds">${s.desc}</span>
-      ${s.comp ? `<span class="tile-race">${icon('trophy', 13, 2.2)} Verseny</span>` : ''}
-      <span class="tile-ft"><span>kb. ${MINS[s.id] || 2} perc</span><span class="tile-go">${icon('arrow', 18, 2)}</span></span></button>`;
-  },
-  feat() {
-    const pc = this.byId('pc'), comp = this.stations.filter(s => s.comp && s.id !== 'pc');
-    const img = (typeof Dev !== 'undefined' && Dev.img) ? Dev.img('desktop', 260) : '';
-    return `<button class="feat-pc tile" style="--accent:${pc.color}" data-id="pc">
-        <span class="feat-txt"><span class="feat-badge">${icon('star', 14, 2)} Kiemelt</span>
-        <span class="feat-tt">${pc.title}</span>
-        <span class="feat-ds">Rendelj alkatrészeket a boltból, csavarozd össze a gépet, kösd be a kábeleket, majd kapcsold be és telepíts rá rendszert. Teljesíts megrendeléseket, javíts elromlott gépeket, vagy építs szabadon.</span>
-        <span class="feat-pills"><span>Valódi alkatrészek</span><span>Csavarhúzó</span><span>Vízhűtés, RGB</span><span>Windows-telepítés</span><span>Megrendelések</span></span>
-        <span class="btn go feat-go">Irány a műhely ${icon('arrow', 18, 2)}</span></span>
-        ${img ? `<img class="feat-img" src="${img}" alt="">` : ''}</button>
-      ${comp.length ? `<div class="feat-h"><h3>${icon('trophy', 18, 2)} Versenyezz!</h3><span>Ezekben időre lehet játszani, és az eredmény felkerül a ranglistára.</span><button class="btn" id="hub-lb">${icon('star', 16, 2)} Ranglista</button></div>
-      <div class="grid feat-grid">${comp.map(s => this.card(s)).join('')}</div>` : ''}`;
+  card(s, i = 0) {
+    const how = HOW[s.id] || [];
+    return `<button class="tile" style="--accent:${s.color};--d:${i * 45}ms" data-id="${s.id}">
+      <span class="tile-wm">${icon(s.id, 150, 1.2)}</span><span class="tile-sh"></span>
+      <span class="tile-ic">${icon(s.id, 34)}</span>
+      <span class="tile-tt">${s.title}</span>
+      <span class="tile-body"><span class="tile-ds">${s.desc}</span>
+      <span class="tile-how"><b>Ezt csinálod itt:</b>${how.map((h, k) => `<span style="--k:${k}"><i>${k + 1}</i>${h}</span>`).join('')}</span></span>
+      <span class="tile-ft"><span>kb. ${MINS[s.id] || 2} perc${s.comp ? ` • ${icon('trophy', 12, 2.2)} versenyezhető` : ''}</span><span class="tile-go">${icon('arrow', 18, 2)}</span></span></button>`;
   },
   renderHub() {
-    const f = this.filter;
-    const fe = $('#feat'); if (fe) { fe.innerHTML = this.feat(); const lb = $('#hub-lb'); if (lb) lb.onclick = e => { e.stopPropagation(); Comp.board() } }
-    $('#cats').innerHTML = [['all', 'Összes'], ...CATS.map(c => [c[0], c[1]])].map(([k, n]) => `<button class="chip ${k === f ? 'on' : ''}" data-cat="${k}">${n}</button>`).join('');
-    $('#tiles').innerHTML = CATS.filter(c => f === 'all' || c[0] === f).map(c => `<section class="cat"><h3>${c[1]}</h3><div class="grid">${c[2].map(id => this.byId(id)).filter(Boolean).map(s => this.card(s)).join('')}</div></section>`).join('');
-    $$('.chip').forEach(b => b.onclick = () => { this.filter = b.dataset.cat; sfx.click(); this.renderHub() });
+    const fe = $('#feat'); if (fe) fe.innerHTML = ''; const ca = $('#cats'); if (ca) ca.innerHTML = '';
+    const list = [...ORDER.map(id => this.byId(id)), ...this.stations.filter(s => !ORDER.includes(s.id) && s.id !== 'info')].filter(Boolean);
+    $('#tiles').innerHTML = `<div class="grid hub-grid">${list.map((s, i) => this.card(s, i)).join('')}</div>`;
     $$('.tile').forEach(t => t.onclick = () => { sfx.click(); location.hash = t.dataset.id });
   },
   init() {

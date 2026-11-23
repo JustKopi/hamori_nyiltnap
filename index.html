@@ -170,18 +170,34 @@ input[type=range]{accent-color:var(--accent)}
 .chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .cat h3{font-size:14px;font-weight:600;color:var(--muted);margin:22px 0 12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
-.tile{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:6px;padding:18px;border-radius:var(--r-lg);cursor:pointer;
-  background:var(--panel);border:1px solid var(--line);transition:transform .18s ease,border-color .18s,background .18s;min-height:196px;overflow:hidden}
-.tile::before{content:"";position:absolute;inset:0;background:radial-gradient(80% 60% at 100% 0%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 70%);opacity:0;transition:opacity .25s}
-.tile:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:var(--panel2)}
-.tile:hover::before{opacity:1}
-.tile:focus-visible{outline:2px solid var(--accent)}
-.tile-ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent);margin-bottom:6px;position:relative}
-.tile-tt{font-size:18px;font-weight:700;letter-spacing:-.015em;position:relative}
-.tile-ds{font-size:14.5px;color:#a9aeb8;line-height:1.45;flex:1;position:relative}
-.tile-ft{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--dim);margin-top:8px;position:relative}
-.tile-go{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);color:var(--muted);transition:all .2s}
-.tile:hover .tile-go{background:var(--accent);border-color:var(--accent);color:#0b0c0f;transform:translateX(2px)}
+.hub-grid{margin-top:34px;gap:18px}
+.tile{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;gap:8px;padding:20px;border-radius:22px;cursor:pointer;height:268px;overflow:hidden;isolation:isolate;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--accent) 26%,#14161b) 0%,#15171c 58%,color-mix(in srgb,var(--accent) 10%,#101216) 100%);
+  border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));box-shadow:0 10px 30px -18px var(--accent),inset 0 1px 0 #ffffff14;
+  transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s,border-color .35s;animation:tileIn .6s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d)}
+@keyframes tileIn{from{opacity:0;transform:translateY(24px) scale(.97)}}
+.tile::before{content:"";position:absolute;inset:-1px;z-index:-1;background:radial-gradient(70% 55% at 85% 0%,color-mix(in srgb,var(--accent) 38%,transparent),transparent 70%);opacity:.7;transition:opacity .35s}
+.tile-wm{position:absolute;right:-26px;bottom:-30px;color:var(--accent);opacity:.09;z-index:-1;transition:transform .7s cubic-bezier(.2,.8,.2,1),opacity .35s}
+.tile-sh{position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 35%,#ffffff1c 50%,transparent 65%);transform:translateX(-120%)}
+.tile:hover,.tile:focus-visible{transform:translateY(-8px) scale(1.025);border-color:var(--accent);box-shadow:0 26px 60px -20px var(--accent),0 0 0 1px var(--accent),inset 0 1px 0 #ffffff22;z-index:2}
+.tile:hover::before{opacity:1}.tile:hover .tile-wm{transform:rotate(-12deg) scale(1.15);opacity:.16}.tile:hover .tile-sh{transform:translateX(120%);transition:transform .9s ease}
+.tile:focus-visible{outline:none}
+.tile-ic{flex:none;width:60px;height:60px;border-radius:18px;display:grid;place-items:center;color:#0b0c0f;background:var(--accent);box-shadow:0 10px 26px -6px var(--accent);overflow:hidden;transition:height .4s cubic-bezier(.2,.8,.2,1),margin .4s cubic-bezier(.2,.8,.2,1),opacity .25s,transform .4s}
+.tile:hover .tile-ic,.tile:focus-visible .tile-ic{height:0;margin-bottom:-8px;opacity:0;transform:scale(.6)}
+.tile-tt{font-size:21px;font-weight:800;letter-spacing:-.02em}
+.tile-body{position:relative;flex:1;min-height:0}
+.tile-ds{position:absolute;inset:0;font-size:14px;color:#b9bec8;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;transition:opacity .25s,transform .35s}
+.tile-how{position:absolute;inset:0;display:flex;flex-direction:column;gap:5px;opacity:0;transform:translateY(16px);transition:opacity .3s,transform .4s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.tile-how b{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.tile-how span{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;color:#eef0f3;opacity:0;transform:translateX(-10px);transition:opacity .3s,transform .35s;transition-delay:calc(var(--k) * 70ms + 80ms)}
+.tile-how i{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;color:#0b0c0f;background:var(--accent)}
+.tile:hover .tile-ds,.tile:focus-visible .tile-ds{opacity:0;transform:translateY(-12px)}
+.tile:hover .tile-how,.tile:focus-visible .tile-how{opacity:1;transform:none}.tile:hover .tile-how span,.tile:focus-visible .tile-how span{opacity:1;transform:none}
+.tile-ft{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#9ba1ad}.tile-ft span:first-child{display:inline-flex;gap:5px;align-items:center}
+.tile-go{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--accent) 50%,var(--line));color:var(--accent);transition:all .3s}
+.tile:hover .tile-go{background:var(--accent);border-color:var(--accent);color:#0b0c0f;transform:translateX(4px)}
+@media(hover:none){.tile{height:auto;min-height:230px}.tile-ds{position:static;-webkit-line-clamp:3}.tile-how{display:none}}
+@media(prefers-reduced-motion:reduce){.tile,.tile *{animation:none!important;transition:none!important}}
 #parents-card{all:unset;box-sizing:border-box;margin-top:30px;display:flex;align-items:center;gap:18px;padding:22px 24px;border-radius:var(--r-lg);cursor:pointer;width:100%;
   background:linear-gradient(100deg,#1c1f26,#15171c);border:1px solid var(--line);transition:border-color .2s}
 #parents-card:hover{border-color:var(--line2)}
