@@ -123,9 +123,9 @@ App.add((() => {
     const sel = E.sel;
     if (sel && sel.alive) { c.fillStyle = 'rgba(253,224,71,.08)'; c.beginPath(); c.moveTo(sel.x, sel.y); c.arc(sel.x, sel.y, sel.vis, sel.a - sel.cone - .2, sel.a + sel.cone + .2); c.closePath(); c.fill(); [sel.a, sel.a - sel.cone, sel.a + sel.cone].forEach(a => { c.strokeStyle = 'rgba(253,224,71,.6)'; c.lineWidth = 2 / z; c.beginPath(); c.moveTo(sel.x, sel.y); c.lineTo(sel.x + Math.cos(a) * sel.vis, sel.y + Math.sin(a) * sel.vis); c.stroke() }) }
     for (const k of E.cr) {
-      const hue = 200 * k.g.viz + 20 * (1 - k.g.viz), col = `hsl(${hue},70%,${55 - k.g.meret * 15}%)`;
+      const hue = k.g.viz > .5 ? 200 : 22, col = `hsl(${hue},${35 + Math.abs(k.g.viz - .5) * 120}%,${58 - k.g.meret * 15}%)`;
       if (k.trail.length > 2) { c.strokeStyle = `hsla(${hue},70%,70%,.25)`; c.lineWidth = 2; c.beginPath(); for (let i = 0; i < k.trail.length; i += 2) i ? c.lineTo(k.trail[i], k.trail[i + 1]) : c.moveTo(k.trail[i], k.trail[i + 1]); c.stroke() }
-      c.save(); c.translate(k.x, k.y); c.rotate(k.a); if (E.phase === 'night') c.globalAlpha = .7;
+      c.save(); c.translate(k.x, k.y); c.rotate(k.a); if (E.phase === 'night') c.globalAlpha = .7; const vs = Math.max(1, 11 / (k.r * z)); c.scale(vs, vs);
       if (k.burst) { c.fillStyle = 'rgba(251,146,60,.35)'; c.beginPath(); c.arc(-k.r * .6, 0, k.r * 1.2, 0, 7); c.fill() }
       c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, k.r * 1.15, k.r, 0, 0, 7); c.fill(); c.strokeStyle = k === sel ? '#fde047' : 'rgba(0,0,0,.45)'; c.lineWidth = k === sel ? 3 : 1.5; c.stroke();
       c.fillStyle = '#fff'; [-1, 1].forEach(s => { c.beginPath(); c.arc(k.r * .5, s * k.r * .38, k.r * .28, 0, 7); c.fill() }); c.fillStyle = '#111'; [-1, 1].forEach(s => { c.beginPath(); c.arc(k.r * .6, s * k.r * .38, k.r * .14, 0, 7); c.fill() });
@@ -146,9 +146,10 @@ App.add((() => {
   }
   function panel() {
     const n = E.cr.length, inW = E.cr.filter(c => inWater(c.x, c.y)).length;
-    $('#ev-hud').innerHTML = `<div><small>Nap</small><b>${E.day}</b></div><div><small>Élőlény</small><b>${n}</b></div><div><small>Étel a pályán</small><b>${E.food.length}</b></div><div><small>Vízben / szárazon</small><b>${inW} / ${n - inW}</b></div>`;
+    const night = E.phase === 'night', pr = night ? E.tick / NIGHT : E.tick / DAY;
+    $('#ev-hud').innerHTML = `<div id="ev-phase" class="${night ? 'night' : ''}"><small>${E.day}. nap</small><span>${night ? 'Éjszaka: esznek, szaporodnak' : pr > .85 ? 'Alkonyat: mindjárt éjszaka' : 'Nappal: ételt gyűjtenek'}</span><em><u style="width:${Math.round(pr * 100)}%"></u></em></div><div><small>Élőlény</small><b>${n}</b></div><div><small>Étel a pályán</small><b>${E.food.length}</b></div><div><small>Vízben / szárazon</small><b>${inW} / ${n - inW}</b></div>`;
     const last = E.hist[E.hist.length - 1] || {};
-    $('#ev-tr').innerHTML = TRAITS.map(([t, nm, col]) => `<div class="ev-t" title="${TRAITS.find(x => x[0] === t)[3]}"><i style="background:${col}"></i><span>${nm}</span><em><u style="width:${Math.round((last[t] || 0) * 100)}%;background:${col}"></u></em><b>${(last[t] || 0).toFixed(2)}</b></div>`).join('');
+    $('#ev-tr').innerHTML = TRAITS.map(([t, nm, col]) => `<div class="ev-t" title="${TRAITS.find(x => x[0] === t)[3]}"><i style="background:${col}"></i><span>${nm}</span><em><u style="width:${Math.round((last[t] || 0) * 100)}%;background:${col}"></u></em><b>${(last[t] || 0).toFixed(2)}${(() => { const f = E.hist[0]; if (!f || E.hist.length < 2) return ''; const d = (last[t] || 0) - f[t]; return Math.abs(d) < .02 ? '' : `<span class="ev-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '+' : ''}${d.toFixed(2)}</span>` })()}</b></div>`).join('');
     const s = E.sel, key = s ? s.id + (cam.follow ? 'f' : '') : 0;
     const dyn = s ? `<div class="ev-sh"><b>#${s.id} lény</b><span>${s.gen}. nemzedék • ${s.age} napos • ${s.kids} utód</span></div><div class="ev-sf">Étel: ${'<i></i>'.repeat(Math.max(0, s.food))} <small>(${inWater(s.x, s.y) ? 'vízben' : 'szárazon'}${s.stun ? ', kábult' : s.burst ? ', sprintel' : ''})</small></div>` : '';
     if (key === panel.k) { const d = $('#ev-sdyn'); if (d) d.innerHTML = dyn; return } panel.k = key;
@@ -176,6 +177,13 @@ App.add((() => {
       #ev-hud{position:absolute;top:10px;left:10px;display:flex;gap:8px;z-index:2;pointer-events:none}#ev-hud div{background:#0b0c10d0;border:1px solid var(--line2);border-radius:12px;padding:5px 12px;display:flex;flex-direction:column}#ev-hud small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}#ev-hud b{font-size:22px;font-variant-numeric:tabular-nums}
       #ev-ctl{position:absolute;bottom:10px;left:10px;display:flex;gap:6px;z-index:2;flex-wrap:wrap}#ev-ctl .btn{height:38px;font-size:14px;padding:0 12px}#ev-ctl .btn.sel{background:var(--accent);color:#0b0c10;border-color:var(--accent)}
       #ev-side{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px;font-size:14px}
+      #ev-orig{position:absolute;top:10px;right:10px;z-index:3;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#0b0c10c8;border:1px solid var(--line2);color:#cbd5e1;cursor:pointer;transition:all .2s}#ev-orig:hover{color:#fff;border-color:var(--accent);transform:scale(1.08)}
+      #ev-leg{position:absolute;bottom:58px;left:10px;z-index:2;display:flex;flex-wrap:wrap;gap:6px 14px;background:#0b0c10c8;border:1px solid var(--line2);border-radius:12px;padding:6px 12px;font-size:13px;pointer-events:none}#ev-leg span{display:inline-flex;gap:6px;align-items:center}#ev-leg i{width:12px;height:12px;border-radius:50%;display:inline-block}#ev-leg b{color:#fde047}
+      #ev-phase{min-width:280px}#ev-phase em{display:block;height:6px;background:#ffffff1a;border-radius:3px;overflow:hidden;margin-top:5px}#ev-phase em u{display:block;height:100%;background:linear-gradient(90deg,#fde047,#fb923c)}#ev-phase.night em u{background:#818cf8}#ev-phase span{font-size:14px;font-weight:700}
+      .ev-what{background:color-mix(in srgb,var(--accent) 12%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:12px;padding:9px 11px;font-size:13.5px;line-height:1.45}
+      .ev-ax{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:-6px}.ev-d{font-size:11px;margin-left:4px}.ev-d.up{color:#4ade80}.ev-d.dn{color:#f87171}
+      .ev-adv{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:8px}.ev-adv summary{cursor:pointer;font-weight:700;font-size:13.5px;color:#cbd5e1}.ev-adv[open]{display:flex}.ev-adv[open] summary{margin-bottom:6px}
+      .ev-t{grid-template-columns:10px 100px 1fr 86px!important}.ev-t b{white-space:nowrap}
       #ev-side h4{margin:0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
       .ev-t{display:grid;grid-template-columns:10px 104px 1fr 38px;gap:6px;align-items:center;font-size:13px}.ev-t i{width:10px;height:10px;border-radius:3px}.ev-t em{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden}.ev-t u{display:block;height:100%}.ev-t b{text-align:right;font-variant-numeric:tabular-nums}
       #ev-chart{width:100%;height:110px;background:var(--bg2);border-radius:10px}
@@ -186,19 +194,20 @@ App.add((() => {
       #ev-info{position:absolute;inset:0;z-index:5;display:none;overflow:auto;background:#0b0c10f2;padding:24px}#ev-info .card{max-width:860px;margin:0 auto;background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:22px 26px;font-size:15.5px;line-height:1.6}#ev-info h3{margin:14px 0 4px;font-size:18px;color:var(--accent)}#ev-info h2{margin:0}
     </style>
     <div id="ev"><div id="ev-st"><div id="ev-hud"></div>
-      <div id="ev-ctl">${[1, 3, 10, 30].map(v => `<button class="btn ${v === 1 ? 'sel' : ''}" data-es="${v}">${v}×</button>`).join('')}<button class="btn" id="ev-pause">Szünet</button><button class="btn" id="ev-fit">Teljes nézet</button><button class="btn" id="ev-new">Új világ</button><button class="btn go" id="ev-inf">Hogyan működik?</button><button class="btn" id="ev-orig">Eredeti: Vizes evolúció (Laczkó Örs)</button></div>
+      <div id="ev-ctl">${[1, 3, 10, 30].map(v => `<button class="btn ${v === 1 ? 'sel' : ''}" data-es="${v}">${v}×</button>`).join('')}<button class="btn" id="ev-pause">Szünet</button><button class="btn" id="ev-fit">Teljes nézet</button><button class="btn" id="ev-new">Új világ</button><button class="btn go" id="ev-inf">Hogyan működik?</button></div>
+      <button id="ev-orig" title="Az eredeti, részletesebb szimuláció: Vizes evolúció – Laczkó Örs (lors.hu)" aria-label="Eredeti szimuláció">${icon('globe', 18)}</button>
+      <div id="ev-leg"><span><i style="background:hsl(200,70%,55%)"></i>vízi lény</span><span><i style="background:hsl(20,70%,55%)"></i>szárazföldi lény</span><span><i style="background:#ef4444;width:8px;height:8px"></i>étel</span><span><i style="background:#3f6b2a"></i>fa / hínár</span><span><b>*</b> elkábult</span></div>
       <div id="ev-info"></div></div>
-      <div id="ev-side"><h4>Tulajdonságok átlaga</h4><div id="ev-tr"></div><canvas id="ev-chart" width="300" height="110"></canvas>
+      <div id="ev-side"><div class="ev-what"><b>Mit figyelj?</b> Minden lény más génekkel születik. Amelyik tulajdonság segít ételt szerezni, az napról napra <b>elterjed</b> – a sávok és a grafikon ezt mutatják.</div><h4>Hogyan változnak a lények?</h4><div id="ev-tr"></div><canvas id="ev-chart" width="300" height="110"></canvas><div class="ev-ax"><span>1. nap</span><span>ma</span></div>
         <h4>Kiválasztott lény</h4><div id="ev-sel"></div>
-        <h4>Beállítások</h4>
+        <details class="ev-adv"><summary>Haladó beállítások</summary>
         <label class="ev-sl">Népesség-cél <b id="ev-pv"></b><input type="range" id="ev-pop" min="40" max="220" step="10"></label>
         <label class="ev-sl">Mutáció gyakorisága <b id="ev-mfv"></b><input type="range" id="ev-mf" min="0" max="80"></label>
         <label class="ev-sl">Mutáció mértéke <b id="ev-mav"></b><input type="range" id="ev-ma" min="0" max="80"></label>
         <label class="ev-sl">Keresztezés esélye <b id="ev-cv"></b><input type="range" id="ev-cr" min="0" max="100"></label>
         <label class="ev-ck"><input type="checkbox" id="ev-night" checked> Éjszaka (pihenés, szaporodás)</label>
         <label class="ev-ck"><input type="checkbox" id="ev-ws"> Vízi indulás (új világnál)</label>
-        <div class="ev-row"><button class="btn" id="ev-save">Mentés</button><button class="btn" id="ev-load">Betöltés</button></div>
-        <div style="font-size:11.5px;color:var(--muted)">Ez az egyszerűsített változat saját megvalósítás. Az eredeti, sokkal részletesebb „Vizes evolúció” szimuláció szerzője Laczkó Örs (lors.hu) – a fenti gombbal az ő engedélyével megnyitható.</div></div></div>`;
+        <div class="ev-row"><button class="btn" id="ev-save">Mentés</button><button class="btn" id="ev-load">Betöltés</button></div></details></div></div></div>`;
     C = makeCanvas($('#ev-st')); ctx = C.ctx; C.cv.style.zIndex = 1; statCv = $('#ev-chart');
     const sl = (id, k, f, show) => { const e = $('#' + id); e.value = f(CFG[k]); e.oninput = () => { CFG[k] = show(+e.value); lbl() } };
     const lbl = () => { $('#ev-pv').textContent = CFG.pop; $('#ev-mfv').textContent = Math.round(CFG.mutF * 100) + '%'; $('#ev-mav').textContent = Math.round(CFG.mutA * 100) + '%'; $('#ev-cv').textContent = Math.round(CFG.cross * 100) + '%' };
