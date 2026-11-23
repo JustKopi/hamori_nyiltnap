@@ -36,6 +36,6 @@ Verseny mód: kötelező névmegadás, időre menő játék, ranglista és össz
 
 Nincs szükség telepítésre vagy szerverre: az `index.html` közvetlenül megnyitható böngészőben (internet nélkül is működik).
 
-Külső könyvtárak a `js/vendor` mappában: [three.js](https://threejs.org/) r149 (MIT licenc) és egy QR-kód-generátor (MIT licenc).
+Külső könyvtárak a `js/vendor` mappában: [three.js](https://threejs.org/) r149 a GLTFLoaderrel és a meshopt-dekóderrel (MIT licenc), egy QR-kód-generátor (MIT licenc), valamint Quaternius [Ultimate Modular Women](https://quaternius.com) 3D modelljei (CC0, közkincs) a Trend-stúdióhoz.
 
 **Tanári beállítások** (fogaskerék a fejlécben): kioszk mód (Ctrl+Alt+K), gyenge gépes mód.
