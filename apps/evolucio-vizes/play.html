@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vizes evolúció</title>
+  <!-- GitHub Pages nem küld COOP/COEP fejléceket: a coi-serviceworker (MIT) pótolja őket, hogy a SharedArrayBuffer elérhető legyen. -->
+  <script src="coi-serviceworker.min.js"></script>
+  <link rel="stylesheet" href="play.css">
+</head>
+<body>
+  <a href="../../#evo" style="position:fixed;top:10px;right:10px;z-index:99;background:#111827cc;color:#fff;font:600 14px system-ui,sans-serif;padding:8px 14px;border-radius:10px;text-decoration:none;border:1px solid #ffffff33">Vissza a nyílt napra</a>
+  <main class="shell">
+    <section class="stage" aria-label="Evolúció vizes szimuláció">
+      <canvas id="c" width="1280" height="720"></canvas>
+
+      <div class="hud">
+        <div class="stat">
+          <span class="label">Nap</span>
+          <span class="num" id="dayEl">1</span>
+        </div>
+        <div class="stat">
+          <span class="label">Élőlény</span>
+          <span class="num" id="popEl">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Elérhető étel</span>
+          <span class="num" id="foodEl">0</span>
+        </div>
+      </div>
+
+      <aside class="traits" aria-label="Általános tulajdonságok">
+        <div class="traits-header">
+          <span class="label">Általános tulajdonságok</span>
+          <span class="trait-day" id="traitDayEl">Nap 1</span>
+        </div>
+        <canvas class="traits-chart" id="traitChart" width="560" height="160"></canvas>
+        <details class="trait-details">
+          <summary class="trait-details-toggle">Részletek</summary>
+          <div class="trait">
+            <span>Tank</span>
+            <span class="swatch tank"></span>
+            <span class="track"><span class="bar bar-tank" id="tankBar"></span></span>
+            <span id="tankAvg">0.00</span>
+          </div>
+          <div class="trait">
+            <span>Látás</span>
+            <span class="swatch vision"></span>
+            <span class="track"><span class="bar bar-vision" id="visionBar"></span></span>
+            <span id="visionAvg">0.00</span>
+          </div>
+          <div class="trait">
+            <span>Fókusz</span>
+            <span class="swatch focus"></span>
+            <span class="track"><span class="bar bar-focus" id="focusBar"></span></span>
+            <span id="focusAvg">0.00</span>
+          </div>
+          <div class="trait">
+            <span>Sprint</span>
+            <span class="swatch burst"></span>
+            <span class="track"><span class="bar bar-burst" id="burstBar"></span></span>
+            <span id="burstAvg">0.00</span>
+          </div>
+          <div class="trait">
+            <span>Fürkész</span>
+            <span class="swatch forage"></span>
+            <span class="track"><span class="bar bar-forage" id="forageBar"></span></span>
+            <span id="forageAvg">0.00</span>
+          </div>
+          <div class="trait">
+            <span>Víz kedvelő</span>
+            <span class="swatch water"></span>
+            <span class="track"><span class="bar bar-water" id="waterBar"></span></span>
+            <span id="waterAvg">0.00</span>
+          </div>
+          <div class="trait">
+            <span>Kész</span>
+            <span class="swatch ready"></span>
+            <span class="track"><span class="bar bar-ready" id="readyBar"></span></span>
+            <span id="readyAvg">0%</span>
+          </div>
+        </details>
+      </aside>
+
+      <div class="cycle-meter" id="cycleMeter" aria-label="Nappal-éjszaka ciklus">
+        <div class="cycle-track">
+          <div class="cycle-fill" id="cycleFill"></div>
+          <div class="cycle-orb" id="cycleOrb"></div>
+        </div>
+        <div class="cycle-caption" id="cycleCaption" hidden>Nappal 0%</div>
+      </div>
+    </section>
+
+    <section class="controls main-controls" aria-label="Szimuláció beállítások">
+      <button class="button play-pause-button" id="playPauseBtn" type="button" aria-label="Szünet">
+        <span class="play-pause-icon" aria-hidden="true"></span>
+      </button>
+
+      <button class="button icon-button restart-button" id="restartBtn" type="button" aria-label="Újrakezdés" title="Újrakezdés">
+        <svg class="restart-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+
+      <label class="control">
+        <span class="control-row">
+          <span>Zoom</span>
+          <span class="value" id="zoomVal">4.00×</span>
+        </span>
+        <input id="zoomSlider" type="range" min="0.25" max="4" step="0.05" value="4">
+      </label>
+
+      <label class="control">
+        <span class="control-row">
+          <span>Sebesség</span>
+          <span class="value" id="simSpeedVal">1</span>
+        </span>
+        <input id="simSpeedSlider" type="range" min="1" max="50" step="1" value="1">
+      </label>
+
+      <label class="control">
+        <span class="control-row">
+          <span>Cél populáció (alap)</span>
+          <span class="value" id="populationTargetVal">200</span>
+        </span>
+        <input id="populationTargetSlider" type="range" min="20" max="380" step="1" value="200">
+      </label>
+
+      <label class="control">
+        <span class="control-row">
+          <span>Klaszterezés</span>
+          <span class="value" id="hotspotVal">0.14</span>
+        </span>
+        <input id="hotspotSlider" type="range" min="0" max="0.5" step="0.01" value="0.14">
+      </label>
+
+      <label class="control">
+        <span class="control-row">
+          <span>Méret</span>
+          <span class="value" id="sizeVal">4×</span>
+        </span>
+        <input id="sizeSlider" type="range" min="1" max="10" step="0.5" value="4">
+      </label>
+
+      <label class="check">
+        <input id="waterStartCheck" type="checkbox">
+        Vízi indulás
+      </label>
+
+      <button class="button" id="advancedToggle" type="button">Haladó</button>
+      <button class="button" id="infoToggle" type="button">Infó</button>
+    </section>
+
+    <section class="advanced-panel" id="advancedPanel" aria-label="Haladó beállítások" hidden>
+      <div class="advanced-group">
+        <span class="advanced-group-label">Gyakran használt</span>
+        <div class="advanced-group-items">
+          <label class="check">
+            <input id="hideUiCheck" type="checkbox">
+            UI elrejtése
+          </label>
+          <label class="check">
+            <input id="graphOnlyCheck" type="checkbox">
+            Csak grafikon
+          </label>
+          <label class="control">
+            <span class="control-row">
+              <span>Fák (alap)</span>
+              <span class="value" id="treeVal">225</span>
+            </span>
+            <input id="treeSlider" type="range" min="3" max="380" step="1" value="225">
+          </label>
+           <label class="check">
+            <input id="treeDespawnCheck" type="checkbox">
+            Fák eltűnésének kikapcsolása
+          </label>
+        </div>
+      </div>
+
+      <div class="advanced-group">
+        <span class="advanced-group-label">Megjelenítés</span>
+        <div class="advanced-group-items">
+          <label class="check">
+            <input id="nightCheck" type="checkbox" checked>
+            Éjszaka
+          </label>
+          <label class="check">
+            <input id="hiResCheck" type="checkbox" checked>
+            Nagyobb felbontás
+          </label>
+          <label class="check">
+            <input id="followCheck" type="checkbox" checked>
+            Követés mód
+          </label>
+          <label class="check">
+            <input id="selectionViewCheck" type="checkbox">
+            Haladó kijelölés
+          </label>
+          <label class="check">
+            <input id="labelsCheck" type="checkbox">
+            Címkék
+          </label>
+          <label class="check">
+            <input id="trailsCheck" type="checkbox" checked>
+            Nyomok
+          </label>
+        </div>
+      </div>
+
+      <div class="advanced-group">
+        <span class="advanced-group-label">Génállomány</span>
+        <div class="advanced-group-items">
+          <label class="check">
+            <input id="invasiveCheck" type="checkbox">
+            Vándorlók
+          </label>
+          <label class="control">
+            <span class="control-row">
+              <span>Mutáció gyak.</span>
+              <span class="value" id="mfVal">0.33</span>
+            </span>
+            <input id="mfSlider" type="range" min="0" max="1" step="0.01" value="0.33">
+          </label>
+          <label class="control">
+            <span class="control-row">
+              <span>Mutáció mért.</span>
+              <span class="value" id="mrVal">0.33</span>
+            </span>
+            <input id="mrSlider" type="range" min="0" max="0.8" step="0.01" value="0.33">
+          </label>
+          <label class="control">
+            <span class="control-row">
+              <span>Keresztezés esély</span>
+              <span class="value" id="cxChanceVal">0.80</span>
+            </span>
+            <input id="cxChanceSlider" type="range" min="0" max="1" step="0.01" value="0.80">
+          </label>
+          <label class="control">
+            <span class="control-row">
+              <span>Keresztezés mért.</span>
+              <span class="value" id="cxAmountVal">0.50</span>
+            </span>
+            <input id="cxAmountSlider" type="range" min="0" max="1" step="0.01" value="0.50">
+          </label>
+        </div>
+      </div>
+
+      <div class="advanced-group">
+        <span class="advanced-group-label">Mentés / betöltés</span>
+        <div class="advanced-group-items">
+          <button class="button" id="saveBtn" type="button">Mentés</button>
+          <button class="button" id="loadBtn" type="button">Betöltés</button>
+          <input id="loadFileInput" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="info-modal" id="infoModal" hidden>
+    <div class="info-modal-overlay" id="infoModalOverlay"></div>
+    <div class="info-modal-box" role="dialog" aria-labelledby="infoModalTitle">
+      <button class="info-modal-close" id="infoModalClose" type="button" aria-label="Bezárás">×</button>
+      <h2 class="info-modal-title" id="infoModalTitle"></h2>
+      <canvas class="info-modal-canvas" id="infoModalCanvas" width="900" height="380"></canvas>
+      <div class="info-modal-text" id="infoModalText"></div>
+      <div class="info-modal-nav">
+        <button class="button info-nav-btn" id="infoPrevBtn" type="button">←</button>
+        <span class="info-modal-page" id="infoModalPage">1 / 1</span>
+        <button class="button info-nav-btn" id="infoNextBtn" type="button">→</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

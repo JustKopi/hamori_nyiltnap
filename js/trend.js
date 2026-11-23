@@ -29,7 +29,7 @@ App.add((() => {
     { n: 'Retró 80-as évek', d: 'Élénk neonszínek, csíkok és kockák, nagy napszemüveg.', hue: [[290, 340], [170, 200], [45, 70]], pat: ['stripe', 'check', 'grad'], top: ['Punk', 'Suit', 'Casual'], bottom: ['Punk', 'Casual'], shoes: ['Punk', 'Casual'], acc: ['glasses', 'phones'], neon: true, light: 'any' }
   ];
   const look = () => ({
-    skin: SKIN[1], hair: { type: 'Casual', c: '#d4a55a', c2: '#ff4fa3', pat: 'solid', neon: false },
+    skin: SKIN[1], eye: '#3b82f6', lip: '#e0607e', hair: { type: 'Casual', c: '#d4a55a', c2: '#ff4fa3', pat: 'solid', neon: false },
     top: { type: 'Casual', c: '#f8fafc', c2: '#ff9ad5', pat: 'solid', neon: false }, bottom: { type: 'Casual', c: '#fb923c', c2: '#7c3aed', pat: 'solid', neon: false },
     shoes: { type: 'Casual', c: '#475569', c2: '#111827', pat: 'solid', neon: false }, acc: { list: [], c: '#c084fc', c2: '#22d3ee', pat: 'solid', neon: false }
   });
@@ -65,7 +65,7 @@ App.add((() => {
     if (M3.gl[name]) return M3.gl[name];
     const { GLTFLoader, MeshoptDecoder } = THREE_EXT, ld = new GLTFLoader(); ld.setMeshoptDecoder(MeshoptDecoder);
     const bin = Uint8Array.from(atob(WOMEN_GLB[name]), c => c.charCodeAt(0)).buffer;
-    return (M3.gl[name] = new Promise((res, rej) => ld.parse(bin, '', res, rej)));
+    return (M3.gl[name] = new Promise((res, rej) => ld.parse(bin, '', g => { g.scene.traverse(o => { if (o.isSkinnedMesh && (o.material.name === 'Skin' || o.material.name.startsWith('Hair'))) { const geo = o.geometry.clone(); geo.deleteAttribute('normal'); const m = THREE_EXT.mergeVertices(geo, 1e-3); m.computeVertexNormals(); o.geometry = m } }); res(g) }, rej)));
   }
   const SLOT = { hair: 'Head', top: 'Body', bottom: 'Legs', shoes: 'Feet' };
   function addM(par, geo, mat, x = 0, y = 0, z = 0) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; par.add(m); return m }
@@ -96,6 +96,7 @@ App.add((() => {
         part.traverse(o => {
           if (!o.isSkinnedMesh) return; const n = o.material.name;
           const bones = o.skeleton.bones.map(b => M3.bones[b.name] || b); o.bind(new THREE.Skeleton(bones, o.skeleton.boneInverses), o.bindMatrix);
+          if (slot === 'hair' && n === 'Brown') { o.visible = false; return }
           if (n === 'Skin') o.material = skin;
           else if (slot === 'hair' ? n.startsWith('Hair') : n === cloth[0]) o.material = mainMat;
           else { o.material = cache[n] || (cache[n] = o.material.clone()); o.material.roughness = .7 }
@@ -103,6 +104,19 @@ App.add((() => {
         });
         M3.arm.add(part); M3.parts.push(part);
       }
+      // arc: szemek, szempillák, száj, pirosító
+      { const fg = new THREE.Group(); M3.anchors.head.add(fg); const FZ = M3.faceZ ?? .113;
+        const wht = new THREE.MeshStandardMaterial({ color: col('#f8fafc'), roughness: .3 }), iris = new THREE.MeshStandardMaterial({ color: col(L.eye), roughness: .25 }), blk = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: .2 }), hi = new THREE.MeshBasicMaterial({ color: 0xffffff }), lash = new THREE.MeshStandardMaterial({ color: 0x1a1014, roughness: .6 }), lip = new THREE.MeshStandardMaterial({ color: col(L.lip), roughness: .35 });
+        [-1, 1].forEach(d => { const e = new THREE.Group(); e.position.set(d * .037, .085, FZ); e.rotation.y = d * .18; fg.add(e);
+          addM(e, new THREE.SphereGeometry(.0155, 24, 16), wht).scale.set(1.25, .8, .42);
+          addM(e, new THREE.SphereGeometry(.0108, 20, 14), iris, 0, -.001, .0062).scale.set(1, 1, .42);
+          addM(e, new THREE.SphereGeometry(.0052, 14, 10), blk, 0, -.001, .0098).scale.set(1, 1, .4);
+          addM(e, new THREE.SphereGeometry(.0026, 8, 6), hi, d * -.003, .003, .0118);
+          const ls = addM(e, new THREE.TorusGeometry(.0192, .0032, 6, 20, Math.PI * .95), lash, 0, -.003, .0045); ls.rotation.z = Math.PI * .025; ls.scale.y = .72;
+          const wing = addM(e, new THREE.CapsuleGeometry(.0018, .009, 4, 6), lash, d * .022, .006, .002); wing.rotation.z = d * -1.0; });
+        const ul = addM(fg, new THREE.SphereGeometry(.013, 20, 12), lip, 0, .015, FZ - .006); ul.scale.set(1.35, .42, .5);
+        const ll = addM(fg, new THREE.SphereGeometry(.012, 20, 12), lip, 0, .006, FZ - .008); ll.scale.set(1.25, .5, .55);
+        [-1, 1].forEach(d => { const b = addM(fg, new THREE.CircleGeometry(.016, 20), new THREE.MeshBasicMaterial({ color: 0xf472b6, transparent: true, opacity: .28, depthWrite: false }), d * .058, .052, FZ - .02); b.rotation.y = d * .55 }); }
       // kiegészítők a csontokhoz rögzítve
       const A = L.acc, ac = A.list, am = patMat({ ...A, pat: A.pat === 'glitter' ? 'glitter' : 'solid' }, { r: .3 }), H = M3.anchors.head;
       if (ac.includes('glasses')) { const g = new THREE.Group(); g.position.set(0, .085, .122); H.add(g); [-1, 1].forEach(d => { addM(g, new THREE.TorusGeometry(.026, .005, 8, 24), am, d * .038, 0, 0); addM(g, new THREE.CircleGeometry(.025, 24), new THREE.MeshStandardMaterial({ color: col(A.c), transparent: true, opacity: .6, roughness: .1, metalness: .5 }), d * .038, 0, -.002); const arm = addM(g, new THREE.BoxGeometry(.004, .004, .1), am, d * .064, 0, -.05) }); addM(g, new THREE.CylinderGeometry(.003, .003, .026, 6), am, 0, .004, 0).rotation.z = Math.PI / 2 }
@@ -140,6 +154,7 @@ App.add((() => {
     F.cv.addEventListener('pointerdown', e => { if (F.run) return; M3.drag = { x: e.clientX, r: M3.rotY }; M3.vel = 0; F.cv.setPointerCapture(e.pointerId) });
     F.cv.addEventListener('pointermove', e => { if (!M3.drag) return; const nr = M3.drag.r + (e.clientX - M3.drag.x) * .012; M3.vel = (nr - M3.rotY) * 30; M3.rotY = nr });
     F.cv.addEventListener('pointerup', () => { M3.drag = null; if (Math.abs(M3.vel) < .05) M3.vel = .25 });
+    F.cv.addEventListener('wheel', e => { e.preventDefault(); M3.zoom = clamp((M3.zoom || 0) - e.deltaY * .0015, 0, 1) }, { passive: false });
   }
   function play(name) { if (M3.cur === name || !M3.acts[name]) return; const a = M3.acts[name], b = M3.acts[M3.cur]; a.reset().play(); if (b) a.crossFadeFrom(b, .35, false); if (name === 'Wave') { a.setLoop(THREE.LoopRepeat) } M3.cur = name }
   function m3Frame(T, dt) {
@@ -152,7 +167,7 @@ App.add((() => {
       M3.flash.intensity = Math.random() < .12 ? 3 + Math.random() * 3 : M3.flash.intensity * .7; M3.flash.position.set((Math.random() - .5) * 3, 1.2, root.position.z + 1.6);
     } else {
       play('Idle'); if (!M3.drag) { M3.rotY += M3.vel * dt; M3.vel += (.25 - M3.vel) * Math.min(1, dt * .8) }
-      root.position.set(0, 0, 0); root.rotation.y = M3.rotY; cam.position.set(0, 1.0, 4.3); cam.lookAt(0, .98, 0); M3.flash.intensity = 0;
+      root.position.set(0, 0, 0); root.rotation.y = M3.rotY; M3.zs = (M3.zs || 0) + ((M3.zoom || 0) - (M3.zs || 0)) * Math.min(1, dt * 6); const zq = M3.zs; cam.position.set(0, 1.0 + zq * .58, 4.3 - zq * 3.15); cam.lookAt(0, .98 + zq * .6, 0); M3.flash.intensity = 0;
     }
     if (M3.mixer) { M3.mixer.update(dt); root.updateMatrixWorld(true); alignAnchors() }
     M3.wings.forEach(([g, d]) => { g.rotation.y = d * (.35 + Math.sin(T * 4) * .25) });
@@ -215,7 +230,7 @@ App.add((() => {
     const P = PARTS[F.part] || null, isSkin = F.part === 'skin', p = isSkin ? null : F.L[F.part];
     $$('[data-dp]').forEach(b => b.classList.toggle('sel', b.dataset.dp === F.part));
     let h = '';
-    if (isSkin) h = `<h4>Bőrszín</h4><div class="ds-sw">${SKIN.map(c => `<button data-skin="${c}" style="background:${c}" class="${F.L.skin === c ? 'sel' : ''}"></button>`).join('')}</div>`;
+    if (isSkin) h = `<h4>Bőrszín</h4><div class="ds-sw">${SKIN.map(c => `<button data-skin="${c}" style="background:${c}" class="${F.L.skin === c ? 'sel' : ''}"></button>`).join('')}</div><h4>Szemszín</h4><div class="ds-sw">${['#3b82f6', '#22c55e', '#8b5a2b', '#a16207', '#64748b', '#7c3aed', '#14b8a6', '#111827'].map(c => `<button data-eye="${c}" style="background:${c}" class="${F.L.eye === c ? 'sel' : ''}"></button>`).join('')}</div><h4>Ajakszín</h4><div class="ds-sw">${['#e0607e', '#be185d', '#ef4444', '#f9a8d4', '#c2410c', '#9d174d', '#a78bfa', '#d6a08a'].map(c => `<button data-lip="${c}" style="background:${c}" class="${F.L.lip === c ? 'sel' : ''}"></button>`).join('')}</div>`;
     else {
       h += `<h4>${P.multi ? 'Válassz (többet is)' : 'Fazon'}</h4><div class="ds-ty">${P.types.map(([k, n]) => `<button class="btn ${P.multi ? (p.list.includes(k) ? 'sel' : '') : p.type === k ? 'sel' : ''}" data-ty="${k}">${n}</button>`).join('')}</div>`;
       h += `<h4>Szín <span class="ds-rgb">${(() => { const [r, g, b] = rgbOf(p.c); return `RGB(${r}, ${g}, ${b})` })()}</span></h4><div class="ds-sw">${SWATCH.map(c => `<button data-c="${c}" style="background:${c}" class="${p.c === c ? 'sel' : ''}"></button>`).join('')}</div>
@@ -226,7 +241,7 @@ App.add((() => {
     }
     $('#ds-ed').innerHTML = h;
     const up = () => { renderEd(); renderCode() };
-    $$('[data-skin]').forEach(b => b.onclick = () => { F.L.skin = b.dataset.skin; sfx.click(); up() });
+    $$('[data-skin]').forEach(b => b.onclick = () => { F.L.skin = b.dataset.skin; sfx.click(); up() }); $$('[data-eye]').forEach(b => b.onclick = () => { F.L.eye = b.dataset.eye; sfx.click(); up() }); $$('[data-lip]').forEach(b => b.onclick = () => { F.L.lip = b.dataset.lip; sfx.click(); up() });
     $$('[data-ty]').forEach(b => b.onclick = () => { const k = b.dataset.ty; if (P.multi) { p.list = p.list.includes(k) ? p.list.filter(x => x !== k) : [...p.list, k] } else p.type = k; sfx.click(); up() });
     $$('[data-c]').forEach(b => b.onclick = () => { p.c = b.dataset.c; sfx.click(); up() }); $$('[data-c2]').forEach(b => b.onclick = () => { p.c2 = b.dataset.c2; sfx.click(); up() });
     $$('[data-pat]').forEach(b => b.onclick = () => { p.pat = b.dataset.pat; sfx.click(); up() });
@@ -286,7 +301,7 @@ App.add((() => {
       #ds-stage{position:relative;border-radius:20px;overflow:hidden;border:1px solid #ec489955;min-height:0}#ds-cv{position:absolute;inset:0;width:100%;height:100%}
       #ds-th{position:absolute;top:12px;left:12px;max-width:min(330px,60%);background:#0b0c10cc;border:1px solid #ec489966;border-radius:16px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(6px)}#ds-th small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#f9a8d4}#ds-th b{font-size:21px;color:#fff}#ds-th span{font-size:12.5px;color:#e5e7eb;line-height:1.35}
       #ds-time{position:absolute;bottom:14px;left:14px;font-size:30px;font-weight:900;color:#fff;text-shadow:0 0 12px #ec4899}
-      #ds-go{position:absolute;bottom:14px;right:14px;height:56px;font-size:20px;padding:0 22px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border:0;box-shadow:0 10px 30px -8px #ec4899}
+      #ds-zoom{position:absolute;bottom:22px;right:190px;height:42px;font-size:15px}#ds-go{position:absolute;bottom:14px;right:14px;height:56px;font-size:20px;padding:0 22px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border:0;box-shadow:0 10px 30px -8px #ec4899}
       #ds-side{display:flex;flex-direction:column;gap:10px;min-height:0}
       #ds-parts{display:flex;flex-wrap:wrap;gap:5px}#ds-parts .btn{height:38px;font-size:14px;padding:0 12px}#ds-parts .btn.sel{background:#ec4899;color:#fff;border-color:#ec4899}
       #ds-ed{flex:1;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:12px 14px;font-size:14px}#ds-ed h4{margin:10px 0 6px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between}#ds-ed h4:first-child{margin-top:0}
@@ -314,8 +329,8 @@ App.add((() => {
       @media(max-width:1100px){#ds{grid-template-columns:1fr 1fr;overflow:auto}#ds-codew{grid-column:1/-1;min-height:200px}#fy{grid-template-columns:1fr;overflow:auto}}
     </style>
     <div id="tr-tabs"><button class="btn sel" data-tt="ds">${icon('trend', 16)} Divatkód – kifutó</button><button class="btn" data-tt="fy">${icon('video', 16)} For You algoritmus</button></div>
-    <div id="ds"><div id="ds-stage"><canvas id="ds-cv"></canvas><div id="ds-th"></div><div id="ds-time"></div><button class="btn" id="ds-go">Kifutóra! ▶</button></div>
-      <div id="ds-side"><div id="ds-parts">${[['skin', 'Bőr'], ...Object.entries(PARTS).map(([k, v]) => [k, v.n])].map(([k, n]) => `<button class="btn ${k === 'top' ? 'sel' : ''}" data-dp="${k}">${n}</button>`).join('')}</div><div id="ds-ed"></div></div>
+    <div id="ds"><div id="ds-stage"><canvas id="ds-cv"></canvas><div id="ds-th"></div><div id="ds-time"></div><button class="btn" id="ds-zoom">Közelebb</button><button class="btn" id="ds-go">Kifutóra! ▶</button></div>
+      <div id="ds-side"><div id="ds-parts">${[['skin', 'Arc és bőr'], ...Object.entries(PARTS).map(([k, v]) => [k, v.n])].map(([k, n]) => `<button class="btn ${k === 'top' ? 'sel' : ''}" data-dp="${k}">${n}</button>`).join('')}</div><div id="ds-ed"></div></div>
       <div id="ds-codew"><div style="font-size:13px;color:var(--muted)">Így néz ki a szetted <b style="color:#f9a8d4">CSS-kódban</b> – ahogy egy weboldalt is „felöltöztetünk”:</div><pre id="ds-code"></pre><div class="learn" style="margin-top:0;font-size:13px">Írj be saját <b>HEX színkódot</b> (pl. #ff4fa3), próbálj ki mintákat – a zsűriben a CSS-mester ezt is pontozza!</div></div>
       <div class="big-overlay" id="ds-over" style="display:none"></div></div>
     <div id="fy" style="display:none">
@@ -327,7 +342,7 @@ App.add((() => {
     F.cv = $('#ds-cv');
     $$('[data-tt]', r).forEach(b => b.onclick = () => { setTab(b.dataset.tt); sfx.click() });
     $$('[data-dp]', r).forEach(b => b.onclick = () => { F.part = b.dataset.dp; sfx.click(); renderEd() });
-    $('#ds-go').onclick = runway;
+    $('#ds-go').onclick = runway; $('#ds-zoom').onclick = () => { M3.zoom = (M3.zoom || 0) > .5 ? 0 : 1; $('#ds-zoom').textContent = M3.zoom ? 'Teljes alak' : 'Közelebb'; sfx.click() };
     $('#fy-like').onclick = () => { beep(900, .05, 'triangle', .04); nextVideo('like') }; $('#fy-no').onclick = () => nextVideo('no'); $('#fy-next').onclick = () => nextVideo('next');
     $('#fy-rs').onclick = () => { Y.w = TOP.map(() => 1); Y.hist = []; Y.bub = false; Y.likes = 0; Y.n = 1; renderBrain(); toast('Előzmények törölve – az algoritmus újra kezdi a tanulást.', '#4ade80') };
     renderEd(); renderCode(); newTheme(0);
