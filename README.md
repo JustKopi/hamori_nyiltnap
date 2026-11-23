@@ -16,12 +16,12 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 | Te vagy a tűzfal! | támadástípusok, portok, DDoS |
 | Jelszó-törő | erős jelszavak, hitelesítés |
 | Parancssor-kaland | „Éjszakai riasztás” küldetéssor: átjáró, DNS, napló, tűzfal, szolgáltatások, mentés; Kódfejtő kihívás (Caesar, Base64, bináris, hex) |
-| Rendszergazda-ügyelet | szerverhibák + e-mail, chat, telefonos kérések |
+| Rendszergazda-ügyelet | Szervermentő (kicsiknek) és Profi ügyelet: szerverhibák + e-mail, chat, telefonos kérések |
 | Gépépítő műhely 3D | alkatrészek, összeszerelés, hibakeresés, rendszertelepítés, röntgen-nézet, játék a kész gépen |
 | Felhő-üzemeltető | virtualizáció, konténerek, élő migráció; 90 mp-es vagy végtelen mód, fogd és vidd |
 | Programozd a robotot! | blokkos programozás, ciklus, feltétel, Python, 8 pálya |
 | Weblap-műhely | HTML, CSS, Bootstrap/Tailwind/React, WordPress vs oldalkészítő vs kézi kód |
-| AI-labor | neurális háló a böngészőben, rajzfelismerő, szövegjósló, élő Claude-chat (saját API-kulccsal) |
+| AI-labor | neurális háló a böngészőben, rajzfelismerő, 34 rajzot felismerő rajzfelismerő, szövegjósló, önvezető autók (neurális háló + evolúció) |
 | RJ45-krimpelő | T568B, kábeltesztelés |
 | Adathalász-felismerő | phishing felismerése |
 | Hibakereső detektív | rendszeres hibaelhárítás |
@@ -35,6 +35,6 @@ Verseny mód: kötelező névmegadás, időre menő játék, ranglista és össz
 
 Nincs szükség telepítésre vagy szerverre: az `index.html` közvetlenül megnyitható böngészőben (internet nélkül is működik).
 
-Külső könyvtárak a `js/vendor` mappában: [three.js](https://threejs.org/) r149 (MIT licenc) és az [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) 1.10.0 böngészős csomagja (Apache-2.0), amelyet csak az AI-labor élő chatje tölt be.
+Külső könyvtárak a `js/vendor` mappában: [three.js](https://threejs.org/) r149 (MIT licenc) és egy QR-kód-generátor (MIT licenc).
 
-**Tanári beállítások** (fogaskerék a fejlécben): kioszk mód (Ctrl+Alt+K), gyenge gépes mód, saját Claude API-kulcs az AI-chathez – a kulcs csak az adott gép böngészőjében tárolódik.
+**Tanári beállítások** (fogaskerék a fejlécben): kioszk mód (Ctrl+Alt+K), gyenge gépes mód.

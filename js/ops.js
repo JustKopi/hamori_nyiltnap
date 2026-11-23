@@ -175,7 +175,7 @@ App.add((() => {
     } else {
       s.shake = .6; sfx.bad(); K.pts = Math.max(0, K.pts - 10);
       K.pop.push({ x: s.x + s.w / 2, y: s.y - 20, t: 0, txt: 'Nem ez kell!', c: '#f87171' });
-      const b = kToolEl(KP[s.p].tool); b.classList.remove('hint'); void b.offsetWidth; b.classList.add('hint');
+      const b = kToolEl(KP[s.p].tool); b.classList.remove('k-hl'); void b.offsetWidth; b.classList.add('k-hl');
     }
   }
   function kHit(x, y) { return K.sv.findIndex(s => x >= s.x - 10 && x <= s.x + s.w + 10 && y >= s.y - s.w * .75 && y <= s.y + s.h + 10) }
@@ -387,7 +387,7 @@ App.add((() => {
       .k-tool{--c:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:118px;padding:10px 14px;border-radius:20px;border:3px solid var(--c);background:color-mix(in srgb,var(--c) 16%,#111318);color:#fff;font:inherit;cursor:grab;touch-action:none;user-select:none;transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s}
       .k-tool span{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:#111827}.k-tool b{font-size:16px}
       .k-tool:hover{transform:translateY(-4px)}.k-tool.sel{transform:translateY(-8px) scale(1.06);box-shadow:0 0 28px var(--c)}
-      .k-tool.hint{animation:kHint .5s ease-in-out 3}@keyframes kHint{50%{transform:translateY(-10px) scale(1.1);box-shadow:0 0 36px var(--c)}}
+      .k-tool.k-hl{animation:kHint .5s ease-in-out 3}@keyframes kHint{50%{transform:translateY(-10px) scale(1.1);box-shadow:0 0 36px var(--c)}}
       .k-leg{display:grid;gap:8px;margin:14px auto 0;max-width:600px}.k-leg div{display:grid;grid-template-columns:44px 1fr 24px 44px 1fr;align-items:center;gap:8px;text-align:left;background:color-mix(in srgb,var(--c) 10%,transparent);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);border-radius:14px;padding:6px 10px}
       .k-leg span{color:var(--c);display:grid;place-items:center}.k-leg span.tl{background:var(--c);color:#111827;border-radius:50%;width:44px;height:44px}.k-leg i{color:var(--muted);display:grid;place-items:center}.k-leg b{font-size:16px}
       .k-modes{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}.k-mode{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 18px;border-radius:20px;border:2px solid var(--line2);background:var(--bg2);color:var(--text);font:inherit;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s}

@@ -23,7 +23,7 @@ const Tut = (() => {
     felho: [['Felhő-üzemeltető', 'Ügyfelek virtuális gépeket kérnek.'], ['Irányítás', '<b>Húzd</b> a kérést egy zöld keretes szerverre.'], ['Spórolj', 'Az üres szervert kapcsold ki, a piros szerverről költöztesd el a gépeket!']],
     robot: [['Programozás', 'Vezesd a robotot a töltőre, és szedd össze a kristályokat.'], ['Blokkok', 'Kattints a blokkokra a program összerakásához. Ismételd/Amíg/Ha blokkba is tehetsz.'], ['Futtatás', 'Nyomd meg a <b>Futtatás</b> gombot. Rövidebb program = több csillag.']],
     weblap: [['Weblap-műhely', 'Válassz sablont (portfólió, iskolaújság, webshop, játékklán), kapcsolj be részeket, állíts színt.'], ['Keretrendszerek', 'Válts Bootstrap, Tailwind, Material, Bulma, React vagy 1999-es Retro kinézetre, és nézd, hogyan változik az oldal és a kód!'], ['Egymás mellett', 'A második fülön mind a 7 változatot egyszerre látod.'], ['Összehasonlítás', 'A <b>Melyik eszközzel?</b> fülön: oldalkészítő vs WordPress vs kézi kód.']],
-    ai: [['AI-labor', 'Négy fül: <b>Tanítsd a gépet</b>, <b>Rajzfelismerő</b>, <b>Szövegjósló</b> és <b>Beszélgess egy AI-val</b>.'], ['Tanítsd a gépet', 'Kattintással tegyél le kék és narancs pontokat – a neurális háló élőben tanul belőlük.'], ['Rajzolj!', 'A Rajzfelismerőben rajzolj egy alakzatot, és nézd, felismeri-e. Ha téved, tanítsd meg neki!']],
+    ai: [['AI-labor', 'Négy fül: <b>Tanítsd a gépet</b>, <b>Rajzfelismerő</b>, <b>Szövegjósló</b> és <b>Önvezető autók</b>.'], ['Rajzolj!', 'A Rajzfelismerő több mint 30 rajzot ismer: házat, cicát, napot, autót… Kérj feladatot, és nézd, kitalálja-e!'], ['Önvezető autók', 'Nézd, ahogy az autók generációról generációra megtanulnak vezetni – senki nem programozta be nekik!']],
     rj45: [['Kábelkészítés', 'Egy igazi hálózati kábelt kell megkrimpelned.'], ['Sorrend', '<b>Húzd</b> az ereket a csatlakozó helyeire a T568B sorrend szerint.'], ['Teszt', 'A <b>Krimpelés</b> után a kábeltesztelő megmutatja, jó lett-e.']],
     phish: [['Valódi vagy csaló?', 'Üzenetek érkeznek: e-mailek, SMS-ek, chatek.'], ['Nyomozz', 'Figyeld a <b>feladót</b>, a <b>linket</b> és azt, hogy mit kérnek tőled.'], ['Döntés', 'Bal nyíl: valódi • jobb nyíl: csaló. Utána megmutatjuk az árulkodó jeleket.']],
     detektiv: [['Hibakereső detektív', 'Egy felhasználó panaszkodik – neked kell kitalálni, mi a baj.'], ['Vizsgálat', 'Válassz vizsgálatokat (LED, ipconfig, ping…). Mindegyik pontba kerül!'], ['Megoldás', 'Ha megvan a tettes, válaszd ki a hiba okát.']],
@@ -57,14 +57,10 @@ const Settings = (() => {
     m.innerHTML = `<h4>Beállítások</h4>
       <label class="set-r"><span><b>Kioszk mód</b><small>Tétlenség után főoldal + új név. Ki: Ctrl+Alt+K</small></span><input type="checkbox" id="set-k" ${kiosk ? 'checked' : ''}></label>
       <label class="set-r"><span><b>Gyenge gépes mód</b><small>Kevesebb effekt, árnyék nélküli 3D. Újratölti az oldalt.</small></span><input type="checkbox" id="set-l" ${window.LOWFX ? 'checked' : ''}></label>
-      <label class="set-r"><span><b>Saját Claude API-kulcs</b><small>Az AI-labor élő chatjéhez (csak ezen a gépen tárolódik)</small></span></label>
-      <input id="set-ai" type="password" placeholder="sk-ant-…" value="${store.get('aikey', '') ? '••••••••' : ''}" autocomplete="off">
       <div class="set-b"><button class="btn" id="set-t">Súgók újra</button><button class="btn" id="set-x">Bezárás</button></div>`;
     document.body.appendChild(m);
     $('#set-k').onchange = e => setKiosk(e.target.checked);
     $('#set-l').onchange = e => { store.set('lowfx', e.target.checked); location.reload() };
-    $('#set-ai').onchange = e => { const v = e.target.value.trim(); if (v && !v.startsWith('•')) { store.set('aikey', v); toast('API-kulcs elmentve ezen a gépen.', '#4ade80') } else if (!v) { store.set('aikey', ''); toast('API-kulcs törölve.', '#9aa0ab') } };
-    $('#set-ai').addEventListener('keydown', e => e.stopPropagation());
     $('#set-t').onclick = () => { Tut.reset(); toast('A súgók újra megjelennek.', '#4ade80'); m.remove() }; $('#set-x').onclick = () => m.remove();
   }
   function init() {
