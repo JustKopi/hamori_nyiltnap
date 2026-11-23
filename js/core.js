@@ -125,7 +125,7 @@ const CATS = [
 ];
 const ORDER = ['pc', 'internet', 'trend', 'ai', 'evo', 'ugyelet', 'wifi', 'robot', 'rj45', 'tuzfal', 'weblap', 'phish', 'router', 'felho', 'detektiv', 'terminal', 'kapcsolo', 'szakma', 'jelszo', 'kviz'];
 const HOW = {
-  evo: ['Figyeld a neurális hálós lényeket', 'Állítsd a mutációt, a népességet, a vizet', 'Nézd, hogyan alkalmazkodnak nemzedékről nemzedékre!'],
+  evo: ['Válassz fajt és kezdőhelyet', 'Vezesd át őket aszályon, áradáson, fagyon', 'Hány napig bírják? Ha kihalnak, kezdd újra!'],
   trend: ['Öltöztesd fel a modellt a témára', 'Színkódokkal és CSS-mintákkal dolgozol', 'Vonulj a kifutóra az AI-zsűri elé!'],
   internet: ['Küldj videókat, játékokat, letöltéseket a suli hálózatára', 'Keresd meg a leggyengébb pontját', 'Terheld túl – és elmarad az óra!'],
   router: ['Csomagok érkeznek IP-címmel', 'Döntsd el villámgyorsan, merre menjenek', 'Ne hagyd, hogy feltorlódjanak!'],

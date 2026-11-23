@@ -22,6 +22,82 @@ App.add((() => {
   function cloneG(g) { const c = { brain: g.brain.map(a => Float32Array.from(a)) }; TN.forEach(t => c[t] = g[t]); return c }
   function mutate(g, f = CFG.mutF, a = CFG.mutA) { g.brain.forEach(arr => { for (let i = 0; i < arr.length; i++) if (Math.random() < f * .5) arr[i] = clamp(arr[i] + rnd(-1, 1) * a * 1.5, -4, 4) }); TN.forEach(t => { if (Math.random() < f) g[t] = clamp(g[t] + rnd(-1, 1) * a * .5, .02, .98) }); return g }
   function cross(a, b) { const c = cloneG(a); c.brain.forEach((arr, l) => { const o = b.brain[l]; for (let i = 0; i < arr.length; i++) if (Math.random() < .5) arr[i] = o[i] }); TN.forEach(t => { if (Math.random() < .5) c[t] = b[t] }); return c }
+  /* ---------- túlélés játék: korok és események ---------- */
+  const ERAS = ['Bőség kora', 'Változó idők', 'Kemény évek', 'Viharok kora', 'Jégkorszak', 'A túlélők kora'];
+  const EVENTS = [
+    { k: 'aszaly', n: 'Aszály', d: 'Kiszárad a föld: a szárazföldön alig terem étel.', land: .35, water: 1 },
+    { k: 'arviz', n: 'Áradás', d: 'Hatalmas eső: a szárazföldön kevés, a vízben sok az étel.', land: .45, water: 1.5 },
+    { k: 'tel', n: 'Fagy', d: 'Hideg van: kevesebb étel terem, a későbbi korokban éjjelenként 2 étel kell a túléléshez.', land: .7, water: .7, cost: 2 },
+    { k: 'szuk', n: 'Szűkös idők', d: 'Mindenhol kevesebb étel terem.', land: .55, water: .55 },
+    { k: 'algak', n: 'Algavirágzás', d: 'Bezavarosodik a víz: a vízben alig van étel.', land: 1.1, water: .3 }
+  ];
+  const SPECIES = [
+    ['Úszó', 'Gyors a vízben, lassú a szárazon.', { meret: 1, latas: 2, fokusz: 2, sprint: 2, gyujto: 1, viz: 4 }],
+    ['Futó', 'Gyors és fürge a szárazföldön.', { meret: 1, latas: 2, fokusz: 1, sprint: 4, gyujto: 3, viz: 1 }],
+    ['Óriás', 'Nagy és erős, mindenkitől elveszi az ételt.', { meret: 5, latas: 2, fokusz: 2, sprint: 1, gyujto: 1, viz: 1 }],
+    ['Felderítő', 'Messzire lát, széles a látómezeje.', { meret: 1, latas: 5, fokusz: 1, sprint: 1, gyujto: 3, viz: 1 }]
+  ];
+  // „ösztön”: a Laborban 70 nap alatt kifejlődött agy – ebből indulnak a játék lényei (kis eltérésekkel)
+  const INSTINCT = [[-0.131,0.622,-0.075,0.08,1.177,1.281,-1.177,0.194,0.104,-0.345,0.059,0.621,0.541,0.463,-0.328,-0.308,1.027,0.388,1.036,0.353,-0.166,-0.328,-0.002,-0.494,0.107,-1.321,0.633,0.082,0.289,-0.167,-0.298,0.418,-0.098,0.953,-0.645,0.238,0.07,-0.072,0.315,0.378,0.369,0.638,0.796,0.377,1.765,-1.008,-0.224,-1.551,-0.88,-1.093,-0.624,-0.376,-0.116,1.282,-0.217,-0.478,-0.511,0.042,-0.169,0.279,0.878,-0.328,0.029,-0.166,-0.292,-0.076,0.436,-0.911,-0.009,-0.189,-0.27,-0.032,-0.409,-0.334,0.697,-1.51,-0.261,0.48,0.677,-0.402,-0.663,-0.511,0.098,0.759,0.169,0.649,0.637,0.532,0.715,0.114,-0.682,0.374,0.154,0.724,0.638,0.854,0.55,-0.154,0.574,0.562,-0.541,0.547,-0.157,0.597,-0.534,0.668,0.301,0.675,-0.034,-1.232,-0.097,0.993,-0.222,0.54,0.252,-0.447,-0.912,-0.747,-0.661,-0.531,-0.268,0.436,-0.836,-1.076,0.003,0.419,-0.767,0.056,-0.09,-0.17,0.461,-0.771,-0.619,0.522,-0.345,0.948,0.652,-0.369,-0.404,-0.214,0.251,0.17,1.651,0.439,-0.719,0.844,0.325,0.374,-0.072,1,-0.755,-0.407,0.344,-1.557,0.25,0.123,0.35,-0.105,0.116,-1.127,-0.309,0.268,0.042,0.334,-0.707,0.12,-0.43,-0.024,0.655,-0.677,0.152,-1.086,1.262,-0.639,1.839,-0.45,0.975,-0.484,0.217,-0.831,-0.184,-0.541,-0.404,-0.117,-0.798,0.644,-0.042,-0.15,0.384,0.159],[0.122,-0.139,0.828,1.162,-0.361,0.938,0.934,0.122,0.71,0.31],[-0.241,-0.393,0.225,-0.035,0.486,0.242,0.104,0.583,0.607,1.142,0.317,0.335,0.375,0.26,-0.619,-1.344,-0.018,1.118,0.163,0.717,0.808,-0.082,1.232,1.533,-0.788,-0.727,0.657,-0.267,1.057,-0.319,-0.647,0.296,0.04,0.159,-0.844,-0.642,0.289,0.416,0.083,0.271,-1.152,0.751,-0.316,0.294,0.288,-0.186,-0.052,-0.103,-0.301,-0.155],[0.803,-0.278,-0.133,-1.029,-0.714]];
+  const PTS = 12, GM = { mode: 'game', on: false, over: false, ev: null, evEnd: 0, nextEv: 6, nextK: null, setup: { pts: { ...SPECIES[1][2] }, start: 'land', sp: 1 }, best: store.get('evo-best', 0), log: [], maxPop: 0, maxGen: 1, racing: false };
+  const era = () => ERAS[Math.min(ERAS.length - 1, Math.floor((E.day - 1) / 8))];
+  const eraIx = () => Math.min(ERAS.length - 1, Math.floor((E.day - 1) / 8));
+  function gameFood() { return Math.max(38, 100 - eraIx() * 10) }
+  function evMul(w) { const e = GM.mode === 'game' && GM.ev; if (!e) return 1; const hard = 1 + eraIx() * .12; const m = w ? e.water : e.land; return m < 1 ? Math.max(.12, m / hard) : m }
+  function nightCost() { return GM.mode === 'game' && GM.ev && GM.ev.cost && eraIx() >= 2 ? GM.ev.cost : 1 }
+  function gameDayTick() {
+    if (GM.mode !== 'game' || !GM.on) return;
+    if (GM.ev && E.day >= GM.evEnd) { GM.log.unshift(`${E.day - 1}. nap: túlélték: ${GM.ev.n}`); GM.ev = null; GM.nextEv = E.day + Math.max(3, 6 - Math.floor(eraIx() / 2)); GM.nextK = null; toast('Elmúlt a veszély – egy kis nyugalom következik.', '#4ade80', 2600) }
+    if (!GM.ev && !GM.nextK && E.day >= GM.nextEv - 2) { GM.nextK = pick(EVENTS); toast(`Figyelem! 2 nap múlva: <b>${GM.nextK.n}</b>`, '#fbbf24', 3200) }
+    if (!GM.ev && E.day >= GM.nextEv) { GM.ev = GM.nextK || pick(EVENTS); GM.nextK = null; GM.evEnd = E.day + 3; sfx.alarm(); toast(`<b>${GM.ev.n}!</b> ${GM.ev.d}`, '#f87171', 4200) }
+    if ((E.day - 1) % 8 === 0 && E.day > 1) { toast(`Új korszak kezdődik: <b>${era()}</b> – egyre kevesebb az étel!`, '#a78bfa', 3600); GM.log.unshift(`${E.day}. nap: ${era()}`) }
+    GM.maxPop = Math.max(GM.maxPop, E.cr.length); GM.maxGen = Math.max(GM.maxGen, ...E.cr.map(c => c.gen));
+  }
+  function gameStart() {
+    const st = GM.setup; GM.on = true; GM.over = false; GM.ev = null; GM.nextEv = 7; GM.nextK = null; GM.log = []; GM.maxPop = 0; GM.maxGen = 1;
+    E.cr = []; E.food = []; E.day = 1; E.tick = 0; E.phase = 'day'; E.foodSpawned = 0; E.hist = []; E.sel = null; E.stats = { born: 0, died: 0 }; makeTrees();
+    for (let i = 0; i < 50; i++) {
+      const g = { brain: INSTINCT.map(a => Float32Array.from(a, v => Math.random() < .25 ? clamp(v + rnd(-.4, .4), -4, 4) : v)) }; TN.forEach(t => g[t] = clamp(.08 + st.pts[t] * .17 + rnd(-.07, .07), .02, .98));
+      const x = st.start === 'water' ? rnd(30, WATER_X - 40) : st.start === 'coast' ? rnd(WATER_X - 260, WATER_X + 260) : rnd(WATER_X + 60, W - 30);
+      E.cr.push(newCreature(g, x, rnd(30, H - 30)));
+    }
+    record(); $('#ev-over').style.display = 'none'; fit(); panel.k = null; panel();
+  }
+  function gameOver() {
+    GM.on = false; GM.over = true; const days = E.day - 1, score = days * 100 + GM.maxGen * 20;
+    const rec = days > GM.best; if (rec) { GM.best = days; store.set('evo-best', days) }
+    sfx.bad(); const o = $('#ev-over'); o.style.display = 'flex';
+    o.innerHTML = `<div class="card"><h2>Kihalt a fajod…</h2><div class="ev-big">${days} napot éltek túl</div>
+      <p>${era()} • legnagyobb létszám: <b>${GM.maxPop}</b> • legtöbb nemzedék: <b>${GM.maxGen}</b>${rec ? ' • <b style="color:#fde047">Új rekord!</b>' : ` • rekord: ${GM.best} nap`}</p>
+      <div class="learn">${GM.ev ? `A(z) <b>${GM.ev.n}</b> végzett velük. ` : ''}A túlélés kulcsa a <b>változatosság</b>: ha minden lény egyforma, egyetlen csapás is kipusztíthatja őket. Próbálj más kezdő tulajdonságokat vagy kezdőhelyet!</div>
+      <div style="margin-top:14px"><button class="btn go" id="ev-again">Új faj indítása ▶</button></div></div>`;
+    $('#ev-again').onclick = () => gameSetup();
+    if (GM.racing) { GM.racing = false; Comp.finish(score, `${days} nap, ${GM.maxGen}. nemzedék`) }
+  }
+  function gameSetup() {
+    GM.on = false; const o = $('#ev-over'); o.style.display = 'flex'; const st = GM.setup;
+    const used = () => TN.reduce((a, t) => a + st.pts[t], 0);
+    const draw = () => {
+      o.innerHTML = `<div class="card ev-setup"><h2>Túlélés: vezesd át a fajodat a korokon!</h2>
+        <p>Állítsd be a kezdő tulajdonságokat és a kezdőhelyet – utána <b>már nem avatkozhatsz be</b>. Jönnek aszályok, áradások, fagyok, és korról korra kevesebb az étel. Hány napig bírja a fajod?</p>
+        <div class="ev-sp">${SPECIES.map(([n, d], i) => `<button class="ev-spc ${st.sp === i ? 'sel' : ''}" data-sp="${i}"><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+        <div class="ev-pts"><div class="ev-ph">Kezdő tulajdonságok <span>${used()}/${PTS} pont</span></div>${TRAITS.map(([t, nm, col, tip]) => `<div class="ev-pr" title="${tip}"><i style="background:${col}"></i><span>${nm}</span><button class="btn" data-m="${t}">−</button><em>${[0, 1, 2, 3, 4, 5].map(k => `<u style="${k < st.pts[t] ? `background:${col}` : ''}"></u>`).join('')}</em><button class="btn" data-p="${t}">+</button></div>`).join('')}</div>
+        <div class="ev-ph">Kezdőhely</div><div class="ev-sp">${[['water', 'Óceán', 'a bal oldali vízben'], ['coast', 'Part', 'a víz és a föld határán'], ['land', 'Szárazföld', 'a jobb oldali erdőkben']].map(([k, n, d]) => `<button class="ev-spc ${st.start === k ? 'sel' : ''}" data-st="${k}"><b>${n}</b><small>${d}</small></button>`).join('')}</div>
+        <div style="margin-top:14px;display:flex;gap:10px;justify-content:center;align-items:center"><button class="btn go" id="ev-go" style="font-size:20px">Indulás ▶</button>${GM.best ? `<span style="color:var(--muted)">Rekord: <b style="color:#fde047">${GM.best} nap</b></span>` : ''}</div></div>`;
+      $$('[data-sp]', o).forEach(b => b.onclick = () => { st.sp = +b.dataset.sp; st.pts = { ...SPECIES[st.sp][2] }; sfx.click(); draw() });
+      $$('[data-st]', o).forEach(b => b.onclick = () => { st.start = b.dataset.st; sfx.click(); draw() });
+      $$('[data-p]', o).forEach(b => b.onclick = () => { const t = b.dataset.p; if (st.pts[t] < 5 && used() < PTS) { st.pts[t]++; st.sp = -1; sfx.click(); draw() } else beep(200, .08, 'square', .04) });
+      $$('[data-m]', o).forEach(b => b.onclick = () => { const t = b.dataset.m; if (st.pts[t] > 0) { st.pts[t]--; st.sp = -1; sfx.click(); draw() } });
+      $('#ev-go').onclick = () => { sfx.ok(); gameStart() };
+    };
+    draw();
+  }
+  function setMode(m) {
+    GM.mode = m; $$('[data-em]').forEach(b => b.classList.toggle('sel', b.dataset.em === m));
+    $('#ev-adv-w').style.display = m === 'lab' ? '' : 'none'; $('#ev-game-w').style.display = m === 'game' ? '' : 'none'; $('#ev-new').textContent = m === 'game' ? 'Új faj' : 'Új világ';
+    if (m === 'game') gameSetup(); else { GM.on = false; $('#ev-over').style.display = 'none'; reset(null); fit() }
+    panel.k = null; panel();
+  }
   /* ---------- világ ---------- */
   const E = { cr: [], food: [], trees: [], day: 1, tick: 0, phase: 'day', foodSpawned: 0, hist: [], id: 1, best: null, sel: null, stats: { born: 0, died: 0 }, grid: null };
   function newCreature(g, x, y, gen = 1) {
@@ -37,7 +113,7 @@ App.add((() => {
   }
   function spawnFood() {
     const t = E.trees[Math.floor(Math.random() * E.trees.length)], a = rnd(0, 6.283), d = t.r + rnd(8, 70);
-    const x = clamp(t.x + Math.cos(a) * d, 20, W - 20), y = clamp(t.y + Math.sin(a) * d, 20, H - 20); E.food.push({ x, y, w: inWater(x, y) });
+    const x = clamp(t.x + Math.cos(a) * d, 20, W - 20), y = clamp(t.y + Math.sin(a) * d, 20, H - 20), w = inWater(x, y), m = evMul(w); if (Math.random() > Math.min(1, m)) return; E.food.push({ x, y, w }); if (m > 1 && Math.random() < m - 1) E.food.push({ x: clamp(x + rnd(-30, 30), 20, W - 20), y: clamp(y + rnd(-30, 30), 20, H - 20), w });
   }
   function reset(keep) {
     E.cr = []; E.food = []; E.day = 1; E.tick = 0; E.phase = 'day'; E.foodSpawned = 0; E.hist = []; E.sel = null; E.stats = { born: 0, died: 0 };
@@ -63,7 +139,8 @@ App.add((() => {
   function step() {
     E.tick++;
     if (E.phase === 'night') { if (E.tick >= NIGHT || !CFG.night) { E.phase = 'day'; E.tick = 0; E.foodSpawned = 0; E.food = []; E.cr.forEach(c => c.a = rnd(0, 6.283)) } return }
-    const target = Math.floor(CFG.pop * .85), want = Math.floor(Math.min(1, E.tick / (DAY * .7)) * target); while (E.foodSpawned < want) { spawnFood(); E.foodSpawned++ }
+    if (GM.mode === 'game' && !GM.on) return;
+    const target = GM.mode === 'game' ? gameFood() : Math.floor(CFG.pop * .85), want = Math.floor(Math.min(1, E.tick / (DAY * .7)) * target); while (E.foodSpawned < want) { spawnFood(); E.foodSpawned++ }
     buildGrid();
     for (const c of E.cr) {
       if (!c.alive) continue; if (c.cd > 0) c.cd--;
@@ -90,7 +167,7 @@ App.add((() => {
   function nightfall() {
     const surv = [], kids = [], rep = E.cr.filter(c => c.food - 2 >= 1 && !c.blocked); let died = 0;
     for (const c of E.cr) {
-      const kidsN = clamp(Math.floor(c.food - 2), 0, 3); c.food = Math.min(c.food, 2) - 1;
+      const cost = nightCost(), kidsN = clamp(Math.floor(c.food - cost - 1), 0, 3); c.food = Math.min(c.food, cost + 1) - cost;
       if (c.food <= 0) { died++; continue } c.age++; surv.push(c);
       if (!kidsN || c.blocked) continue;
       let mate = null, md = 1e9; for (const o of rep) { if (o === c) continue; const d = (o.x - c.x) ** 2 + (o.y - c.y) ** 2; if (d < md) { md = d; mate = o } }
@@ -102,6 +179,8 @@ App.add((() => {
     E.cr.forEach(c => c.eaten = 0);
     E.day++; E.phase = 'night'; E.tick = 0;
     if (E.sel && !E.cr.includes(E.sel)) E.sel = null;
+    if (!E.cr.length && GM.mode === 'game') { gameOver(); return }
+    gameDayTick();
     if (!E.cr.length) { const b = E.best; reset(b || null); if (!b) makeTrees(); toast('Kihalt a populáció! Újrakezdjük a legjobb lény utódaival.', '#f87171', 3000) }
     else record();
   }
@@ -147,9 +226,10 @@ App.add((() => {
   function panel() {
     const n = E.cr.length, inW = E.cr.filter(c => inWater(c.x, c.y)).length;
     const night = E.phase === 'night', pr = night ? E.tick / NIGHT : E.tick / DAY;
-    $('#ev-hud').innerHTML = `<div id="ev-phase" class="${night ? 'night' : ''}"><small>${E.day}. nap</small><span>${night ? 'Éjszaka: esznek, szaporodnak' : pr > .85 ? 'Alkonyat: mindjárt éjszaka' : 'Nappal: ételt gyűjtenek'}</span><em><u style="width:${Math.round(pr * 100)}%"></u></em></div><div><small>Élőlény</small><b>${n}</b></div><div><small>Étel a pályán</small><b>${E.food.length}</b></div><div><small>Vízben / szárazon</small><b>${inW} / ${n - inW}</b></div>`;
+    $('#ev-hud').innerHTML = (GM.mode === 'game' ? `<div class="ev-era ${GM.ev ? 'bad' : ''}"><small>${era()}</small><b>${GM.ev ? GM.ev.n + ` (még ${Math.max(1, GM.evEnd - E.day)} nap)` : GM.nextK ? `${GM.nextEv - E.day} nap múlva: ${GM.nextK.n}` : 'Nyugalom'}</b></div>` : '') + `<div id="ev-phase" class="${night ? 'night' : ''}"><small>${E.day}. nap</small><span>${night ? 'Éjszaka: esznek, szaporodnak' : pr > .85 ? 'Alkonyat: mindjárt éjszaka' : 'Nappal: ételt gyűjtenek'}</span><em><u style="width:${Math.round(pr * 100)}%"></u></em></div><div><small>Élőlény</small><b>${n}</b></div><div><small>Étel a pályán</small><b>${E.food.length}</b></div><div><small>Vízben / szárazon</small><b>${inW} / ${n - inW}</b></div>`;
     const last = E.hist[E.hist.length - 1] || {};
     $('#ev-tr').innerHTML = TRAITS.map(([t, nm, col]) => `<div class="ev-t" title="${TRAITS.find(x => x[0] === t)[3]}"><i style="background:${col}"></i><span>${nm}</span><em><u style="width:${Math.round((last[t] || 0) * 100)}%;background:${col}"></u></em><b>${(last[t] || 0).toFixed(2)}${(() => { const f = E.hist[0]; if (!f || E.hist.length < 2) return ''; const d = (last[t] || 0) - f[t]; return Math.abs(d) < .02 ? '' : `<span class="ev-d ${d > 0 ? 'up' : 'dn'}">${d > 0 ? '+' : ''}${d.toFixed(2)}</span>` })()}</b></div>`).join('');
+    const gi = $('#ev-gi'); if (gi && GM.mode === 'game') gi.innerHTML = `<div class="ev-gst"><div><small>Túlélt napok</small><b>${Math.max(0, E.day - 1)}</b></div><div><small>Rekord</small><b>${GM.best}</b></div><div><small>Nemzedék</small><b>${GM.maxGen}</b></div></div>${GM.log.length ? `<div class="ev-log">${GM.log.slice(0, 5).map(l => `<div>${l}</div>`).join('')}</div>` : '<div class="ev-hint">Itt jelennek meg a túlélt csapások és korszakok.</div>'}`;
     const s = E.sel, key = s ? s.id + (cam.follow ? 'f' : '') : 0;
     const dyn = s ? `<div class="ev-sh"><b>#${s.id} lény</b><span>${s.gen}. nemzedék • ${s.age} napos • ${s.kids} utód</span></div><div class="ev-sf">Étel: ${'<i></i>'.repeat(Math.max(0, s.food))} <small>(${inWater(s.x, s.y) ? 'vízben' : 'szárazon'}${s.stun ? ', kábult' : s.burst ? ', sprintel' : ''})</small></div>` : '';
     if (key === panel.k) { const d = $('#ev-sdyn'); if (d) d.innerHTML = dyn; return } panel.k = key;
@@ -184,6 +264,11 @@ App.add((() => {
       .ev-ax{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:-6px}.ev-d{font-size:11px;margin-left:4px}.ev-d.up{color:#4ade80}.ev-d.dn{color:#f87171}
       .ev-adv{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:8px}.ev-adv summary{cursor:pointer;font-weight:700;font-size:13.5px;color:#cbd5e1}.ev-adv[open]{display:flex}.ev-adv[open] summary{margin-bottom:6px}
       .ev-t{grid-template-columns:10px 100px 1fr 86px!important}.ev-t b{white-space:nowrap}
+      #ev-modes{position:absolute;top:10px;right:58px;z-index:3;display:flex;gap:4px;background:#0b0c10c8;border:1px solid var(--line2);border-radius:12px;padding:4px}#ev-modes .btn{height:32px;font-size:13px;padding:0 10px}#ev-modes .btn.sel{background:var(--accent);color:#0b0c10;border-color:var(--accent)}
+      .ev-era{min-width:200px}.ev-era b{font-size:15px!important}.ev-era.bad{border-color:#f87171!important;box-shadow:0 0 18px -4px #f87171}.ev-era.bad b{color:#fca5a5}
+      .ev-setup{max-width:760px!important;text-align:left;max-height:calc(100% - 16px);overflow:auto;padding:18px 24px!important}.ev-setup h2{font-size:24px!important;margin-bottom:4px!important}.ev-setup p{font-size:14.5px;margin:4px 0}.ev-setup h2{text-align:center}.ev-sp{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:8px 0}.ev-spc{all:unset;cursor:pointer;background:var(--bg2);border:2px solid var(--line2);border-radius:14px;padding:7px 11px;display:flex;flex-direction:column;gap:3px;transition:all .15s}.ev-spc:hover{border-color:var(--accent);transform:translateY(-2px)}.ev-spc.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--bg2))}.ev-spc b{font-size:16px}.ev-spc small{font-size:12.5px;color:var(--muted)}
+      .ev-ph{font-weight:800;font-size:14px;margin-top:10px;display:flex;justify-content:space-between}.ev-ph span{color:#fde047}.ev-pr{display:grid;grid-template-columns:12px 130px 30px 1fr 30px;gap:8px;align-items:center;margin:3px 0;font-size:14px}.ev-pr i{width:12px;height:12px;border-radius:3px}.ev-pr .btn{height:26px;padding:0;font-size:16px}.ev-pr em{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}.ev-pr u{height:12px;border-radius:3px;background:var(--panel2)}
+      .ev-big{font-size:40px;font-weight:900;color:#fde047;margin:6px 0}.ev-gst{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.ev-gst div{background:var(--bg2);border-radius:10px;padding:6px 8px;text-align:center}.ev-gst small{display:block;font-size:11px;color:var(--muted)}.ev-gst b{font-size:20px}.ev-log{font-size:12.5px;color:#cbd5e1;display:flex;flex-direction:column;gap:3px;margin-top:6px}
       #ev-side h4{margin:0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
       .ev-t{display:grid;grid-template-columns:10px 104px 1fr 38px;gap:6px;align-items:center;font-size:13px}.ev-t i{width:10px;height:10px;border-radius:3px}.ev-t em{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden}.ev-t u{display:block;height:100%}.ev-t b{text-align:right;font-variant-numeric:tabular-nums}
       #ev-chart{width:100%;height:110px;background:var(--bg2);border-radius:10px}
@@ -193,21 +278,22 @@ App.add((() => {
       .ev-ck{display:flex;gap:8px;align-items:center;font-size:13.5px;cursor:pointer}
       #ev-info{position:absolute;inset:0;z-index:5;display:none;overflow:auto;background:#0b0c10f2;padding:24px}#ev-info .card{max-width:860px;margin:0 auto;background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:22px 26px;font-size:15.5px;line-height:1.6}#ev-info h3{margin:14px 0 4px;font-size:18px;color:var(--accent)}#ev-info h2{margin:0}
     </style>
-    <div id="ev"><div id="ev-st"><div id="ev-hud"></div>
+    <div id="ev"><div id="ev-st"><div id="ev-hud"></div><div id="ev-modes"><button class="btn sel" data-em="game">Túlélés (játék)</button><button class="btn" data-em="lab">Labor (kísérlet)</button></div><div class="big-overlay" id="ev-over" style="display:none;z-index:6"></div>
       <div id="ev-ctl">${[1, 3, 10, 30].map(v => `<button class="btn ${v === 1 ? 'sel' : ''}" data-es="${v}">${v}×</button>`).join('')}<button class="btn" id="ev-pause">Szünet</button><button class="btn" id="ev-fit">Teljes nézet</button><button class="btn" id="ev-new">Új világ</button><button class="btn go" id="ev-inf">Hogyan működik?</button></div>
       <button id="ev-orig" title="Az eredeti, részletesebb szimuláció: Vizes evolúció – Laczkó Örs (lors.hu)" aria-label="Eredeti szimuláció">${icon('globe', 18)}</button>
       <div id="ev-leg"><span><i style="background:hsl(200,70%,55%)"></i>vízi lény</span><span><i style="background:hsl(20,70%,55%)"></i>szárazföldi lény</span><span><i style="background:#ef4444;width:8px;height:8px"></i>étel</span><span><i style="background:#3f6b2a"></i>fa / hínár</span><span><b>*</b> elkábult</span></div>
       <div id="ev-info"></div></div>
       <div id="ev-side"><div class="ev-what"><b>Mit figyelj?</b> Minden lény más génekkel születik. Amelyik tulajdonság segít ételt szerezni, az napról napra <b>elterjed</b> – a sávok és a grafikon ezt mutatják.</div><h4>Hogyan változnak a lények?</h4><div id="ev-tr"></div><canvas id="ev-chart" width="300" height="110"></canvas><div class="ev-ax"><span>1. nap</span><span>ma</span></div>
         <h4>Kiválasztott lény</h4><div id="ev-sel"></div>
-        <details class="ev-adv"><summary>Haladó beállítások</summary>
+        <div id="ev-game-w"><h4>Túlélés</h4><div id="ev-gi"></div></div>
+        <div id="ev-adv-w"><details class="ev-adv"><summary>Haladó beállítások</summary>
         <label class="ev-sl">Népesség-cél <b id="ev-pv"></b><input type="range" id="ev-pop" min="40" max="220" step="10"></label>
         <label class="ev-sl">Mutáció gyakorisága <b id="ev-mfv"></b><input type="range" id="ev-mf" min="0" max="80"></label>
         <label class="ev-sl">Mutáció mértéke <b id="ev-mav"></b><input type="range" id="ev-ma" min="0" max="80"></label>
         <label class="ev-sl">Keresztezés esélye <b id="ev-cv"></b><input type="range" id="ev-cr" min="0" max="100"></label>
         <label class="ev-ck"><input type="checkbox" id="ev-night" checked> Éjszaka (pihenés, szaporodás)</label>
         <label class="ev-ck"><input type="checkbox" id="ev-ws"> Vízi indulás (új világnál)</label>
-        <div class="ev-row"><button class="btn" id="ev-save">Mentés</button><button class="btn" id="ev-load">Betöltés</button></div></details></div></div></div>`;
+        <div class="ev-row"><button class="btn" id="ev-save">Mentés</button><button class="btn" id="ev-load">Betöltés</button></div></details></div></div></div></div>`;
     C = makeCanvas($('#ev-st')); ctx = C.ctx; C.cv.style.zIndex = 1; statCv = $('#ev-chart');
     const sl = (id, k, f, show) => { const e = $('#' + id); e.value = f(CFG[k]); e.oninput = () => { CFG[k] = show(+e.value); lbl() } };
     const lbl = () => { $('#ev-pv').textContent = CFG.pop; $('#ev-mfv').textContent = Math.round(CFG.mutF * 100) + '%'; $('#ev-mav').textContent = Math.round(CFG.mutA * 100) + '%'; $('#ev-cv').textContent = Math.round(CFG.cross * 100) + '%' };
@@ -217,7 +303,8 @@ App.add((() => {
     $('#ev-pause').onclick = () => { CFG.paused = !CFG.paused; $('#ev-pause').textContent = CFG.paused ? 'Folytatás' : 'Szünet' };
     $('#ev-fit').onclick = () => { fit(); sfx.click() };
     $('#ev-orig').onclick = () => { const rel = 'apps/evolucio-vizes/play.html', onPages = /^https?:/.test(location.protocol) && !/claude\.ai|claudeusercontent/.test(location.host); if (onPages) location.href = rel; else window.open((typeof SITE_URL !== 'undefined' ? SITE_URL : 'https://justkopi.github.io/hamori_nyiltnap/') + rel, '_blank') };
-    $('#ev-new').onclick = () => { reset(null); fit(); panel(); sfx.click() };
+    $('#ev-new').onclick = () => { sfx.click(); if (GM.mode === 'game') gameSetup(); else { reset(null); fit(); panel() } };
+    $$('[data-em]', r).forEach(b => b.onclick = () => { if (GM.mode !== b.dataset.em) { sfx.click(); setMode(b.dataset.em) } });
     $('#ev-save').onclick = () => { const data = E.cr.slice(0, 250).map(c => ({ b: c.g.brain.map(a => Array.from(a, v => +v.toFixed(3))), t: TN.map(t => +c.g[t].toFixed(3)), x: Math.round(c.x), y: Math.round(c.y), gen: c.gen })); store.set('evo-save', { day: E.day, cr: data }); toast(`Elmentve: ${data.length} lény (${E.day}. nap).`, '#4ade80') };
     $('#ev-load').onclick = () => { const s = store.get('evo-save', null); if (!s) { toast('Még nincs mentés.', '#fbbf24'); return } E.cr = s.cr.map(o => { const g = { brain: o.b.map(a => Float32Array.from(a)) }; TN.forEach((t, i) => g[t] = o.t[i]); return newCreature(g, o.x, o.y, o.gen) }); E.day = s.day; E.tick = 0; E.phase = 'day'; E.food = []; E.foodSpawned = 0; E.hist = []; record(); panel(); toast('Betöltve!', '#4ade80') };
     $('#ev-inf').onclick = () => { const o = $('#ev-info'); o.style.display = 'block'; o.innerHTML = `<div class="card"><h2>Hogyan működik az Evolúció-labor?</h2>
@@ -231,7 +318,7 @@ App.add((() => {
     C.cv.addEventListener('pointermove', e => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 5) { drag.moved = true; cam.follow = false } if (drag.moved) { cam.x = drag.cx - dx / cam.z; cam.y = drag.cy - dy / cam.z } });
     C.cv.addEventListener('pointerup', e => { if (drag && !drag.moved) { const r = C.cv.getBoundingClientRect(), [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top); let best = null, bd = 30 / cam.z + 10; for (const c of E.cr) { const d = Math.hypot(c.x - wx, c.y - wy); if (d < bd) { bd = d; best = c } } E.sel = best; if (best) { sfx.click(); if (cam.z < .8) { cam.z = 1.1; cam.follow = true } } panel() } drag = null });
     C.cv.addEventListener('wheel', e => { e.preventDefault(); const r = C.cv.getBoundingClientRect(), [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top), nz = clamp(cam.z * (e.deltaY < 0 ? 1.15 : 1 / 1.15), .15, 3); cam.x = wx - (e.clientX - r.left - C.W / 2) / nz; cam.y = wy - (e.clientY - r.top - C.H / 2) / nz; cam.z = nz }, { passive: false });
-    reset(null); built = true; C.resize(); fit(); panel();
+    reset(null); built = true; C.resize(); fit(); setMode('game');
   };
   S.enter = () => { if (C) { C.resize(); if (cam.z < .05) fit() } };
   S.resize = () => { if (C) C.resize() };
@@ -240,6 +327,8 @@ App.add((() => {
     if (!CFG.paused) { acc += dt * 60 * CFG.speed; let n = 0; const t0 = performance.now(); while (acc >= 1 && n < 600) { step(); acc--; n++; if (performance.now() - t0 > 22) { acc = 0; break } } }
     draw(); uiT += dt; if (uiT > .25) { uiT = 0; panel(); drawStats(); drawBrain() }
   };
-  S._dbg = () => ({ E, CFG, step });
+  S.comp = { rules: 'Túlélés: állítsd be a fajod kezdő tulajdonságait és kezdőhelyét, aztán nézd, hány napig élik túl a csapásokat! Pont: túlélt napok × 100 + nemzedékek.', start: () => { if (GM.mode !== 'game') setMode('game'); else gameSetup(); GM.racing = true } };
+  S.score = () => GM.best * 100;
+  S._dbg = () => ({ E, CFG, step, GM, gameStart, gameSetup, setMode });
   return S;
 })());
