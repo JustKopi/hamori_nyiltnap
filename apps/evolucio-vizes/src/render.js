@@ -216,9 +216,9 @@ export function drawWaterFill(ctx, x, y, w, h) {
   ctx.fillRect(x, y, w, h)
 
   const lightGrad = ctx.createLinearGradient(x, y, x + w, y + h)
-  lightGrad.addColorStop(0, 'rgba(180, 220, 240, 0.16)')
-  lightGrad.addColorStop(0.6, 'rgba(60, 110, 150, 0)')
-  lightGrad.addColorStop(1, 'rgba(10, 30, 50, 0.34)')
+  lightGrad.addColorStop(0, 'rgba(34, 211, 238, 0.10)')
+  lightGrad.addColorStop(0.6, 'rgba(30, 58, 138, 0)')
+  lightGrad.addColorStop(1, 'rgba(2, 6, 23, 0.45)')
   ctx.fillStyle = lightGrad
   ctx.fillRect(x, y, w, h)
 
@@ -235,9 +235,16 @@ export function drawGrassFill(ctx, x, y, w, h) {
   ctx.fillRect(x, y, w, h)
 
   const lightGrad = ctx.createLinearGradient(x, y, x + w * 0.7, y + h)
-  lightGrad.addColorStop(0, 'rgba(255, 244, 200, 0.22)')
-  lightGrad.addColorStop(0.5, 'rgba(120, 162, 80, 0)')
-  lightGrad.addColorStop(1, 'rgba(40, 60, 22, 0.28)')
+  lightGrad.addColorStop(0, 'rgba(168, 85, 247, 0.10)')
+  lightGrad.addColorStop(0.5, 'rgba(30, 41, 59, 0)')
+  lightGrad.addColorStop(1, 'rgba(2, 6, 23, 0.35)')
+  // finom hálózatminta a szárazföldön
+  ctx.strokeStyle = 'rgba(148, 163, 184, 0.05)'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  for (let gx = Math.floor(x / 80) * 80; gx < x + w; gx += 80) { ctx.moveTo(gx, y); ctx.lineTo(gx, y + h) }
+  for (let gy = Math.floor(y / 80) * 80; gy < y + h; gy += 80) { ctx.moveTo(x, gy); ctx.lineTo(x + w, gy) }
+  ctx.stroke()
   ctx.fillStyle = lightGrad
   ctx.fillRect(x, y, w, h)
 
@@ -623,32 +630,71 @@ function drawTreeList(ctx, treeList, globalTick, dying) {
 }
 
 export function drawTopDownTree(ctx, tree, palette, biome = 'land') {
-  const shape = treeShape(tree.seed, biome)
   const isWater = biome === 'water'
-
-  if (isWater) {
-    ctx.fillStyle = 'rgba(120, 200, 215, 0.12)'
-    ctx.beginPath()
-    ctx.arc(tree.x, tree.y, tree.r * 1.34, 0, TAU)
-    ctx.fill()
-  }
-
-  ctx.fillStyle = isWater ? 'rgba(8, 28, 50, 0.34)' : 'rgba(20, 30, 12, 0.32)'
+  const r = tree.r, seed = tree.seed
+  // világító udvar
+  const halo = ctx.createRadialGradient(tree.x, tree.y, r * 0.2, tree.x, tree.y, r * 1.7)
+  halo.addColorStop(0, isWater ? 'rgba(34, 211, 238, 0.22)' : 'rgba(192, 132, 252, 0.22)')
+  halo.addColorStop(1, 'rgba(0, 0, 0, 0)')
+  ctx.fillStyle = halo
   ctx.beginPath()
-  ctx.arc(tree.x + tree.r * 0.16, tree.y + tree.r * 0.20, tree.r * 1.05, 0, TAU)
+  ctx.arc(tree.x, tree.y, r * 1.7, 0, TAU)
   ctx.fill()
-
-  ctx.fillStyle = palette.dark
-  treeBumpsPath(ctx, tree, 1.06, shape)
-  ctx.fill()
-
-  ctx.fillStyle = palette.fill
-  treeBumpsPath(ctx, tree, 0.92, shape)
-  ctx.fill()
-
   if (isWater) {
-    ctx.fillStyle = COLORS.kelpLeafLight
-    waterHighlightBumps(ctx, tree)
+    // anemóna: hullámzó csápok körben
+    const arms = 9 + Math.floor((Math.sin(seed) * 0.5 + 0.5) * 5)
+    ctx.lineCap = 'round'
+    for (let i = 0; i < arms; i++) {
+      const a = (i / arms) * TAU + Math.sin(seed + i) * 0.2
+      const len = r * (0.85 + 0.25 * Math.sin(seed * 1.7 + i))
+      ctx.strokeStyle = i % 2 ? palette.fill : palette.dark
+      ctx.lineWidth = r * 0.22
+      ctx.beginPath()
+      ctx.moveTo(tree.x, tree.y)
+      ctx.quadraticCurveTo(tree.x + Math.cos(a + 0.4) * len * 0.6, tree.y + Math.sin(a + 0.4) * len * 0.6, tree.x + Math.cos(a) * len, tree.y + Math.sin(a) * len)
+      ctx.stroke()
+      ctx.fillStyle = COLORS.kelpLeafLight
+      ctx.beginPath()
+      ctx.arc(tree.x + Math.cos(a) * len, tree.y + Math.sin(a) * len, r * 0.11, 0, TAU)
+      ctx.fill()
+    }
+    ctx.fillStyle = palette.dark
+    ctx.beginPath()
+    ctx.arc(tree.x, tree.y, r * 0.38, 0, TAU)
+    ctx.fill()
+  } else {
+    // kristályfürt: hatszögletű, ferde kristályok
+    const n = 5 + Math.floor((Math.sin(seed * 2.3) * 0.5 + 0.5) * 3)
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU + Math.sin(seed + i * 3.1) * 0.5
+      const d = r * (0.15 + 0.35 * (0.5 + 0.5 * Math.sin(seed * 1.3 + i)))
+      const cx = tree.x + Math.cos(a) * d, cy = tree.y + Math.sin(a) * d
+      const len = r * (0.55 + 0.35 * (0.5 + 0.5 * Math.cos(seed + i * 1.9))), wid = r * 0.26
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.rotate(a)
+      ctx.beginPath()
+      ctx.moveTo(-len * 0.4, -wid * 0.5)
+      ctx.lineTo(len * 0.5, -wid * 0.5)
+      ctx.lineTo(len * 0.8, 0)
+      ctx.lineTo(len * 0.5, wid * 0.5)
+      ctx.lineTo(-len * 0.4, wid * 0.5)
+      ctx.closePath()
+      ctx.fillStyle = palette.dark
+      ctx.fill()
+      ctx.beginPath()
+      ctx.moveTo(-len * 0.4, -wid * 0.5)
+      ctx.lineTo(len * 0.5, -wid * 0.5)
+      ctx.lineTo(len * 0.8, 0)
+      ctx.lineTo(-len * 0.4, 0)
+      ctx.closePath()
+      ctx.fillStyle = palette.fill
+      ctx.fill()
+      ctx.restore()
+    }
+    ctx.fillStyle = COLORS.treeLeafLight
+    ctx.beginPath()
+    ctx.arc(tree.x, tree.y, r * 0.16, 0, TAU)
     ctx.fill()
   }
 }
@@ -889,17 +935,18 @@ function drawFood(world, ctx) {
 }
 
 export function drawFruit(ctx, item) {
-  ctx.fillStyle = 'rgba(20, 30, 12, 0.30)'
+  const g = ctx.createRadialGradient(item.x, item.y, 0, item.x, item.y, item.r * 2.6)
+  g.addColorStop(0, item.color)
+  g.addColorStop(0.35, item.color + '99')
+  g.addColorStop(1, item.color + '00')
+  ctx.fillStyle = g
   ctx.beginPath()
-  ctx.ellipse(item.x + 1, item.y + item.r * 0.45, item.r * 1.0, item.r * 0.36, 0, 0, TAU)
+  ctx.arc(item.x, item.y, item.r * 2.6, 0, TAU)
   ctx.fill()
-  ctx.fillStyle = item.color
+  ctx.fillStyle = '#ffffff'
   ctx.beginPath()
-  ctx.arc(item.x, item.y, item.r, 0, TAU)
+  ctx.arc(item.x, item.y, item.r * 0.45, 0, TAU)
   ctx.fill()
-  ctx.strokeStyle = item.color === COLORS.foodRed ? '#9c2418' : '#a87715'
-  ctx.lineWidth = 0.8
-  ctx.stroke()
 }
 
 export function rayColor(type, alpha) {
@@ -1011,53 +1058,71 @@ export function drawCreatureSprite(ctx, cx, cy, angle, r, genome, opts) {
   ctx.rotate(angle)
 
   const halfL = r
-  const halfW = r * 0.78
+  const halfW = r * 0.72
   const corner = cornerRadius(g, halfW)
+  const wobble = Math.sin((cx + cy) * 0.05 + performance.now() * 0.008)
 
-  ctx.fillStyle = 'rgba(20, 30, 12, 0.28)'
-  ctx.beginPath()
-  ctx.roundRect(-halfL + 1.4, -halfW + r * 0.30, halfL * 2, halfW * 2, corner)
-  ctx.fill()
-
-  const fur = furAmount(g)
-  if (fur > 0.05) {
-    const spikeCount = 22
-    // Slightly longer spikes (was 0.32) so the furry silhouette reads
-    // from further away. The spike base width / inset stays the same,
-    // so close-up the look is unchanged — only the tip extends a bit.
-    const spikeLen = halfW * 0.55 * fur
-    const baseAngularHalf = (TAU / spikeCount) * 0.50
-    const baseInsetR = 0.85
-    ctx.fillStyle = `hsl(${hue}, ${Math.max(40, sat - 10)}%, ${Math.max(18, light - 22)}%)`
+  // vízi: farokuszony, szárazföldi: lábacskák
+  ctx.fillStyle = `hsl(${hue}, ${sat}%, ${Math.max(20, light - 18)}%)`
+  if (g.water > 0.5) {
+    const tl = halfL * (0.55 + g.water * 0.35)
     ctx.beginPath()
-    for (let i = 0; i < spikeCount; i++) {
-      const a = (i / spikeCount) * TAU
-      const aL = a - baseAngularHalf
-      const aR = a + baseAngularHalf
-      const tCenter = projectAngleToRect(a, halfL, halfW)
-      const tL = projectAngleToRect(aL, halfL, halfW)
-      const tR = projectAngleToRect(aR, halfL, halfW)
-      ctx.moveTo(Math.cos(aL) * tL * baseInsetR, Math.sin(aL) * tL * baseInsetR)
-      ctx.lineTo(Math.cos(a) * (tCenter + spikeLen), Math.sin(a) * (tCenter + spikeLen))
-      ctx.lineTo(Math.cos(aR) * tR * baseInsetR, Math.sin(aR) * tR * baseInsetR)
+    ctx.moveTo(-halfL * 0.75, 0)
+    ctx.lineTo(-halfL * 0.75 - tl, -halfW * 0.75 + wobble * 2)
+    ctx.lineTo(-halfL * 0.75 - tl * 0.7, wobble * 2)
+    ctx.lineTo(-halfL * 0.75 - tl, halfW * 0.75 + wobble * 2)
+    ctx.closePath()
+    ctx.fill()
+  } else {
+    ctx.strokeStyle = ctx.fillStyle
+    ctx.lineWidth = Math.max(1.6, r * 0.16)
+    ctx.lineCap = 'round'
+    for (let i = 0; i < 3; i++) {
+      const lx = -halfL * 0.45 + i * halfL * 0.45
+      const sw = (i % 2 ? 1 : -1) * wobble * r * 0.18
+      for (const side of [-1, 1]) {
+        ctx.beginPath()
+        ctx.moveTo(lx, side * halfW * 0.7)
+        ctx.lineTo(lx + sw, side * (halfW + r * 0.38))
+        ctx.stroke()
+      }
     }
-    ctx.fill()
   }
 
+  // test: lekerekített forma színátmenettel
+  const body = ctx.createLinearGradient(0, -halfW, 0, halfW)
+  body.addColorStop(0, `hsl(${hue}, ${sat}%, ${Math.min(85, light + 14)}%)`)
+  body.addColorStop(1, `hsl(${hue}, ${sat}%, ${Math.max(18, light - 14)}%)`)
   ctx.beginPath()
-  ctx.roundRect(-halfL, -halfW, halfL * 2, halfW * 2, corner)
-  ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`
+  ctx.ellipse(0, 0, halfL, halfW, 0, 0, TAU)
+  ctx.fillStyle = body
   ctx.fill()
-
+  // hátcsík a sprint génnél
+  if (g.burst > 0.45) {
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)'
+    ctx.lineWidth = Math.max(1, r * 0.12)
+    ctx.beginPath()
+    ctx.moveTo(-halfL * 0.6, 0)
+    ctx.lineTo(halfL * 0.35, 0)
+    ctx.stroke()
+  }
+  if (o.burstState === 'burst') {
+    ctx.strokeStyle = 'rgba(251, 146, 60, 0.85)'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.ellipse(0, 0, halfL + 3, halfW + 3, 0, 0, TAU)
+    ctx.stroke()
+  }
   if (o.burstState === 'recovery') {
-    ctx.fillStyle = 'rgba(20, 28, 14, 0.18)'
+    ctx.fillStyle = 'rgba(2, 6, 23, 0.25)'
+    ctx.beginPath()
+    ctx.ellipse(0, 0, halfL, halfW, 0, 0, TAU)
     ctx.fill()
   }
-
-  ctx.lineWidth = bodyOutlineWidth(g, o.focused)
-  ctx.strokeStyle = o.focused
-    ? COLORS.ink
-    : `hsl(${hue}, ${sat}%, ${Math.max(16, light - 28)}%)`
+  ctx.lineWidth = o.focused ? 3 : 1.4
+  ctx.strokeStyle = o.focused ? '#fde047' : `hsla(${hue}, 100%, 80%, 0.75)`
+  ctx.beginPath()
+  ctx.ellipse(0, 0, halfL, halfW, 0, 0, TAU)
   ctx.stroke()
 
   if (!o.sleeping && !o.knockedOut) {
@@ -1079,13 +1144,13 @@ export function drawCreatureSprite(ctx, cx, cy, angle, r, genome, opts) {
     for (const a of eyeAngles) {
       const ex = orbitX * Math.cos(a)
       const ey = orbitY * Math.sin(a)
-      ctx.fillStyle = '#f5f7e8'
+      ctx.fillStyle = '#0b0f1a'
       ctx.beginPath()
       ctx.arc(ex, ey, eyeR, 0, TAU)
       ctx.fill()
-      ctx.fillStyle = '#15170d'
+      ctx.fillStyle = '#e0f2fe'
       ctx.beginPath()
-      ctx.arc(ex + Math.cos(a) * eyeR * 0.30, ey + Math.sin(a) * eyeR * 0.30, eyeR * 0.55, 0, TAU)
+      ctx.arc(ex + Math.cos(a) * eyeR * 0.25, ey + Math.sin(a) * eyeR * 0.25, eyeR * 0.48, 0, TAU)
       ctx.fill()
     }
   } else if (o.sleeping) {
@@ -1110,7 +1175,7 @@ export function drawCreatureSprite(ctx, cx, cy, angle, r, genome, opts) {
     ctx.strokeStyle = `rgba(188, 73, 65, ${Math.min(0.85, o.blockedPulse / 90)})`
     ctx.lineWidth = 2.2
     ctx.beginPath()
-    ctx.roundRect(-halfL - 2, -halfW - 2, halfL * 2 + 4, halfW * 2 + 4, corner + 1)
+    ctx.ellipse(0, 0, halfL + 2, halfW + 2, 0, 0, TAU)
     ctx.stroke()
   }
 
@@ -1129,7 +1194,7 @@ export function drawCreatureSprite(ctx, cx, cy, angle, r, genome, opts) {
 }
 
 function drawSleepLines(ctx, r) {
-  ctx.strokeStyle = '#1a1f17'
+  ctx.strokeStyle = '#e2e8f0'
   ctx.lineWidth = 2.2
   ctx.lineCap = 'round'
   for (const side of [-1, 1]) {
@@ -1141,7 +1206,7 @@ function drawSleepLines(ctx, r) {
 }
 
 function drawKOLines(ctx, r) {
-  ctx.strokeStyle = '#1a1f17'
+  ctx.strokeStyle = '#e2e8f0'
   ctx.lineWidth = 2
   ctx.lineCap = 'round'
   for (const side of [-1, 1]) {
@@ -1162,7 +1227,7 @@ function drawCreatureLabel(ctx, creature, focused) {
   ctx.font = focused ? '800 13px Inter, sans-serif' : '750 10px Inter, sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'bottom'
-  ctx.fillStyle = focused ? COLORS.ink : 'rgba(38, 50, 37, 0.72)'
+  ctx.fillStyle = focused ? '#fde047' : 'rgba(226, 232, 240, 0.75)'
   ctx.fillText(label, creature.x, creature.y - r - 8)
   if (focused) {
     if (creature.knockedOut) {

@@ -90,58 +90,50 @@ export const BALANCE = {
 }
 
 export const COLORS = {
-  // Land palette
-  grassBase: '#7c9e5c',
-  grassDeep: '#5e8043',
-  grassLight: '#9ab97a',
-  grassShadow: '#3e5a2a',
-  bladeStroke: '#3a5025',
-  treeLeaf: '#4f7233',
-  treeLeafDark: '#324d1f',
-  treeLeafLight: '#79994f',
+  // Neon zátony paletta (nyílt napi változat): sötét, éjszakai világ, világító növényekkel
+  grassBase: '#1b2433',
+  grassDeep: '#141b28',
+  grassLight: '#26324a',
+  grassShadow: '#0c111b',
+  bladeStroke: '#3b4b6b',
+  treeLeaf: '#7c3aed',
+  treeLeafDark: '#3b1a78',
+  treeLeafLight: '#e879f9',
 
-  // Water palette — same compositional roles as grass/leaf so the
-  // renderer can swap them without per-call branching beyond palette
-  // selection.
-  waterBase: '#3a7e9c',
-  waterDeep: '#1f5a78',
-  waterLight: '#5fa3c0',
-  waterShadow: '#1a3a52',
-  kelpLeaf: '#2e6e58',
-  kelpLeafDark: '#1b4a3a',
-  kelpLeafLight: '#4a9b7a',
+  waterBase: '#0b1d3d',
+  waterDeep: '#071330',
+  waterLight: '#1e3a6e',
+  waterShadow: '#040b1f',
+  kelpLeaf: '#0891b2',
+  kelpLeafDark: '#164e63',
+  kelpLeafLight: '#67e8f9',
 
-  // Rocks — warm gray for land, cool teal-gray for submerged.
-  // Same two-tone (dark base + light highlight) as trees so the
-  // flat top-down style is consistent.
-  rockLight: '#a6a59a',
-  rockDark: '#6e6d63',
-  rockLightWet: '#7a949c',
-  rockDarkWet: '#4c656f',
+  rockLight: '#475569',
+  rockDark: '#1e293b',
+  rockLightWet: '#334e68',
+  rockDarkWet: '#16263b',
 
-  // Food
-  foodRed: '#e84a36',
-  foodGold: '#f4c235',
-  foodHi: '#fff4c8',
+  foodRed: '#fb7185',
+  foodGold: '#fde047',
+  foodHi: '#ffffff',
 
-  // Atmosphere
-  ink: '#1a2113',
-  inkSoft: 'rgba(26, 33, 19, 0.7)',
-  duskTint: 'rgba(220, 130, 60, 0.18)',
-  dawnTint: 'rgba(120, 150, 220, 0.16)',
-  nightTint: 'rgba(14, 22, 44, 0.62)',
-  starColor: 'rgba(245, 248, 220, 0.85)',
+  ink: '#f8fafc',
+  inkSoft: 'rgba(248, 250, 252, 0.7)',
+  duskTint: 'rgba(236, 72, 153, 0.12)',
+  dawnTint: 'rgba(34, 211, 238, 0.10)',
+  nightTint: 'rgba(2, 4, 16, 0.55)',
+  starColor: 'rgba(253, 244, 255, 0.9)',
 }
 
 // Lily pads — a darker green ring and a brighter top, distinctly more
 // yellow-green than the kelp palette so pads stand out against water-
 // trees. Flowers (rare) pick a dark+light pair from LILY_FLOWER_COLORS.
-export const LILY_PAD_DARK = '#3a5a2c'
-export const LILY_PAD_FILL = '#5e8a40'
+export const LILY_PAD_DARK = '#155e75'
+export const LILY_PAD_FILL = '#0e7490'
 export const LILY_FLOWER_COLORS = [
-  { dark: '#cfc8b8', light: '#fbf6e8' }, // white
-  { dark: '#c47b94', light: '#f3c4d2' }, // pink
-  { dark: '#c7a23a', light: '#f4dd6a' }, // yellow
+  { dark: '#a5f3fc', light: '#ecfeff' }, // white
+  { dark: '#f472b6', light: '#fbcfe8' }, // pink
+  { dark: '#c084fc', light: '#f5d0fe' }, // yellow
 ]
 
 

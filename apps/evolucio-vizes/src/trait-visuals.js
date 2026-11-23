@@ -14,17 +14,17 @@ export const WATER_CREATURE_LIGHT_BUMP = 4
 export const WATER_HUE_PULL = 1.0
 
 export function traitHue(genome) {
-  const baseHue = 215 - genome.vision * 155 + genome.tank * 40
-  const hue = baseHue + (WATER_CREATURE_HUE - baseHue) * genome.water * WATER_HUE_PULL
+  const landHue = 300 - genome.vision * 210 + genome.tank * 25
+  const hue = landHue + (190 - landHue) * genome.water
   return ((hue % 360) + 360) % 360
 }
 
 export function traitSat(genome) {
-  return 70 + genome.burst * 22 + genome.water * WATER_CREATURE_SAT_BUMP
+  return 78 + genome.burst * 20
 }
 
 export function traitLight(genome) {
-  return 56 - genome.tank * 16 + genome.focus * 14 + genome.water * WATER_CREATURE_LIGHT_BUMP
+  return 62 - genome.tank * 14 + genome.focus * 10
 }
 
 // Spiky/furry body decoration appears as `water` drops — terrestrial

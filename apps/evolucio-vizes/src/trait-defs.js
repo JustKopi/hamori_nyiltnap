@@ -7,12 +7,12 @@
 //   4. wire up its physical effect in creature.js / biome.js / etc.
 
 export const TRAIT_DEFS = [
-  { name: 'tank',   huLabel: 'Tank',         color: '#e2604b' },
-  { name: 'vision', huLabel: 'Látás',        color: '#f5c63a' },
-  { name: 'focus',  huLabel: 'Fókusz',       color: '#9c79e0' },
-  { name: 'burst',  huLabel: 'Sprint',       color: '#f08a3a' },
-  { name: 'forage', huLabel: 'Fürkész',      color: '#4ec5b8' },
-  { name: 'water',  huLabel: 'Víz kedvelő',  color: '#5fa3c0' },
+  { name: 'tank',   huLabel: 'Tank',         color: '#f43f5e' },
+  { name: 'vision', huLabel: 'Látás',        color: '#facc15' },
+  { name: 'focus',  huLabel: 'Fókusz',       color: '#a78bfa' },
+  { name: 'burst',  huLabel: 'Sprint',       color: '#fb923c' },
+  { name: 'forage', huLabel: 'Fürkész',      color: '#2dd4bf' },
+  { name: 'water',  huLabel: 'Víz kedvelő',  color: '#38bdf8' },
 ]
 
 export const TRAITS = TRAIT_DEFS.map((d) => d.name)

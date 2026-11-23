@@ -695,3 +695,31 @@ input[type="range"] {
   }
   .cycle-caption { display: none; }
 }
+
+
+/* ===== Nyílt napi változat: saját megjelenés („neon zátony”) ===== */
+html, body { background: radial-gradient(ellipse at 15% 0%, #1e1035 0%, #0b0c10 60%); color: #e5e7eb; }
+.stage { background: #0b1d3d; border: 1px solid rgba(236, 72, 153, 0.35); border-radius: 22px; box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.12) inset, 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 60px -20px rgba(236, 72, 153, 0.45); }
+.hud { top: auto !important; bottom: 16px; left: 16px; flex-direction: column; gap: 8px !important; }
+.stat { background: rgba(15, 17, 26, 0.78) !important; border: 1px solid rgba(255, 255, 255, 0.10) !important; border-left: 3px solid #ec4899 !important; border-radius: 12px !important; backdrop-filter: blur(8px); min-width: 140px; }
+.stat:nth-child(2) { border-left-color: #22d3ee !important; } .stat:nth-child(3) { border-left-color: #fde047 !important; }
+.label { color: #94a3b8 !important; letter-spacing: 0.08em; }
+.num { color: #f8fafc !important; font-variant-numeric: tabular-nums; }
+.traits { left: 16px !important; right: auto !important; top: 16px !important; background: rgba(15, 17, 26, 0.82) !important; border: 1px solid rgba(167, 139, 250, 0.35) !important; border-radius: 18px !important; backdrop-filter: blur(10px); }
+.traits-chart { background: rgba(2, 6, 23, 0.6) !important; border-radius: 12px; }
+.trait-details-toggle { color: #c4b5fd !important; }
+.track { background: rgba(148, 163, 184, 0.15) !important; border-radius: 999px; }
+.bar { border-radius: 999px; box-shadow: 0 0 10px currentColor; }
+.bar-tank { background: #f43f5e !important; } .bar-vision { background: #facc15 !important; } .bar-focus { background: #a78bfa !important; } .bar-burst { background: #fb923c !important; } .bar-forage { background: #2dd4bf !important; } .bar-water { background: #38bdf8 !important; }
+.swatch.tank { background: #f43f5e !important; } .swatch.vision { background: #facc15 !important; } .swatch.focus { background: #a78bfa !important; } .swatch.burst { background: #fb923c !important; } .swatch.forage { background: #2dd4bf !important; } .swatch.water { background: #38bdf8 !important; }
+.cycle-fill { background: linear-gradient(90deg, #22d3ee, #ec4899) !important; }
+.cycle-orb::before { background: radial-gradient(circle, #fdf4ff, #f0abfc 60%, #c026d3) !important; box-shadow: 0 0 24px #e879f9 !important; }
+.controls { background: rgba(15, 17, 26, 0.85) !important; border: 1px solid rgba(255, 255, 255, 0.08) !important; border-radius: 20px !important; }
+.button, .icon-button, .info-nav-btn { background: #1c1f2b !important; color: #f1f5f9 !important; border: 1px solid rgba(255, 255, 255, 0.12) !important; border-radius: 12px !important; }
+.button:hover, .icon-button:hover { border-color: #ec4899 !important; box-shadow: 0 0 16px -4px #ec4899; }
+.button.active { background: linear-gradient(135deg, #ec4899, #a855f7) !important; color: #fff !important; border-color: transparent !important; }
+input[type="range"] { accent-color: #ec4899; }
+.value { color: #f0abfc !important; }
+.info-modal-box { background: #12141c !important; border: 1px solid rgba(236, 72, 153, 0.35) !important; border-radius: 22px !important; color: #e5e7eb !important; }
+.info-modal-title { color: #f0abfc !important; }
+.info-modal-text strong { color: #67e8f9 !important; }
