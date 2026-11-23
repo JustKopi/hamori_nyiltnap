@@ -16,7 +16,7 @@ App.add((() => {
     data: ['Adat- és AI-szakember', 'bulb', '#2dd4bf', 'Adatokból keres összefüggéseket, és mesterséges intelligenciát tanít be, hogy felismerjen, jósoljon vagy beszélgessen.', 'Python, statisztika, gépi tanulás, adatbázisok', ['ai'], 1],
     game: ['Játékfejlesztő', 'gamepad', '#facc15', 'Játékokat tervez és programoz: pályákat, karaktereket, fizikát és mesterséges intelligenciát az ellenfeleknek.', 'Unity, Unreal, C#, 3D-modellezés', ['robot', 'pc'], 0],
     hw: ['Hardver- és IoT-technikus', 'chip', '#4ade80', 'Számítógépeket, szervereket és okoseszközöket szerel, javít és köt össze – a csavarhúzótól az érzékelőkig.', 'Alkatrészek, mérőműszerek, Arduino, forrasztás', ['pc', 'rj45'], 2],
-    ux: ['UX/UI tervező', 'eye', '#c084fc', 'Azt tervezi meg, hogyan nézzen ki és mennyire legyen könnyen használható egy alkalmazás vagy weboldal.', 'Figma, felhasználói tesztek, színek és betűk', ['weblap'], 0]
+    ux: ['UX/UI tervező', 'eye', '#c084fc', 'Azt tervezi meg, hogyan nézzen ki és mennyire legyen könnyen használható egy alkalmazás vagy weboldal.', 'Figma, felhasználói tesztek, színek és betűk', ['weblap', 'trend'], 0]
   };
   const Q = [
     ['Elromlik otthon a WiFi. Mit csinálsz?', [['Megnézem a routert, újraindítom, és kiderítem, mi a baj', { halo: 3, uzem: 2 }], ['Megkeresem, ki használja a netet a szomszédból', { bizt: 3 }], ['Írok egy programot, ami figyeli, mikor szakad meg', { dev: 2, data: 1 }], ['Megvárom, amíg más megjavítja', { ux: 1 }]]],

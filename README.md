@@ -21,6 +21,7 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 | Felhő-üzemeltető | virtualizáció, konténerek, élő migráció; 90 mp-es vagy végtelen mód, fogd és vidd |
 | Programozd a robotot! | blokkos programozás, ciklus, feltétel, Python, 8 pálya |
 | Weblap-műhely | HTML, CSS, Bootstrap/Tailwind/React, WordPress vs oldalkészítő vs kézi kód |
+| Trend-stúdió | Divatkód: öltöztetés témára HEX színkódokkal és CSS-mintákkal, kifutó és AI-zsűri; For You algoritmus: ajánlórendszer és szűrőbuborék |
 | AI-labor | neurális háló a böngészőben, rajzfelismerő, 34 rajzot felismerő rajzfelismerő, szövegjósló, önvezető autók (neurális háló + evolúció) |
 | RJ45-krimpelő | T568B, kábeltesztelés |
 | Adathalász-felismerő | phishing felismerése |

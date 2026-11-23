@@ -123,8 +123,9 @@ const CATS = [
   ['play', 'Gyakorlati kihívások', ['rj45', 'phish', 'detektiv']],
   ['quiz', 'Kvíz', ['kviz']],
 ];
-const ORDER = ['pc', 'internet', 'ai', 'ugyelet', 'wifi', 'robot', 'rj45', 'tuzfal', 'weblap', 'phish', 'router', 'felho', 'detektiv', 'terminal', 'kapcsolo', 'szakma', 'jelszo', 'kviz'];
+const ORDER = ['pc', 'internet', 'trend', 'ai', 'ugyelet', 'wifi', 'robot', 'rj45', 'tuzfal', 'weblap', 'phish', 'router', 'felho', 'detektiv', 'terminal', 'kapcsolo', 'szakma', 'jelszo', 'kviz'];
 const HOW = {
+  trend: ['Öltöztesd fel a modellt a témára', 'Színkódokkal és CSS-mintákkal dolgozol', 'Vonulj a kifutóra az AI-zsűri elé!'],
   internet: ['Küldj videókat, játékokat, letöltéseket a suli hálózatára', 'Keresd meg a leggyengébb pontját', 'Terheld túl – és elmarad az óra!'],
   router: ['Csomagok érkeznek IP-címmel', 'Döntsd el villámgyorsan, merre menjenek', 'Ne hagyd, hogy feltorlódjanak!'],
   kapcsolo: ['Tegyél le gépeket, kapcsolót, routert', 'Kösd össze őket kábellel', 'Adj IP-címet, és pingeld meg a másik gépet'],
@@ -144,7 +145,7 @@ const HOW = {
   phish: ['E-mailek, SMS-ek, üzenetek érkeznek', 'Döntsd el: valódi vagy csaló?', 'Ne dőlj be a trükköknek!'],
   detektiv: ['Valakinek elromlott a gépe', 'Nyomozz vizsgálatokkal', 'Találd meg, mi a hiba!'],
 };
-const MINS = { internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, szakma: 3, ai: 5, rj45: 2, phish: 2, detektiv: 3, robot: 5, weblap: 3, kviz: 3 };
+const MINS = { trend: 4, internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, szakma: 3, ai: 5, rj45: 2, phish: 2, detektiv: 3, robot: 5, weblap: 3, kviz: 3 };
 
 /* ---- nyitólap: élő hálózat-illusztráció ---- */
 const Hero = {
