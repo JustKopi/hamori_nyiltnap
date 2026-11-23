@@ -11,7 +11,7 @@ window.EASY = store.get('easy', false);
 const Tut = (() => {
   // állomásonként 3 rövid lépés: mi a cél, hogyan kell irányítani, mire figyelj
   const T = {
-    internet: [['Mi ez?', 'Az üzenetek kis <b>csomagokra</b> bomlanak, és routereken át utaznak.'], ['Próbáld ki', 'Írj üzenetet és nyomd meg az <b>Üzenet</b> gombot, vagy indíts <b>Videót</b>!'], ['Kísérletezz', 'Kattints egy kábelre az <b>Ollóval</b>, és nézd, hogyan talál új utat a csomag.']],
+    internet: [['Netfaló', 'Ma online dolgozat lenne – de ha leáll a suli internete, elmarad az óra!'], ['Tervezz', 'Húzd a videókat, letöltéseket a termekbe. Figyelj a pénzedre és a vékony kábelekre!'], ['Rajt!', 'Ha a „Leállás” sáv betelik, nyertél. De a rendszergazda minden pályán okosabb lesz…']],
     router: [['Te vagy a router', 'Minden csomagon van egy <b>cél IP-cím</b>.'], ['Irányítás', 'Nyilakkal vagy kattintással küldd a jó kimenetre. A bal felső <b>útvonaltábla</b> segít.'], ['Pontok', 'Gyorsaság és kombó = több pont. Rossz válasz: −3 mp.']],
     kapcsolo: [['Két fül', 'Fent választhatsz: <b>VLAN és STP bemutató</b> vagy <b>Szabad labor</b>.'], ['Szabad labor', 'Tegyél le eszközöket, a <b>Kábel</b> eszközzel kösd össze őket, és adj IP-címet.'], ['Ping', 'A <b>Ping</b> eszközzel kattints két gépre: kiderül, látják-e egymást.']],
     wifi: [['Válassz nehézséget', '<b>Könnyű</b> vagy <b>Nehéz</b> mód – a nehéz tényleg nehéz!'], ['Tervezés', 'Húzd a routert, vegyél eszközöket, húzz kábelt, válassz sávot és csatornát.'], ['Teszt', 'A <b>Teszt</b> alatt élőben zavar a mikró, a szomszéd WiFi és az emberek.']],

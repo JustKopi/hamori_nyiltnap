@@ -9,7 +9,7 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 
 | Állomás | Témakör |
 |---|---|
-| Az internet útja | csomagok, sávszélesség, késleltetés, redundancia, kábelezés |
+| Az internet útja | Netfaló: 5 pályás túlterheléses játék (sávszélesség, szűk keresztmetszet, gyorsítótár, QoS, tartalék vonal) |
 | Légy te a router! | IPv4, CIDR, útvonaltábla, leghosszabb egyezés, TTL |
 | Kapcsoló-labor | VLAN, STP, DHCP + szabad hálózatépítő labor (IP, átjáró, ping) |
 | WiFi-tervező | könnyű és nehéz mód: router, mesh, jelismétlő, kábeles AP, powerline, kábelezés, csatornák, valós idejű zavarok |
