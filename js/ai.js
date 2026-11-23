@@ -138,16 +138,30 @@ App.add((() => {
   function autoGen() { let n = 0; const st = () => { const d = nextDist(); if (!d.length || n++ > 14) return; let r = Math.random(), pick = d[0][0]; for (const [w, p] of d) { if ((r -= p) <= 0) { pick = w; break } } words.push(pick); textRender(); if (pick !== '.') setTimeout(st, 350) }; st() }
 
   /* ============ 4. Önvezető autók: neurális háló + evolúció (genetikus algoritmus) ============ */
-  const V = { cv: null, ctx: null, nnc: null, chc: null, track: 1, gen: 1, cars: [], hist: [], speed: 1, mut: .5, t: 0, grid: null, cl: [], lead: null, bestEver: 0, msg: '' };
-  const VW = 900, VH = 600, GS = 4, GW = VW / GS, GH = VH / GS, POP = 40, NIN = 6, NH = 8, NO = 2, NW = NIN * NH + NH + NH * NO + NO, RAYS = [-1.1, -.5, 0, .5, 1.1], RAYL = 150;
+  const V = { cv: null, ctx: null, nnc: null, chc: null, track: 1, gen: 1, cars: [], hist: [], speed: 1, mut: .5, t: 0, grid: null, cl: [], lead: null, bestEver: 0, msg: '', custom: null, mode: 'run', draw: null, cones: [], champ: null, race: null, keys: {} };
+  const VW = 900, VH = 600, GS = 4, GW = VW / GS, GH = VH / GS, NH = 8, NO = 2, RAYL = 150;
+  let POP = 40, RAYS = [-1.1, -.5, 0, .5, 1.1], NIN = 6, NW = 0;
+  const RAYSETS = { 3: [-.8, 0, .8], 5: [-1.1, -.5, 0, .5, 1.1], 7: [-1.3, -.85, -.4, 0, .4, .85, 1.3] };
+  function setRays(n) { RAYS = RAYSETS[n]; NIN = RAYS.length + 1; NW = NIN * NH + NH + NH * NO + NO }
+  setRays(5);
   const TRK = [
     { n: 'Ovális', w: 70, f: t => 1 + .1 * Math.sin(2 * t) },
     { n: 'Kanyargós', w: 64, f: t => 1 + .17 * Math.sin(3 * t + .5) + .06 * Math.cos(5 * t) },
     { n: 'Profi pálya', w: 58, f: t => 1 + .2 * Math.sin(2 * t + 1) + .1 * Math.sin(5 * t) + .05 * Math.cos(7 * t) }
   ];
+  // saját rajzolt pálya: simítás és egyenletes újramintavételezés
+  function makeCustom(raw) {
+    let p = raw.slice(); const n0 = p.length; if (n0 < 12) return null;
+    for (let pass = 0; pass < 3; pass++) p = p.map((_, i) => { let x = 0, y = 0; for (let k = -4; k <= 4; k++) { const q = p[(i + k + n0) % n0]; x += q[0]; y += q[1] } return [x / 9, y / 9] });
+    const len = []; let tot = 0; for (let i = 0; i < n0; i++) { const a = p[i], b = p[(i + 1) % n0]; len.push(tot); tot += Math.hypot(b[0] - a[0], b[1] - a[1]) }
+    if (tot < 700) return null;
+    const out = [], n = 360; let j = 0;
+    for (let k = 0; k < n; k++) { const s = k / n * tot; while (j < n0 - 1 && len[j + 1] <= s) j++; const a = p[j], b = p[(j + 1) % n0], seg = (j + 1 < n0 ? len[j + 1] : tot) - len[j] || 1, f = (s - len[j]) / seg; out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]) }
+    return out;
+  }
   function buildTrack() {
-    const T = TRK[V.track], n = 360; V.cl = [];
-    for (let i = 0; i < n; i++) { const t = i / n * TAU, r = T.f(t); V.cl.push([450 + 345 * r * Math.cos(t), 300 + 222 * r * Math.sin(t)]) }
+    const T = V.track === 'custom' ? { w: 64 } : TRK[V.track], n = 360;
+    if (V.track === 'custom') V.cl = V.custom; else { V.cl = []; for (let i = 0; i < n; i++) { const t = i / n * TAU, r = T.f(t); V.cl.push([450 + 345 * r * Math.cos(t), 300 + 222 * r * Math.sin(t)]) } }
     // rácstérkép: minden cellához a középvonaltól mért távolság és a pálya menti haladás
     const dist = new Float32Array(GW * GH), prog = new Uint16Array(GW * GH);
     for (let gy = 0; gy < GH; gy++) for (let gx = 0; gx < GW; gx++) {
@@ -156,8 +170,7 @@ App.add((() => {
       for (let i = bi - 2; i <= bi + 2; i++) { const j = (i + n) % n, d = (V.cl[j][0] - x) ** 2 + (V.cl[j][1] - y) ** 2; if (d < bd) { bd = d; bi = j } }
       dist[gy * GW + gx] = Math.sqrt(bd); prog[gy * GW + gx] = bi;
     }
-    V.grid = { dist, prog, half: T.w / 2 };
-    // háttér előrajzolása (a pálya nem változik, így nem kell minden képkockán újrarajzolni)
+    V.grid = { dist, prog, half: T.w / 2, block: new Uint8Array(GW * GH) }; V.cones = []; V.tw = T.w;
     const bg = document.createElement('canvas'); bg.width = VW; bg.height = VH; const c = bg.getContext('2d');
     c.fillStyle = '#0f2a1a'; c.fillRect(0, 0, VW, VH);
     for (let k = 0; k < 400; k++) { c.fillStyle = `rgba(74,222,128,${Math.random() * .06})`; c.fillRect(Math.random() * VW, Math.random() * VH, 3, 3) }
@@ -170,8 +183,12 @@ App.add((() => {
     for (let k = -T.w / 2; k < T.w / 2; k += 8) for (let r = 0; r < 2; r++) { c.fillStyle = ((k / 8 + r) & 1) ? '#fff' : '#111'; c.fillRect(k, r * 8 - 8, 8, 8) } c.restore();
     V.bg = bg;
   }
+  function rebuildCones() {
+    const b = V.grid.block; b.fill(0);
+    for (const k of V.cones) for (let gy = Math.max(0, (k.y - 16) / GS | 0); gy <= Math.min(GH - 1, (k.y + 16) / GS | 0); gy++) for (let gx = Math.max(0, (k.x - 16) / GS | 0); gx <= Math.min(GW - 1, (k.x + 16) / GS | 0); gx++) if (Math.hypot(gx * GS + 2 - k.x, gy * GS + 2 - k.y) < 13) b[gy * GW + gx] = 1;
+  }
   const cellAt = (x, y) => { const gx = x / GS | 0, gy = y / GS | 0; return gx < 0 || gy < 0 || gx >= GW || gy >= GH ? -1 : gy * GW + gx };
-  const onTrack = (x, y) => { const k = cellAt(x, y); return k >= 0 && V.grid.dist[k] < V.grid.half - 3 };
+  const onTrack = (x, y) => { const k = cellAt(x, y); return k >= 0 && V.grid.dist[k] < V.grid.half - 3 && !V.grid.block[k] };
   const randW = () => Float32Array.from({ length: NW }, () => (Math.random() * 2 - 1) * 1.2);
   function think(w, inp, keep) {
     let o = 0; const h = new Float32Array(NH), out = new Float32Array(NO);
@@ -180,63 +197,103 @@ App.add((() => {
     if (keep) keep.act = [inp, h, out]; return out;
   }
   function newCar(w) { const [x, y] = V.cl[0], [nx, ny] = V.cl[2]; return { w, x, y, a: Math.atan2(ny - y, nx - x), sp: 0, alive: true, p: 0, lastIdx: 0, best: 0, stall: 0, rays: RAYS.map(() => 1), hue: Math.random() * 360, act: null } }
+  function mutate(src, amt) { const w = Float32Array.from(src); for (let i = 0; i < NW; i++) if (Math.random() < .12 + amt * .2) w[i] += (Math.random() * 2 - 1) * amt; return w }
   function newGen(fresh) {
     if (fresh) { V.gen = 1; V.hist = []; V.bestEver = 0; V.cars = Array.from({ length: POP }, () => newCar(randW())); V.t = 0; return }
-    const sorted = [...V.cars].sort((a, b) => b.best - a.best), top = sorted.slice(0, 10), best = sorted[0].best;
-    V.hist.push(best); V.bestEver = Math.max(V.bestEver, best);
-    const next = sorted.slice(0, 4).map(c => { const n = newCar(Float32Array.from(c.w)); n.hue = c.hue; n.elite = true; return n });
+    const sorted = [...V.cars].sort((a, b) => b.best - a.best), top = sorted.slice(0, Math.max(4, POP / 4 | 0)), best = sorted[0].best;
+    V.hist.push(best); if (best >= V.bestEver) V.champ = Float32Array.from(sorted[0].w); V.bestEver = Math.max(V.bestEver, best);
+    const next = sorted.slice(0, 4).map(c => { const n = newCar(Float32Array.from(c.w)); n.hue = c.hue; return n });
     while (next.length < POP) {
       const a = top[Math.floor(Math.random() ** 2 * top.length)], b = top[Math.floor(Math.random() ** 2 * top.length)], w = new Float32Array(NW);
-      for (let i = 0; i < NW; i++) { w[i] = Math.random() < .5 ? a.w[i] : b.w[i]; if (Math.random() < .12 + V.mut * .2) w[i] += (Math.random() * 2 - 1) * V.mut }
-      const n = newCar(w); n.hue = (a.hue + (Math.random() - .5) * 40 + 360) % 360; next.push(n);
+      for (let i = 0; i < NW; i++) w[i] = Math.random() < .5 ? a.w[i] : b.w[i];
+      const n = newCar(mutate(w, V.mut)); n.hue = (a.hue + (Math.random() - .5) * 40 + 360) % 360; next.push(n);
     }
     V.cars = next; V.gen++; V.t = 0;
-    V.msg = best >= 3 ? 'Megtanult körbemenni a pályán!' : best > .5 ? 'Egyre messzebb jutnak!' : 'Még tanulnak…';
+    V.msg = best >= 3 ? 'Megtanult körbemenni a pályán! Tegyél le akadályokat, vagy versenyezz vele!' : best > .5 ? 'Egyre messzebb jutnak!' : 'Még tanulnak…';
   }
+  function sense(c) { c.rays = RAYS.map(ra => { const a = c.a + ra, dx = Math.cos(a), dy = Math.sin(a); let d = 0; while (d < RAYL && onTrack(c.x + dx * d, c.y + dy * d)) d += 5; return Math.min(1, d / RAYL) }) }
+  function progress(c) { const N = V.cl.length, k = cellAt(c.x, c.y); if (k < 0) return; const idx = V.grid.prog[k]; let d = idx - c.lastIdx; if (d > N / 2) d -= N; if (d < -N / 2) d += N; c.p += d / N; c.lastIdx = idx }
+  function drive(c, steer, gas, dt) { c.sp += (gas * 220 - c.sp) * Math.min(1, dt * 2.5); c.sp = Math.max(25, c.sp); c.a += steer * 3 * dt; c.x += Math.cos(c.a) * c.sp * dt; c.y += Math.sin(c.a) * c.sp * dt }
   function step(dt) {
-    const N = V.cl.length;
+    if (V.race) return raceStep(dt);
     for (const c of V.cars) {
       if (!c.alive) continue;
-      c.rays = RAYS.map(ra => { const a = c.a + ra, dx = Math.cos(a), dy = Math.sin(a); let d = 0; while (d < RAYL && onTrack(c.x + dx * d, c.y + dy * d)) d += 5; return Math.min(1, d / RAYL) });
-      const o = think(c.w, [...c.rays, c.sp / 220], null);
-      c.sp += ((o[1] + 1) / 2 * 220 - c.sp) * Math.min(1, dt * 2.5); c.sp = Math.max(25, c.sp);
-      c.a += o[0] * 3 * dt; c.x += Math.cos(c.a) * c.sp * dt; c.y += Math.sin(c.a) * c.sp * dt;
+      sense(c); const o = think(c.w, [...c.rays, c.sp / 220], null); drive(c, o[0], (o[1] + 1) / 2, dt);
       if (!onTrack(c.x, c.y)) { c.alive = false; continue }
-      const idx = V.grid.prog[cellAt(c.x, c.y)]; let d = idx - c.lastIdx; if (d > N / 2) d -= N; if (d < -N / 2) d += N; c.p += d / N; c.lastIdx = idx;
+      progress(c);
       if (c.p > c.best + .002) { c.best = c.p; c.stall = 0 } else if ((c.stall += dt) > 2) c.alive = false;
       if (c.best >= 3) c.alive = false;
     }
     V.t += dt;
     if (!V.cars.some(c => c.alive) || V.t > 40) newGen(false);
   }
+  /* ---- verseny: te a bajnok ellen ---- */
+  function raceStart() {
+    const w = V.champ || [...V.cars].sort((a, b) => b.best - a.best)[0].w;
+    const ai = newCar(Float32Array.from(w)), me = newCar(null); me.me = true;
+    const off = (c, d) => { const [x, y] = V.cl[0], [nx, ny] = V.cl[2], a = Math.atan2(ny - y, nx - x); c.x += Math.cos(a + PI / 2) * d; c.y += Math.sin(a + PI / 2) * d };
+    off(ai, -V.tw * .22); off(me, V.tw * .22);
+    V.race = { ai, me, t: -3, done: null }; V.mode = 'race'; vehUi(); V.cv.focus && V.cv.focus();
+  }
+  function raceStep(dt) {
+    const R = V.race; R.t += dt; if (R.t < 0 || R.done) return;
+    const { ai, me } = R;
+    sense(ai); const o = think(ai.w, [...ai.rays, ai.sp / 220], null); const ox = ai.x, oy = ai.y, oa = ai.a; drive(ai, o[0], (o[1] + 1) / 2, dt);
+    if (!onTrack(ai.x, ai.y)) { ai.x = ox; ai.y = oy; ai.a = oa + .4; ai.sp = 30 } progress(ai);
+    const K = V.keys, steer = (K.right ? 1 : 0) - (K.left ? 1 : 0), gas = K.up ? 1 : K.down ? .05 : .35;
+    const px0 = me.x, py0 = me.y; drive(me, steer * .9, gas, dt); sense(me);
+    if (!onTrack(me.x, me.y)) { me.x = px0; me.y = py0; me.sp = 30; if (!R.bump || R.t - R.bump > .4) { beep(160, .08, 'square', .04); R.bump = R.t } } progress(me);
+    const LAPS = 2;
+    if (!R.done && (me.p >= LAPS || ai.p >= LAPS)) {
+      R.done = me.p >= LAPS ? 'me' : 'ai'; R.time = R.t;
+      if (R.done === 'me') { sfx.win(); FX.confetti(); toast(`<b>Legyőzted az AI-t!</b> Idő: ${R.t.toFixed(1).replace('.', ',')} mp. Tanítsd tovább, és próbáld újra!`, '#4ade80', 4000) }
+      else { sfx.bad(); toast('<b>Az AI nyert!</b> Gyakorolj még – vagy állítsd le a tanítást korábban, hogy könnyebb ellenfél legyen.', '#fbbf24', 4000) }
+    }
+  }
+  function raceStop() { V.race = null; V.mode = 'run'; V.keys = {}; vehUi() }
+  function carShape(c, x, y, a, col, glow) {
+    c.save(); c.translate(x, y); c.rotate(a); if (glow) { c.shadowColor = col; c.shadowBlur = 18 }
+    c.fillStyle = col; c.fillRect(-13, -7, 26, 14); c.shadowBlur = 0; c.fillStyle = '#0b0c10'; c.fillRect(2, -5, 7, 10); c.fillStyle = '#fef08a'; c.fillRect(11, -6, 2, 3); c.fillRect(11, 3, 2, 3); c.restore();
+  }
+  function rays(c, car) { RAYS.forEach((ra, i) => { const a = car.a + ra, d = car.rays[i] * RAYL; c.strokeStyle = car.rays[i] < .35 ? '#f87171' : '#fde047'; c.globalAlpha = .8; c.lineWidth = 2; c.beginPath(); c.moveTo(car.x, car.y); c.lineTo(car.x + Math.cos(a) * d, car.y + Math.sin(a) * d); c.stroke(); c.beginPath(); c.arc(car.x + Math.cos(a) * d, car.y + Math.sin(a) * d, 4, 0, TAU); c.fillStyle = c.strokeStyle; c.fill() }); c.globalAlpha = 1 }
+  function hud(c, l1, l2) { c.globalAlpha = 1; c.fillStyle = '#0b0c10cc'; c.fillRect(12, 12, 330, 64); c.fillStyle = '#fff'; c.font = '800 24px Inter,sans-serif'; c.textAlign = 'left'; c.fillText(l1, 24, 42); c.font = '600 15px Inter,sans-serif'; c.fillStyle = '#cbd5e1'; c.fillText(l2, 24, 64) }
   function vehDraw() {
     if (!V.ctx) return; const c = V.ctx; c.drawImage(V.bg, 0, 0);
+    for (const k of V.cones) { c.fillStyle = '#f97316'; c.beginPath(); c.moveTo(k.x, k.y - 13); c.lineTo(k.x + 10, k.y + 10); c.lineTo(k.x - 10, k.y + 10); c.closePath(); c.fill(); c.fillStyle = '#fff'; c.fillRect(k.x - 6, k.y - 1, 12, 4) }
+    if (V.mode === 'draw') {
+      c.fillStyle = '#0b0c10b0'; c.fillRect(0, 0, VW, VH); const p = V.draw || [];
+      if (p.length > 1) { c.strokeStyle = '#22d3ee'; c.lineWidth = 50; c.globalAlpha = .35; c.lineJoin = c.lineCap = 'round'; c.beginPath(); p.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke(); c.globalAlpha = 1; c.lineWidth = 3; c.stroke() }
+      c.fillStyle = '#fff'; c.font = '800 26px Inter,sans-serif'; c.textAlign = 'center'; c.fillText('Rajzolj egy körpályát egy vonással!', VW / 2, 48); c.font = '600 16px Inter,sans-serif'; c.fillStyle = '#cbd5e1'; c.fillText('Nagy, kerek ív legyen; a végét a kezdőpontja közelében engedd fel.', VW / 2, 74);
+      return;
+    }
+    if (V.race) {
+      const R = V.race; rays(c, R.me); carShape(c, R.ai.x, R.ai.y, R.ai.a, '#22d3ee', true); carShape(c, R.me.x, R.me.y, R.me.a, '#f472b6', true);
+      c.font = '800 13px Inter,sans-serif'; c.textAlign = 'center'; c.fillStyle = '#22d3ee'; c.fillText('AI', R.ai.x, R.ai.y - 16); c.fillStyle = '#f472b6'; c.fillText('TE', R.me.x, R.me.y - 16);
+      hud(c, R.t < 0 ? `Rajt: ${Math.ceil(-R.t)}` : R.done ? (R.done === 'me' ? 'Nyertél!' : 'Az AI nyert!') : `${Math.max(0, R.t).toFixed(1).replace('.', ',')} mp`, `Te: ${Math.round(Math.max(0, R.me.p) / 2 * 100)}% • AI: ${Math.round(Math.max(0, R.ai.p) / 2 * 100)}% (2 kör)`);
+      if (R.t < 0) { c.fillStyle = '#fff'; c.font = '900 110px Inter,sans-serif'; c.textAlign = 'center'; c.globalAlpha = .9; c.fillText(Math.ceil(-R.t), VW / 2, VH / 2 + 40); c.globalAlpha = 1 }
+      V.lead = R.ai; think(R.ai.w, [...R.ai.rays, R.ai.sp / 220], R.ai); nnDraw(); return;
+    }
     const alive = V.cars.filter(x => x.alive), lead = (alive.length ? alive : V.cars).reduce((a, b) => b.best > a.best ? b : a, V.cars[0]); V.lead = lead;
     for (const car of V.cars) {
       if (car === lead) continue;
       c.save(); c.translate(car.x, car.y); c.rotate(car.a); c.globalAlpha = car.alive ? .85 : .18;
       c.fillStyle = `hsl(${car.hue},80%,60%)`; c.fillRect(-10, -5, 20, 10); c.fillStyle = '#0b0c10aa'; c.fillRect(1, -4, 5, 8); c.restore();
     }
-    if (lead) {
-      if (lead.alive) RAYS.forEach((ra, i) => { const a = lead.a + ra, d = lead.rays[i] * RAYL; c.strokeStyle = lead.rays[i] < .35 ? '#f87171' : '#fde047'; c.globalAlpha = .8; c.lineWidth = 2; c.beginPath(); c.moveTo(lead.x, lead.y); c.lineTo(lead.x + Math.cos(a) * d, lead.y + Math.sin(a) * d); c.stroke(); c.beginPath(); c.arc(lead.x + Math.cos(a) * d, lead.y + Math.sin(a) * d, 4, 0, TAU); c.fillStyle = c.strokeStyle; c.fill() });
-      c.globalAlpha = 1; c.save(); c.translate(lead.x, lead.y); c.rotate(lead.a); c.shadowColor = '#22d3ee'; c.shadowBlur = 18;
-      c.fillStyle = '#22d3ee'; c.fillRect(-13, -7, 26, 14); c.shadowBlur = 0; c.fillStyle = '#0b0c10'; c.fillRect(2, -5, 7, 10); c.fillStyle = '#fef08a'; c.fillRect(11, -6, 2, 3); c.fillRect(11, 3, 2, 3); c.restore();
-      think(lead.w, [...lead.rays, lead.sp / 220], lead);
-    }
-    c.globalAlpha = 1; c.fillStyle = '#0b0c10cc'; c.fillRect(12, 12, 290, 64); c.fillStyle = '#fff'; c.font = '800 24px Inter,sans-serif'; c.textAlign = 'left';
-    c.fillText(`${V.gen}. generáció`, 24, 42); c.font = '600 15px Inter,sans-serif'; c.fillStyle = '#cbd5e1'; c.fillText(`Úton: ${alive.length}/${POP} autó • legjobb: ${Math.round((lead ? lead.best : 0) * 100)}% kör`, 24, 64);
+    c.globalAlpha = 1;
+    if (lead) { if (lead.alive) rays(c, lead); carShape(c, lead.x, lead.y, lead.a, '#22d3ee', true); think(lead.w, [...lead.rays, lead.sp / 220], lead) }
+    hud(c, `${V.gen}. generáció`, `Úton: ${alive.length}/${POP} autó • legjobb: ${Math.round((lead ? lead.best : 0) * 100)}% kör`);
+    if (V.mode === 'cone') { c.fillStyle = '#f97316'; c.font = '800 16px Inter,sans-serif'; c.textAlign = 'right'; c.fillText('Akadály mód: kattints a pályára!', VW - 16, 32) }
     nnDraw(); chartDraw();
-    const st = $('#ai-v-st'); if (st) st.innerHTML = `<b>${V.gen}.</b> generáció • rekord: <b>${Math.round(V.bestEver * 100)}%</b> kör${V.msg ? `<br><span>${V.msg}</span>` : ''}`;
+    const st = $('#ai-v-st'); if (st) { const h = `<b>${V.gen}.</b> generáció • rekord: <b>${Math.round(V.bestEver * 100)}%</b> kör${V.msg ? `<br><span>${V.msg}</span>` : ''}`; if (st._h !== h) st.innerHTML = st._h = h }
   }
   function nnDraw() {
     const cv = V.nnc, lead = V.lead; if (!cv || !lead || !lead.act) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height; c.clearRect(0, 0, W, H);
-    const L3 = [NIN, NH, NO], xs = [40, W / 2, W - 50], pos = L3.map((n, l) => Array.from({ length: n }, (_, i) => [xs[l], (i + 1) * H / (n + 1)])), w = lead.w, act = lead.act;
-    let o = 0;
-    for (let j = 0; j < NH; j++) for (let i = 0; i < NIN; i++) { const v = w[j * NIN + i]; c.strokeStyle = v > 0 ? `rgba(74,222,128,${Math.min(.8, Math.abs(v) * .35)})` : `rgba(248,113,113,${Math.min(.8, Math.abs(v) * .35)})`; c.lineWidth = 1 + Math.min(3, Math.abs(v)); c.beginPath(); c.moveTo(...pos[0][i]); c.lineTo(...pos[1][j]); c.stroke() }
-    o = NIN * NH + NH;
-    for (let k = 0; k < NO; k++) for (let j = 0; j < NH; j++) { const v = w[o + k * NH + j]; c.strokeStyle = v > 0 ? `rgba(74,222,128,${Math.min(.8, Math.abs(v) * .35)})` : `rgba(248,113,113,${Math.min(.8, Math.abs(v) * .35)})`; c.lineWidth = 1 + Math.min(3, Math.abs(v)); c.beginPath(); c.moveTo(...pos[1][j]); c.lineTo(...pos[2][k]); c.stroke() }
-    const lab = [['bal', 'b-e', 'előre', 'j-e', 'jobb', 'seb.'], [], ['kormány', 'gáz']];
-    pos.forEach((ly, l) => ly.forEach(([x, y], i) => { const a = act[l][i], v = l === 0 ? a : (a + 1) / 2; c.beginPath(); c.arc(x, y, 10, 0, TAU); c.fillStyle = `rgba(34,211,238,${.15 + .85 * Math.max(0, Math.min(1, v))})`; c.fill(); c.strokeStyle = '#22d3ee'; c.lineWidth = 1.5; c.stroke(); if (lab[l][i]) { c.fillStyle = '#cbd5e1'; c.font = '600 11px Inter,sans-serif'; c.textAlign = l === 0 ? 'right' : 'left'; c.fillText(lab[l][i], l === 0 ? x - 14 : x + 14, y + 4) } }));
+    const L3 = [NIN, NH, NO], xs = [62, W / 2, W - 60], pos = L3.map((n, l) => Array.from({ length: n }, (_, i) => [xs[l], (i + 1) * H / (n + 1)])), w = lead.w, act = lead.act;
+    const ln = (v, a, b) => { c.strokeStyle = v > 0 ? `rgba(74,222,128,${Math.min(.8, Math.abs(v) * .35)})` : `rgba(248,113,113,${Math.min(.8, Math.abs(v) * .35)})`; c.lineWidth = 1 + Math.min(3, Math.abs(v)); c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke() };
+    for (let j = 0; j < NH; j++) for (let i = 0; i < NIN; i++) ln(w[j * NIN + i], pos[0][i], pos[1][j]);
+    const o = NIN * NH + NH; for (let k = 0; k < NO; k++) for (let j = 0; j < NH; j++) ln(w[o + k * NH + j], pos[1][j], pos[2][k]);
+    const inl = RAYS.map(r => r < -.9 ? 'bal' : r < -.1 ? 'bal-elő' : r > .9 ? 'jobb' : r > .1 ? 'jobb-elő' : 'előre').concat(['sebesség']), lab = [inl, [], ['kormány', 'gáz']];
+    pos.forEach((ly, l) => ly.forEach(([x, y], i) => { const a = act[l][i], v = l === 0 ? a : (a + 1) / 2; c.beginPath(); c.arc(x, y, 9, 0, TAU); c.fillStyle = `rgba(34,211,238,${.15 + .85 * Math.max(0, Math.min(1, v))})`; c.fill(); c.strokeStyle = '#22d3ee'; c.lineWidth = 1.5; c.stroke(); if (lab[l][i]) { c.fillStyle = '#cbd5e1'; c.font = '600 10px Inter,sans-serif'; c.textAlign = l === 0 ? 'right' : 'left'; c.fillText(lab[l][i], l === 0 ? x - 12 : x + 12, y + 4) } }));
   }
   function chartDraw() {
     const cv = V.chc; if (!cv) return; const c = cv.getContext('2d'), W = cv.width, H = cv.height; c.clearRect(0, 0, W, H);
@@ -244,8 +301,68 @@ App.add((() => {
     const h = V.hist.slice(-30); if (!h.length) return; const mx = Math.max(1, ...h), bw = (W - 8) / 30;
     h.forEach((v, i) => { const bh = v / mx * (H - 24); c.fillStyle = v >= 1 ? '#4ade80' : '#22d3ee'; c.fillRect(4 + i * bw, H - bh, bw - 2, bh) });
   }
-  function vehTick(dt) { const n = V.speed; for (let k = 0; k < n; k++) step(1 / 60); vehDraw() }
+  function vehTick(dt) { if (V.mode !== 'draw') { const n = V.race ? 1 : V.speed; for (let k = 0; k < n; k++) step(1 / 60) } vehDraw() }
   function vehInit() { if (!V.grid) { buildTrack(); newGen(true) } }
+  const vehPos = e => { const r = V.cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * VW, (e.clientY - r.top) / r.height * VH] };
+  function vehUi() {
+    $$('[data-vm]').forEach(b => b.classList.toggle('sel', b.dataset.vm === V.mode));
+    $('#ai-v-race').style.display = V.race ? '' : 'none'; $('#ai-v-main').style.display = V.race ? 'none' : '';
+    V.cv.style.cursor = V.mode === 'draw' ? 'crosshair' : V.mode === 'cone' ? 'copy' : 'default';
+  }
+  function vehHtml() {
+    return `<div class="ai-pane" data-p="cars" style="display:none"><div class="ai-cvw"><canvas id="ai-v-cv" width="900" height="600" tabindex="0" style="cursor:default;outline:none"></canvas>
+        <div id="ai-v-race" style="display:none"><div class="ai-vpad"><button class="btn" data-vk="left">${icon('back', 26, 2.4)}</button><button class="btn go" data-vk="up">GÁZ</button><button class="btn" data-vk="right" style="transform:scaleX(-1)">${icon('back', 26, 2.4)}</button></div>
+          <div class="ai-vrh">Nyilak vagy W, A, D: vezetés • <button class="btn" id="ai-v-again">Új verseny</button> <button class="btn" id="ai-v-stop">Vissza a tanításhoz</button></div></div></div>
+        <div class="ai-side"><h3>Önvezető autók</h3><div>Az autóknak senki nem mondja meg, hogyan kell vezetni! Mindegyikben egy kis <b>neurális háló</b> dönt a kormányról és a gázról. Aki a legmesszebb jut, annak az „agyát” továbbörökítjük – így generációról generációra ügyesebbek lesznek.</div>
+          <div id="ai-v-st"></div>
+          <div id="ai-v-main" style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn go" id="ai-v-racebtn" style="height:46px;font-size:16px">${icon('trophy', 18)} Versenyezz a bajnokkal!</button>
+          <div class="ai-vh">Sebesség</div><div class="row">${[1, 4, 12].map(v => `<button class="btn ${v === 1 ? 'sel' : ''}" data-vs="${v}">${v}×</button>`).join('')}</div>
+          <div class="ai-vh">Pálya</div><div class="row">${TRK.map((t, i) => `<button class="btn ${i === 1 ? 'sel' : ''}" data-vt="${i}">${t.n}</button>`).join('')}</div>
+          <div class="row"><button class="btn" data-vm="draw">${icon('hand', 15)} Saját pálya rajzolása</button><button class="btn" data-vm="cone">Akadályok (bóják)</button></div>
+          <div class="ai-vh">Az autók agya</div>
+          <div class="row"><span class="ai-vl">Érzékelők:</span>${[3, 5, 7].map(n => `<button class="btn ${n === 5 ? 'sel' : ''}" data-vr="${n}">${n}</button>`).join('')}</div>
+          <div class="row"><span class="ai-vl">Autók száma:</span>${[20, 40, 80].map(n => `<button class="btn ${n === 40 ? 'sel' : ''}" data-vp="${n}">${n}</button>`).join('')}</div>
+          <div style="font-size:13px;color:var(--muted)">Mutáció (mennyit változzon az utódok agya): <b id="ai-v-mv">közepes</b></div><input type="range" id="ai-v-mut" min="1" max="10" value="5" style="width:100%">
+          <div class="row"><button class="btn" id="ai-v-save">Bajnok mentése</button><button class="btn" id="ai-v-load">Bajnok betöltése</button></div>
+          <div class="row"><button class="btn" id="ai-v-rs">Újrakezdés nulláról</button></div></div>
+          <div style="font-size:13px;color:var(--muted)">A vezető autó (türkiz) agya élőben – zöld: erősítő, piros: gátló kapcsolat:</div>
+          <canvas id="ai-v-nn" width="300" height="210" style="width:100%;background:var(--bg2);border-radius:12px"></canvas>
+          <canvas id="ai-v-ch" width="300" height="90" style="width:100%"></canvas>
+          <div class="learn" style="margin-top:0">Ez a <b>genetikus algoritmus</b>: a természetes kiválasztódást utánozza. Kíváncsi vagy, mennyire <b>általánosít</b>? Taníts be egy bajnokot, majd válts pályát, vagy tegyél le bóját – a jól betanult agy új helyzetben is boldogul! A valódi önvezető autók is neurális hálókkal „látnak”, csak sokkal több érzékelővel.</div></div></div>`;
+  }
+  function vehBind(r) {
+    V.cv = $('#ai-v-cv'); V.ctx = V.cv.getContext('2d'); V.nnc = $('#ai-v-nn'); V.chc = $('#ai-v-ch');
+    const restart = msg => { newGen(true); V.msg = msg || ''; V.champ = null };
+    $$('[data-vs]', r).forEach(b => b.onclick = () => { V.speed = +b.dataset.vs; $$('[data-vs]').forEach(x => x.classList.toggle('sel', x === b)); sfx.click() });
+    const keepBrains = msg => { const keep = V.cars; if (keep.length && keep[0].w.length === NW) { V.cars = keep.map(c => { const n = newCar(c.w); n.hue = c.hue; return n }); V.t = 0; V.msg = msg } else newGen(true) };
+    $$('[data-vt]', r).forEach(b => b.onclick = () => { V.track = +b.dataset.vt; V.mode = 'run'; $$('[data-vt]').forEach(x => x.classList.toggle('sel', x === b)); buildTrack(); keepBrains('Új pálya: vajon az eddig tanult agy itt is működik?'); vehUi(); sfx.click() });
+    $$('[data-vm]', r).forEach(b => b.onclick = () => { V.mode = V.mode === b.dataset.vm ? 'run' : b.dataset.vm; V.draw = null; vehUi(); sfx.click(); if (V.mode === 'cone') toast('Kattints a pályára: bója kerül oda. Bójára kattintva eltűnik.', '#f97316', 2600) });
+    $$('[data-vr]', r).forEach(b => b.onclick = () => { setRays(+b.dataset.vr); $$('[data-vr]').forEach(x => x.classList.toggle('sel', x === b)); restart(`${b.dataset.vr} érzékelővel újratanul. Több érzékelő = több információ, de nagyobb agy.`); sfx.click() });
+    $$('[data-vp]', r).forEach(b => b.onclick = () => { POP = +b.dataset.vp; $$('[data-vp]').forEach(x => x.classList.toggle('sel', x === b)); restart(`${POP} autó: több autó = több esély a jó ötletre, de lassabb.`); sfx.click() });
+    $('#ai-v-mut').oninput = e => { V.mut = +e.target.value / 10; $('#ai-v-mv').textContent = V.mut < .35 ? 'kicsi' : V.mut < .7 ? 'közepes' : 'nagy' };
+    $('#ai-v-rs').onclick = () => { restart(''); sfx.click() };
+    $('#ai-v-save').onclick = () => { if (!V.champ) { toast('Még nincs bajnok: várj legalább egy generációt!', '#fbbf24'); return } store.set('aichamp', { r: RAYS.length, w: Array.from(V.champ) }); toast('Bajnok elmentve ezen a gépen.', '#4ade80') };
+    $('#ai-v-load').onclick = () => { const s = store.get('aichamp', null); if (!s) { toast('Nincs még mentett bajnok.', '#fbbf24'); return } setRays(s.r); $$('[data-vr]').forEach(x => x.classList.toggle('sel', +x.dataset.vr === s.r)); const w = Float32Array.from(s.w); V.champ = w; V.cars = Array.from({ length: POP }, (_, i) => newCar(i < 4 ? Float32Array.from(w) : mutate(w, V.mut * .5))); V.t = 0; V.msg = 'A mentett bajnok és az utódai vezetnek.'; toast('Bajnok betöltve!', '#4ade80') };
+    $('#ai-v-racebtn').onclick = () => { if (!V.champ && V.bestEver < .3) { toast('Előbb tanítsd egy kicsit: várd meg, amíg egy autó legalább a pálya harmadáig eljut!', '#fbbf24', 3200); return } raceStart() };
+    $('#ai-v-again').onclick = raceStart; $('#ai-v-stop').onclick = raceStop;
+    $$('[data-vk]', r).forEach(b => { const k = b.dataset.vk; b.onpointerdown = e => { e.preventDefault(); V.keys[k] = true; b.setPointerCapture(e.pointerId) }; b.onpointerup = b.onpointercancel = () => { V.keys[k] = false } });
+    const km = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down' };
+    addEventListener('keydown', e => { if (!V.race || !km[e.key]) return; V.keys[km[e.key]] = true; e.preventDefault() });
+    addEventListener('keyup', e => { if (km[e.key]) V.keys[km[e.key]] = false });
+    V.cv.addEventListener('pointerdown', e => {
+      const [x, y] = vehPos(e);
+      if (V.mode === 'draw') { V.draw = [[x, y]]; V.cv.setPointerCapture(e.pointerId); return }
+      if (V.mode === 'cone') { const i = V.cones.findIndex(k => Math.hypot(k.x - x, k.y - y) < 18); if (i >= 0) V.cones.splice(i, 1); else { const k = cellAt(x, y); if (k < 0 || V.grid.dist[k] > V.grid.half) { toast('A bóját a pályára tedd!', '#fbbf24', 1400); return } if (Math.hypot(x - V.cl[0][0], y - V.cl[0][1]) < 60) { toast('A rajtvonalra ne tegyél bóját!', '#fbbf24', 1400); return } V.cones.push({ x, y }); beep(700, .05, 'triangle', .04) } rebuildCones() }
+    });
+    V.cv.addEventListener('pointermove', e => { if (V.mode === 'draw' && V.draw) { const [x, y] = vehPos(e), l = V.draw[V.draw.length - 1]; if (Math.hypot(x - l[0], y - l[1]) > 6) V.draw.push([x, y]) } });
+    V.cv.addEventListener('pointerup', () => {
+      if (V.mode !== 'draw' || !V.draw) return; const p = V.draw; V.draw = null;
+      const cl = makeCustom(p.map(([x, y]) => [clamp(x, 45, VW - 45), clamp(y, 45, VH - 45)]));
+      if (!cl) { toast('Túl rövid pálya – rajzolj egy nagyobb kört!', '#fbbf24', 2200); return }
+      V.custom = cl; V.track = 'custom'; V.mode = 'run'; $$('[data-vt]').forEach(x => x.classList.remove('sel')); buildTrack(); keepBrains('Saját pálya! Vajon boldogulnak rajta?'); vehUi(); sfx.ok();
+    });
+  }
 
   /* ============ felület ============ */
   function setTab(t) {
@@ -268,6 +385,9 @@ App.add((() => {
       .ai-task{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:12px;padding:8px 10px;font-size:15px;margin-bottom:10px}.ai-task b{color:var(--accent)}.ai-task span{color:var(--muted);font-size:13px}.ai-task .btn{height:34px;font-size:13.5px;margin-left:auto}
       .ai-known{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}.ai-known span{font-size:13px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
       #ai-v-st{font-size:16px}#ai-v-st span{color:var(--green);font-size:14px}
+      .ai-vh{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:-4px}.ai-vl{font-size:13px;color:var(--muted);align-self:center;min-width:92px}
+      #ai-v-race{position:absolute;right:10px;top:10px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:8px;background:#0b0c10d0;border:1px solid var(--line2);border-radius:16px;max-width:330px}
+      #ai-v-cv{max-height:calc(100vh - 170px);width:auto!important;max-width:100%;margin:0 auto}.ai-vpad{display:flex;gap:14px}.ai-vpad .btn{width:96px;height:64px;font-size:18px;touch-action:none;user-select:none}.ai-vrh{font-size:13px;color:#cbd5e1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}.ai-vrh .btn{height:32px;font-size:13px}
       #ai-t-out{font-size:26px;line-height:1.45;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;min-height:140px}.ai-cur{color:var(--accent);animation:aiB 1s steps(2) infinite}@keyframes aiB{50%{opacity:0}}
       #ai-t-next{display:flex;flex-direction:column;gap:6px;margin-top:12px}
       .ai-nw{all:unset;cursor:pointer;display:grid;grid-template-columns:200px 1fr 50px;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:16px}.ai-nw:hover{border-color:var(--accent)}.ai-nw.top{border-color:color-mix(in srgb,var(--accent) 50%,var(--line))}
@@ -294,17 +414,7 @@ App.add((() => {
           <div class="row"><button class="btn go" id="ai-t-auto">Írjon a gép!</button><button class="btn" id="ai-t-rs">Új mondat</button></div>
           <div class="row ai-st">${['A számítógép', 'Az internet', 'A robot', 'A mesterséges intelligencia', 'A diák'].map(s => `<button class="btn" data-ts="${s}">${s}…</button>`).join('')}</div>
           <div class="learn" style="margin-top:0">Egy <b>nyelvi modell</b> (mint a ChatGPT vagy a Claude) azt számolja ki, melyik szó jön a legvalószínűbben. Ez a kis modell 32 mondatból tanult, és csak az előző két szót nézi. A nagy modellek <b>milliárdnyi</b> szövegből tanulnak, és egész oldalakat vesznek figyelembe – ezért tudnak verset írni, programot javítani vagy fordítani.</div></div></div>
-      <div class="ai-pane" data-p="cars" style="display:none"><div class="ai-cvw"><canvas id="ai-v-cv" width="900" height="600" style="cursor:default"></canvas></div>
-        <div class="ai-side"><h3>Önvezető autók</h3><div>Az autóknak senki nem mondja meg, hogyan kell vezetni! Mindegyikben egy kis <b>neurális háló</b> dönt a kormányról és a gázról. Aki a legmesszebb jut, annak az „agyát” továbbörökítjük – így generációról generációra ügyesebbek lesznek.</div>
-          <div id="ai-v-st"></div>
-          <div class="row"><button class="btn sel" data-vs="1">1×</button><button class="btn" data-vs="4">4×</button><button class="btn" data-vs="12">12×</button></div>
-          <div class="row">${TRK.map((t, i) => `<button class="btn ${i === 1 ? 'sel' : ''}" data-vt="${i}">${t.n}</button>`).join('')}</div>
-          <div style="font-size:13px;color:var(--muted)">Mutáció (mennyit változzon az utódok agya): <b id="ai-v-mv">közepes</b></div><input type="range" id="ai-v-mut" min="1" max="10" value="5" style="width:100%">
-          <div class="row"><button class="btn go" id="ai-v-rs">Újrakezdés nulláról</button></div>
-          <div style="font-size:13px;color:var(--muted)">A vezető autó (türkiz) agya élőben – zöld: erősítő, piros: gátló kapcsolat. Bal oldalt az 5 távolságérzékelő:</div>
-          <canvas id="ai-v-nn" width="300" height="200" style="width:100%;background:var(--bg2);border-radius:12px"></canvas>
-          <canvas id="ai-v-ch" width="300" height="90" style="width:100%"></canvas>
-          <div class="learn" style="margin-top:0">Ez a <b>genetikus algoritmus</b>: a természetes kiválasztódást utánozza. Hasonló módszerekkel tanítanak robotokat járni, és a valódi önvezető autók is neurális hálókkal „látnak” – csak sokkal több érzékelővel és rengeteg tanulással.</div></div></div>
+      ${vehHtml()}
     </div>`;
     $$('[data-at]', r).forEach(b => b.onclick = () => { setTab(b.dataset.at); sfx.click() });
     L.cv = $('#ai-l-cv'); L.ctx = L.cv.getContext('2d'); presetPts('ring');
@@ -321,11 +431,7 @@ App.add((() => {
     $('#ai-d-clr').onclick = () => { D.strokes = []; drawRender() };
     $('#ai-t-auto').onclick = autoGen; $('#ai-t-rs').onclick = () => { words = ['a', 'számítógép']; textRender() };
     $$('[data-ts]', r).forEach(b => b.onclick = () => { words = b.dataset.ts.toLowerCase().split(' '); textRender() });
-    V.cv = $('#ai-v-cv'); V.ctx = V.cv.getContext('2d'); V.nnc = $('#ai-v-nn'); V.chc = $('#ai-v-ch');
-    $$('[data-vs]', r).forEach(b => b.onclick = () => { V.speed = +b.dataset.vs; $$('[data-vs]').forEach(x => x.classList.toggle('sel', x === b)); sfx.click() });
-    $$('[data-vt]', r).forEach(b => b.onclick = () => { V.track = +b.dataset.vt; $$('[data-vt]').forEach(x => x.classList.toggle('sel', x === b)); const keep = V.cars; buildTrack(); if (keep.length) { V.cars = keep.map(c => { const n = newCar(c.w); n.hue = c.hue; return n }); V.t = 0; V.msg = 'Új pálya: vajon az eddig tanult agy itt is működik?' } else newGen(true); sfx.click() });
-    $('#ai-v-mut').oninput = e => { V.mut = +e.target.value / 10; $('#ai-v-mv').textContent = V.mut < .35 ? 'kicsi' : V.mut < .7 ? 'közepes' : 'nagy' };
-    $('#ai-v-rs').onclick = () => { buildTrack(); newGen(true); V.msg = ''; sfx.click() };
+    vehBind(r);
     setTab('learn');
   };
   S.tick = dt => { if (tab === 'learn' && L.ctx) learnDraw(); if (tab === 'cars' && V.grid) vehTick(dt) };

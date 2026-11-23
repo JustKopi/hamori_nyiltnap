@@ -12,7 +12,7 @@ const Lab = (() => {
     { k: 'm2', n: 'Két hálózat, egy router', d: 'Kössön össze egy router két külön hálózatot (pl. 192.168.1.0/24 és 10.0.0.0/24). A router portjai kapjanak IP-t, a gépeken az átjáró a router címe legyen. Pingelj át a másik hálózatba!' },
     { k: 'm3', n: 'Automatikus címek (DHCP)', d: 'Tegyél le egy DHCP-szervert (adj neki IP-t), és egy gépen kapcsold be az „IP automatikusan” opciót. Ha kapott címet, pingeld vele a szervert!' }
   ];
-  let C, ctx, root, devs = [], links = [], uid = 1, sel = null, tool = 'move', drag = null, wireFrom = null, wirePt = null, pingSrc = null, anim = [], T = 0, done = {}, race = null, log = [];
+  let snips = [], hovL = null, C, ctx, root, devs = [], links = [], uid = 1, sel = null, tool = 'move', drag = null, wireFrom = null, wirePt = null, pingSrc = null, anim = [], T = 0, done = {}, race = null, log = [];
   const D = id => devs.find(d => d.id === id);
   const px = d => d.x * C.W, py = d => d.y * C.H;
 
@@ -126,6 +126,16 @@ const Lab = (() => {
     if (cnt(b) >= TYPES[b.t].ports) { toast(`${b.name}: nincs több szabad port.`, '#fbbf24'); return }
     links.push({ id: 'l' + uid++, a: a.id, b: b.id }); beep(900, .08, 'triangle', .05, 300); dhcpAll(); panel();
   }
+  function cutLink(l) {
+    links = links.filter(x => x !== l); [D(l.a), D(l.b)].forEach(d => { if (d && d.ifs) delete d.ifs[l.id] });
+    const a = D(l.a), b = D(l.b); snips.push({ x: (px(a) + px(b)) / 2, y: (py(a) + py(b)) / 2, t: 0 }); hovL = null;
+    beep(300, .08, 'square', .05, -150); dhcpAll(); panel(); toast('Kábel kihúzva.', '#f87171', 1200);
+  }
+  function linkAt(mx, my) {
+    let best = null, bd = 12;
+    for (const l of links) { const a = D(l.a), b = D(l.b), x1 = px(a), y1 = py(a), x2 = px(b), y2 = py(b), L2 = (x2 - x1) ** 2 + (y2 - y1) ** 2 || 1, t = clamp(((mx - x1) * (x2 - x1) + (my - y1) * (y2 - y1)) / L2, .12, .88), d = Math.hypot(mx - (x1 + (x2 - x1) * t), my - (y1 + (y2 - y1) * t)); if (d < bd) { bd = d; best = l } }
+    return best;
+  }
   function del(d) { links = links.filter(l => l.a !== d.id && l.b !== d.id); devs = devs.filter(x => x !== d); if (sel === d) sel = null; dhcpAll(); panel() }
   function panel() {
     const el = $('#lb-cfg'); if (!el) return; const d = sel;
@@ -174,6 +184,8 @@ const Lab = (() => {
       const a = D(l.a), b = D(l.b); Cable.draw(ctx, px(a), py(a), px(b), py(b), { type: 'patch', w: 4, sag: .05, r1: TYPES[a.t].s * .35, r2: TYPES[b.t].s * .35 });
       if (a.t === 'router' || b.t === 'router') { const r = a.t === 'router' ? a : b, f = r.ifs[l.id]; if (f && f.ip) { const o = r === a ? b : a, t = .25, x = px(r) + (px(o) - px(r)) * t, y = py(r) + (py(o) - py(r)) * t; tag(`${f.ip}/${f.p || 24}`, x, y, '#fbbf24') } }
     }
+    if (hovL && links.includes(hovL)) { const a = D(hovL.a), b = D(hovL.b), mx = (px(a) + px(b)) / 2, my = (py(a) + py(b)) / 2; ctx.strokeStyle = '#f87171'; ctx.lineWidth = 8; ctx.globalAlpha = .45; ctx.beginPath(); ctx.moveTo(px(a), py(a)); ctx.lineTo(px(b), py(b)); ctx.stroke(); ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(mx, my, 15, 0, 7); ctx.fillStyle = '#f87171'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(mx - 6, my - 6); ctx.lineTo(mx + 6, my + 6); ctx.moveTo(mx + 6, my - 6); ctx.lineTo(mx - 6, my + 6); ctx.stroke() }
+    for (const sn of snips) { const k = sn.t / .6; ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3; for (let q = 0; q < 8; q++) { const a = q * Math.PI / 4, r1 = 8 + k * 20, r2 = 14 + k * 30; ctx.beginPath(); ctx.moveTo(sn.x + Math.cos(a) * r1, sn.y + Math.sin(a) * r1); ctx.lineTo(sn.x + Math.cos(a) * r2, sn.y + Math.sin(a) * r2); ctx.stroke() } ctx.globalAlpha = 1 }
     if (wireFrom && wirePt) { ctx.setLineDash([8, 6]); ctx.strokeStyle = '#a78bfa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(px(wireFrom), py(wireFrom)); ctx.lineTo(...wirePt); ctx.stroke(); ctx.setLineDash([]) }
     for (const d of devs) {
       const x = px(d), y = py(d), ty = TYPES[d.t];
@@ -193,7 +205,7 @@ const Lab = (() => {
   function tag(t, x, y, c) { ctx.font = '600 11px "JetBrains Mono",Consolas,monospace'; const w = ctx.measureText(t).width + 12; ctx.fillStyle = 'rgba(11,12,15,.9)'; rrect(ctx, x - w / 2, y - 9, w, 18, 6); ctx.fill(); ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.stroke(); ctx.fillStyle = c; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y) }
   const hit = (mx, my) => [...devs].reverse().find(d => Math.hypot(mx - px(d), my - py(d)) < TYPES[d.t].s * .55);
 
-  function setTool(t) { tool = t; pingSrc = null; $$('[data-lt]').forEach(b => b.classList.toggle('sel', b.dataset.lt === t)); if (t === 'ping') toast('Ping: kattints a forrásgépre, majd a célgépre!', '#4ade80', 2400); if (t === 'wire') toast('Kábel: húzd az egyik eszközről a másikra!', '#a78bfa', 2400) }
+  function setTool(t) { tool = t; pingSrc = null; $$('[data-lt]').forEach(b => b.classList.toggle('sel', b.dataset.lt === t)); if (t === 'ping') toast('Ping: kattints a forrásgépre, majd a célgépre!', '#4ade80', 2400); if (t === 'wire') toast('Kábel: húzd az egyik eszközről a másikra!', '#a78bfa', 2400); if (t === 'cut') toast('Kattints arra a kábelre, amelyiket törölni szeretnéd! (Mozgatás módban is: vidd fölé az egeret, és kattints a piros X-re.)', '#f87171', 3200) }
   function mount(el) {
     root = el;
     el.innerHTML = `<style>
@@ -216,7 +228,7 @@ const Lab = (() => {
     </style>
     <div id="lb-left">
       <div class="lb-p"><h4>Eszközök</h4><div class="lb-grid">${Object.entries(TYPES).map(([k, v]) => `<button class="btn" data-add="${k}">+ ${v.n}</button>`).join('')}<button class="btn" id="lb-ex">Példa</button></div></div>
-      <div class="lb-p"><h4>Eszköz</h4><div class="lb-tools"><button class="btn sel" data-lt="move">Mozgat</button><button class="btn" data-lt="wire">Kábel</button><button class="btn" data-lt="ping">Ping</button></div><button class="btn" id="lb-clr" style="width:100%;margin-top:6px;height:34px;font-size:13px">Minden törlése</button></div>
+      <div class="lb-p"><h4>Eszköz</h4><div class="lb-tools"><button class="btn sel" data-lt="move">Mozgat</button><button class="btn" data-lt="wire">Kábel</button><button class="btn" data-lt="ping">Ping</button></div><button class="btn" data-lt="cut" style="width:100%;margin-top:6px;height:36px;font-size:14px">${icon('trash', 15)} Kábelvágó</button><button class="btn" id="lb-clr" style="width:100%;margin-top:6px;height:34px;font-size:13px">Minden törlése</button></div>
       <div class="lb-p" id="lb-mp"><h4>Feladatok</h4><div id="lb-timer" style="display:none"></div><div id="lb-miss"></div></div>
     </div>
     <div id="lb-right"><div class="lb-p"><h4>Beállítások</h4><div id="lb-cfg"></div></div><div class="lb-p"><h4>Ping-napló</h4><div id="lb-log"></div></div></div>`;
@@ -228,11 +240,13 @@ const Lab = (() => {
     C.cv.addEventListener('pointerdown', e => {
       const [mx, my] = pos(e), d = hit(mx, my);
       if (tool === 'ping') { if (!d || !TYPES[d.t].host) return; if (!pingSrc) { pingSrc = d; beep(800, .05, 'triangle', .05) } else if (d !== pingSrc) { doPing(pingSrc, d); pingSrc = null } return }
+      if (tool !== 'wire') { const l = !d || tool === 'cut' ? linkAt(mx, my) : null; if (l) { cutLink(l); return } }
+      if (tool === 'cut') return;
       if (!d) { sel = null; panel(); return }
       if (tool === 'wire') { wireFrom = d; wirePt = [mx, my]; C.cv.setPointerCapture(e.pointerId); return }
       sel = d; panel(); drag = { d, ox: mx - px(d), oy: my - py(d) }; C.cv.setPointerCapture(e.pointerId);
     });
-    C.cv.addEventListener('pointermove', e => { const [mx, my] = pos(e); if (drag) { drag.d.x = clamp((mx - drag.ox) / C.W, .03, .97); drag.d.y = clamp((my - drag.oy) / C.H, .06, .94) } if (wireFrom) wirePt = [mx, my] });
+    C.cv.addEventListener('pointermove', e => { const [mx, my] = pos(e); if (drag) { drag.d.x = clamp((mx - drag.ox) / C.W, .03, .97); drag.d.y = clamp((my - drag.oy) / C.H, .06, .94) } if (wireFrom) wirePt = [mx, my]; hovL = !drag && !wireFrom && tool !== 'ping' && (tool === 'cut' || !hit(mx, my)) ? linkAt(mx, my) : null; C.cv.style.cursor = hovL ? 'pointer' : '' });
     C.cv.addEventListener('pointerup', e => { const [mx, my] = pos(e); if (wireFrom) { const d = hit(mx, my); if (d) connect(wireFrom, d); wireFrom = wirePt = null } drag = null });
     addEventListener('keydown', e => { if (!root || !root.offsetParent || e.target.tagName === 'INPUT') return; if ((e.key === 'Delete' || e.key === 'Backspace') && sel) del(sel) });
     panel(); renderMiss(); renderLog();
