@@ -139,12 +139,20 @@ const Lab = (() => {
       const ls = links.filter(l => l.a === d.id || l.b === d.id);
       h += ls.length ? ls.map((l, i) => { const o = D(l.a === d.id ? l.b : l.a), f = d.ifs[l.id] || {}; return `<div class="lb-if"><div>Port ${i} → ${o.name}</div><input data-if="${l.id}" data-k="ip" value="${f.ip || ''}" placeholder="pl. 192.168.1.1"><select data-if="${l.id}" data-k="p">${[8, 16, 24, 25, 26, 27, 28, 30].map(x => `<option ${x === (f.p || 24) ? 'selected' : ''}>${x}</option>`).join('')}</select></div>` }).join('') : '<div class="hint2">Köss a routerre kábeleket, utána portonként adhatsz IP-címet. Minden port másik hálózat!</div>';
     } else h += '<div class="hint2">A kapcsolónak nem kell IP-cím: a gépek MAC-címe alapján továbbítja a kereteket ugyanazon a hálózaton belül.</div>';
+    if (window.EASY && d.t !== 'sw') h += `<button class="btn go" id="lb-sug">Javasolt beállítás (könnyű mód)</button>`;
     h += `<button class="btn" id="lb-del">${icon('trash', 16)} Törlés</button>`;
     el.innerHTML = h;
     $$('[data-f]', el).forEach(i => i.onchange = i.oninput = () => { const f = i.dataset.f; if (f === 'dhcp') { d.dhcp = i.checked; dhcpAll(); panel(); return } d[f] = f === 'p' ? +i.value : i.value.trim(); if (d.t === 'server' || f !== 'p') dhcpAll() });
     $$('[data-if]', el).forEach(i => i.onchange = i.oninput = () => { const f = d.ifs[i.dataset.if] = d.ifs[i.dataset.if] || { p: 24 }; f[i.dataset.k] = i.dataset.k === 'p' ? +i.value : i.value.trim(); dhcpAll() });
     $$('input', el).forEach(i => i.addEventListener('keydown', e => e.stopPropagation()));
-    $('#lb-del').onclick = () => del(d);
+    $('#lb-del').onclick = () => del(d); const sg = $('#lb-sug'); if (sg) sg.onclick = () => { suggest(d); dhcpAll(); panel(); toast('Beállítva! Nézd meg, milyen IP-címet és átjárót kapott.', '#4ade80', 2200) };
+  }
+  function suggest(d) {
+    const used = new Set(devs.map(x => x.ip).concat(devs.flatMap(x => Object.values(x.ifs || {}).map(f => f.ip))));
+    if (d.t === 'router') { let n = 1; links.filter(l => l.a === d.id || l.b === d.id).forEach(l => { const f = d.ifs[l.id] = d.ifs[l.id] || { p: 24 }; if (!ipOk(f.ip)) { while (used.has(`192.168.${n}.1`)) n++; f.ip = `192.168.${n}.1`; f.p = 24; used.add(f.ip) } }); return }
+    const hl = hostLink(d); let base = '192.168.1.', gw = '';
+    if (hl) { const dom = domain(hl), r = devs.find(x => x.t === 'router' && addrs(x).some(a => inDom(dom, x, a.link))); if (r) { const a = addrs(r).find(a => inDom(dom, r, a.link)); base = a.ip.split('.').slice(0, 3).join('.') + '.'; gw = a.ip } }
+    let k = 10; while (used.has(base + k)) k += 10; d.ip = base + k; d.p = 24; d.gw = gw; d.dhcp = false;
   }
   function example() {
     if (race) { toast('Verseny közben nem tölthető be a példa – építsd meg magad!', '#fbbf24'); return }

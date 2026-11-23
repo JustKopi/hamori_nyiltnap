@@ -33,12 +33,12 @@ App.add((() => {
     ['chat', 'Nagy tanár úr', 'Frissítés', 'a gépem folyton frissíteni akar, nem lehetne ezt végleg kikapcsolni?', [['Mentsen, és engedje frissíteni: a biztonsági javítások fontosak', 1, 'A frissítések befoltozzák a támadók által ismert hibákat.'], ['Kikapcsolom végleg a frissítéseket', 0, 'A gép sebezhető marad.'], ['Húzza ki a hálózati kábelt', 0, 'Akkor nem tud dolgozni.']]],
     ['mail', 'Diákönkormányzat', 'Weboldal a bálnak', 'Szeretnénk egy kis weboldalt a szalagavatóra. Hol futhatna?', [['Indítok neki egy új konténert a webszerveren, saját aldomainnel', 1, 'Konténerrel percek alatt elszigetelt webhely indul.'], ['Fusson a titkárság gépén', 0, 'Az nem szerver, és ki van kapcsolva éjjel.'], ['Nem lehet, felejtsék el', 0, 'Megoldható, ez a rendszergazda dolga.']]]
   ];
-  const CH = { mail: ['mail', 'E-mail', 40], chat: ['user', 'Chat', 30], call: ['phone', 'Hívás', 18] };
+  const CH = { mail: ['mail', 'E-mail', 55], chat: ['user', 'Chat', 45], call: ['phone', 'Hívás', 30] };
   function newTicket() {
-    if (G.tk.filter(t => !t.done).length >= 4) return;
+    if (G.tk.filter(t => !t.done).length >= (window.EASY ? 2 : 3)) return;
     const used = new Set(G.tk.map(t => t.d)), pool = TK.filter(t => !used.has(t)); const d = pick(pool.length ? pool : TK);
-    const t = { id: ++G.tid, d, ch: d[0], sla: CH[d[0]][2], left: CH[d[0]][2], done: false };
-    t.opts = [...d[4]].sort(() => Math.random() - .5); G.tk.unshift(t);
+    const sl = CH[d[0]][2] * (window.EASY ? 1.5 : 1), t = { id: ++G.tid, d, ch: d[0], sla: sl, left: sl, done: false };
+    t.opts = [...d[4]].sort(() => Math.random() - .5); if (window.EASY) t.opts = [t.opts.find(o => o[1]), t.opts.find(o => !o[1])].sort(() => Math.random() - .5); G.tk.unshift(t);
     if (t.ch === 'call') [0, .3, 1.1, 1.4].forEach(x => beep(950, .15, 'sine', .05, 0, x)); else beep(1300, .08, 'triangle', .05);
     log(`${CH[t.ch][1].toUpperCase().padEnd(7)} ${d[1]}: ${d[2]}`); renderInbox();
   }
@@ -71,7 +71,7 @@ App.add((() => {
       <div class="o-h"><span class="o-ic"><img alt="" src="${Dev.img('rack', 44)}" style="width:44px"></span><div><b>${s.n}</b><div class="o-os">${s.os}</div></div><span class="o-led"></span></div>
       ${[['CPU', s.cpu], ['RAM', s.ram], ['Lemez', s.disk]].map(([k, v]) => `<div class="o-m"><span>${k}</span><div class="o-b"><i style="width:${v}%;background:${v > 85 ? 'var(--red)' : v > 65 ? 'var(--yellow)' : 'var(--green)'}"></i></div><span>${Math.round(v)}%</span></div>`).join('')}
       <div class="o-c">${'▣'.repeat(s.cont)} <span>${s.cont} konténer</span></div>
-      <div class="o-p">${s.p ? PROB[s.p].t : 'Minden rendben'}</div></div>`).join('');
+      <div class="o-p">${s.p ? PROB[s.p].t : 'Minden rendben'}</div>${s.p && window.EASY ? `<div class="o-hint">Teendő: <b>${TOOLS.find(x => x[0] === PROB[s.p].fix)[2]}</b></div>` : ''}</div>`).join('');
     $$('.o-srv').forEach(e => e.onpointerdown = () => { G.sel = +e.dataset.i; sfx.click(); tryFix() });
   }
   function log(t, cls = '') { const l = $('#o-log'); const d = document.createElement('div'); d.className = cls; d.textContent = `${new Date().toLocaleTimeString('hu-HU')}  ${t}`; l.prepend(d); while (l.children.length > 30) l.lastChild.remove() }
@@ -88,7 +88,7 @@ App.add((() => {
     G.sel = null; G.tool = null; $$('.o-tool').forEach(b => b.classList.remove('sel')); render();
   }
   function spawn() {
-    const ok = srv.map((s, i) => i).filter(i => !srv[i].p); if (!ok.length) return;
+    const ok = srv.map((s, i) => i).filter(i => !srv[i].p); if (!ok.length || srv.filter(s => s.p).length >= (window.EASY ? 1 : 2)) return;
     const i = pick(ok), k = pick(Object.keys(PROB)), s = srv[i]; s.p = k; s.pt = 0;
     if (k === 'cpu') s.cpu = 100; if (k === 'disk') s.disk = 100;
     log(`HIBA    ${s.n}: ${PROB[k].t}`, 'err'); sfx.alarm(); render();
@@ -151,6 +151,7 @@ App.add((() => {
       .o-mailb{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px;font-size:14.5px;margin-top:6px;line-height:1.45}
       .o-q{font-size:13px;font-weight:700;color:var(--yellow);margin-top:8px}.o-opt{text-align:left;height:auto!important;padding:9px 11px!important;font-size:14px!important;line-height:1.35;white-space:normal}
       .o-satw{height:8px;background:#1c1f26;border-radius:4px;overflow:hidden;margin-top:4px}#o-sat{height:100%;transition:width .4s}
+      .o-hint{margin-top:6px;font-size:13px;color:#fde68a;background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.35);border-radius:8px;padding:4px 8px}
       #o-tools{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
       .o-tool{font-size:16px;padding:10px 14px}.o-tool b{font-size:22px;margin-right:4px}
     </style>
@@ -171,8 +172,8 @@ App.add((() => {
     if (!G.on) return;
     G.t -= dt; G.spawn -= dt; acc += dt;
     const healthy = srv.filter(s => !s.p).length; G.up += healthy * dt; G.tot += srv.length * dt;
-    if (G.spawn <= 0) { spawn(); G.spawn = Math.max(2.4, 4.6 - (DUR - G.t) * .03) }
-    G.tkT -= dt; if (G.tkT <= 0) { newTicket(); G.tkT = rnd(6, 9) }
+    if (G.spawn <= 0) { spawn(); G.spawn = window.EASY ? rnd(9, 12) : Math.max(4.5, 7 - (DUR - G.t) * .03) }
+    G.tkT -= dt; if (G.tkT <= 0) { newTicket(); G.tkT = window.EASY ? rnd(15, 19) : rnd(10, 14) }
     G.tk.forEach(t => { if (t.done) return; t.left -= dt; if (t.left <= 0) { t.done = true; G.sat = Math.max(0, G.sat - 15); G.tpts -= 30; if (G.open === t.id) G.open = null; log(`LEJÁRT  ${t.d[1]}: nem kapott választ`, 'err'); toast(`${t.d[1]} nem kapott választ időben!`, '#f87171', 2000); renderInbox(); renderSat() } });
     if (acc > .5) {
       acc = 0;

@@ -6,6 +6,7 @@ ICON_PATHS.rj45 = '<path d="M7 3h10v6l-2 2v9H9v-9L7 9z"/><path d="M9.5 3v4M12 3v
 ICON_PATHS.phish = '<path d="M3 7l9 6 9-6"/><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M17 15l2 2 3-4"/>';
 ICON_PATHS.detektiv = '<circle cx="10.5" cy="10.5" r="6"/><path d="M20 20l-5-5M8 10.5h5M10.5 8v5"/>';
 window.LOWFX = store.get('lowfx', false);
+window.EASY = store.get('easy', false);
 
 const Tut = (() => {
   // állomásonként 3 rövid lépés: mi a cél, hogyan kell irányítani, mire figyelj
@@ -23,7 +24,7 @@ const Tut = (() => {
     robot: [['Programozás', 'Vezesd a robotot a töltőre, és szedd össze a kristályokat.'], ['Blokkok', 'Kattints a blokkokra a program összerakásához. Ismételd/Amíg/Ha blokkba is tehetsz.'], ['Futtatás', 'Nyomd meg a <b>Futtatás</b> gombot. Rövidebb program = több csillag.']],
     weblap: [['Weblap-műhely', 'Bal oldalt szerkeszted az oldalad, középen látod, jobbra a kódját.'], ['Keretrendszerek', 'A kód fölött válthatsz: HTML, Bootstrap, Tailwind, React.'], ['Összehasonlítás', 'A <b>Melyik eszközzel?</b> fülön: oldalkészítő vs WordPress vs kézi kód.']],
     ai: [['AI-labor', 'Négy fül: <b>Tanítsd a gépet</b>, <b>Rajzfelismerő</b>, <b>Szövegjósló</b> és <b>Beszélgess egy AI-val</b>.'], ['Tanítsd a gépet', 'Kattintással tegyél le kék és narancs pontokat – a neurális háló élőben tanul belőlük.'], ['Rajzolj!', 'A Rajzfelismerőben rajzolj egy alakzatot, és nézd, felismeri-e. Ha téved, tanítsd meg neki!']],
-    rj45: [['Kábelkészítés', 'Egy igazi hálózati kábelt kell megkrimpelned.'], ['Sorrend', 'Kattints egy érre, majd a csatlakozó egyik helyére – a T568B sorrend szerint.'], ['Teszt', 'A <b>Krimpelés</b> után a kábeltesztelő megmutatja, jó lett-e.']],
+    rj45: [['Kábelkészítés', 'Egy igazi hálózati kábelt kell megkrimpelned.'], ['Sorrend', '<b>Húzd</b> az ereket a csatlakozó helyeire a T568B sorrend szerint.'], ['Teszt', 'A <b>Krimpelés</b> után a kábeltesztelő megmutatja, jó lett-e.']],
     phish: [['Valódi vagy csaló?', 'Üzenetek érkeznek: e-mailek, SMS-ek, chatek.'], ['Nyomozz', 'Figyeld a <b>feladót</b>, a <b>linket</b> és azt, hogy mit kérnek tőled.'], ['Döntés', 'Bal nyíl: valódi • jobb nyíl: csaló. Utána megmutatjuk az árulkodó jeleket.']],
     detektiv: [['Hibakereső detektív', 'Egy felhasználó panaszkodik – neked kell kitalálni, mi a baj.'], ['Vizsgálat', 'Válassz vizsgálatokat (LED, ipconfig, ping…). Mindegyik pontba kerül!'], ['Megoldás', 'Ha megvan a tettes, válaszd ki a hiba okát.']],
     szakma: [['Pályaválasztó', '14 rövid kérdés következik.'], ['Válaszolj őszintén', 'Nincs jó vagy rossz válasz – azt válaszd, ami rád igaz.'], ['Eredmény', 'A végén megmutatjuk, mely informatikai területek illenek hozzád.']],
@@ -69,6 +70,10 @@ const Settings = (() => {
   function init() {
     const b = document.createElement('button'); b.className = 'iconbtn'; b.id = 'setbtn'; b.title = 'Beállítások'; b.innerHTML = icon('gear', 20); b.onclick = menu;
     const mu = $('#mute'); mu.parentNode.insertBefore(b, mu); upd();
+    const eb = document.createElement('button'); eb.className = 'btn hbtn'; eb.id = 'easybtn'; eb.title = 'Könnyű mód általános iskolásoknak: lassabb játék, több segítség';
+    const eu = () => { eb.classList.toggle('on', window.EASY); eb.innerHTML = `${icon('star', 16, 2)} ${window.EASY ? 'Könnyű mód: BE' : 'Könnyű mód'}` }; eu();
+    eb.onclick = () => { window.EASY = !window.EASY; store.set('easy', window.EASY); eu(); sfx.click(); toast(window.EASY ? '<b>Könnyű mód bekapcsolva</b> – lassabb játékok, több segítség. A következő játéktól érvényes, és külön ranglistára kerül.' : 'Könnyű mód kikapcsolva – normál nehézség.', '#4ade80', 3500) };
+    const pl = $('#plbtn'); pl.parentNode.insertBefore(eb, pl);
     $$('.st-n').forEach(e => e.textContent = App.stations.filter(x => x.id !== 'info').length);
     const pc = $('#parents-card'); if (pc && !$('#qr-card')) { const q = document.createElement('div'); q.id = 'qr-card'; q.innerHTML = `<div class="qr">${QR.svg(SITE_URL)}</div><div><h4>Nyisd meg a telefonodon is!</h4><p>Olvasd be a QR-kódot, és otthon is kipróbálhatod az összes játékot.</p><code>${SITE_URL.replace('https://', '')}</code></div>`; pc.after(q) }
     addEventListener('keydown', e => { if (e.ctrlKey && e.altKey && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); setKiosk(!kiosk) } });

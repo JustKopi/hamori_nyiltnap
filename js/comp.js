@@ -4,7 +4,7 @@ const Comp = (() => {
   const lb = () => store.get('lb', {}), save = d => store.set('lb', d);
   const fmtS = (s, st) => (st && st.comp && st.comp.fmt) ? st.comp.fmt(s) : Math.round(s).toLocaleString('hu-HU') + ' ' + ((st && st.comp && st.comp.unit) || 'pont');
   function add(id, s, race) {
-    if (!player || !(s > 0)) return null; const d = lb(), L = d[id] = d[id] || [];
+    if (!player || !(s > 0)) return null; id = id + (window.EASY ? '@easy' : ''); const d = lb(), L = d[id] = d[id] || [];
     const e = { n: player, s: Math.round(s), race: !!race, t: Date.now() }; L.push(e); L.sort((a, b) => b.s - a.s); d[id] = L.slice(0, 200); save(d);
     const list = d[id].filter(x => !!x.race === !!race); return { rank: list.indexOf(list.find(x => x.t === e.t)) + 1, of: list.length, e };
   }
@@ -36,7 +36,7 @@ const Comp = (() => {
   }
   function finish(score, detail = '') {
     const st = cur; if (!st) return; const wasRace = racing; racing = false;
-    const r = add(st.id, score, wasRace); const list = (lb()[st.id] || []).filter(x => !!x.race === wasRace).slice(0, 10);
+    const r = add(st.id, score, wasRace); const list = (lb()[st.id + (window.EASY ? '@easy' : '')] || []).filter(x => !!x.race === wasRace).slice(0, 10);
     if (wasRace && score > 20) FX.confetti();
     modal(`<div class="cmp-ic">${icon('trophy', 30)}</div><h2>${wasRace ? 'Verseny vége!' : 'Kör vége!'}</h2><div class="cmp-big">${fmtS(score, st)}</div>${detail ? `<p>${detail}</p>` : ''}
       ${r ? `<p class="cmp-rank"><b>${r.rank}. hely</b> a(z) ${r.of} ${wasRace ? 'versenyző' : 'játék'} közül</p>` : ''}
@@ -45,7 +45,7 @@ const Comp = (() => {
     $('#cmp-cl').onclick = close; $('#cmp-nx').onclick = () => { player = ''; store.set('player', ''); askName(st) }; const ag = $('#cmp-ag'); if (ag) ag.onclick = () => { close(); race() };
   }
   function board() {
-    const d = lb(), sts = App.stations.filter(s => s.comp || (d[s.id] && d[s.id].length));
+    const d = lb(), sts = []; App.stations.forEach(s => { if (s.comp || (d[s.id] && d[s.id].length)) sts.push({ id: s.id, title: s.title, comp: s.comp }); if (d[s.id + '@easy'] && d[s.id + '@easy'].length) sts.push({ id: s.id + '@easy', title: s.title + ' (könnyű)', comp: s.comp }) });
     const pts = {}; sts.forEach(s => { const L = (d[s.id] || []).filter(x => x.race), best = {}; L.forEach(x => { if (!(x.n in best)) best[x.n] = x.s }); Object.keys(best).sort((a, b) => best[b] - best[a]).forEach((n, i) => { pts[n] = (pts[n] || 0) + Math.max(1, 10 - i) }) });
     const tot = Object.entries(pts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     modal(`<div class="cmp-ic">${icon('trophy', 30)}</div><h2>Ranglista</h2><p>Verseny módban elért legjobb eredmények. Az összesítettben minden állomáson az 1. hely 10, a 2. hely 9 pontot ér, és így tovább.</p>

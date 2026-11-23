@@ -65,7 +65,7 @@ App.add((() => {
       $('#r-why').innerHTML = d === 'drop' ? `<b>${pk.ip}</b>: TTL=1, eldobva – így nem kering örökké a hálózatban.` : `<b>${pk.ip}</b> → ${pk.r[1] === 0 ? 'nincs rá külön sor, megy az alapértelmezett átjárón' : `illik erre: <b>${pk.r[0]}/${pk.r[1]}</b>`}`;
       $('#r-rt').innerHTML = rtHtml(pk.r); newPacket();
     } else {
-      G.combo = 0; G.wrong++; $('#r-combo').textContent = ''; G.time = Math.max(0, G.time - 3); sfx.bad();
+      G.combo = 0; G.wrong++; $('#r-combo').textContent = ''; if (!window.EASY) G.time = Math.max(0, G.time - 3); sfx.bad();
       const pe = $('#r-packet'); pe.classList.remove('wrong'); void pe.offsetWidth; pe.classList.add('wrong');
       if (pk.dir !== 'drop') { const ex = $('#r-' + pk.dir); ex.classList.add('flash-hint'); setTimeout(() => ex.classList.remove('flash-hint'), 900) }
       $('#r-why').innerHTML = pk.dir === 'drop' ? `Rossz! A TTL=1, ezt <b>el kell dobni</b> (szóköz).` : `Rossz! <b>${pk.ip}</b> a(z) <b>${pk.r[1] === 0 ? '0.0.0.0/0' : pk.r[0] + '/' + pk.r[1]}</b> sorra illik → <b>${EX[pk.dir].nm}</b>`;
@@ -169,7 +169,7 @@ App.add((() => {
     if (G.lock > 0) G.lock -= dt;
     Object.keys(EX).forEach(d => { G.load[d] = (G.load[d] || 0) * Math.pow(.55, dt); const l = $(`#r-${d} .r-ld i`); if (l) { l.style.width = clamp(G.load[d] / 2, 0, 100) + '%'; $(`#r-${d} .r-lt`).textContent = Math.round(G.load[d]) + ' Mbit/s' } });
     if (!G.on) return; G.time -= dt; G.el += dt;
-    const el = G.el; const ph = el >= PH[2].t ? 2 : el >= PH[1].t ? 1 : 0; if (ph !== G.ph) { setPhase(ph); newPacket() }
+    const el = G.el; const ph = window.EASY ? 0 : el >= PH[2].t ? 2 : el >= PH[1].t ? 1 : 0; if (ph !== G.ph) { setPhase(ph); newPacket() }
     if (G.time <= 0) { G.time = 0; hud(); end() } else hud();
   };
   S._route = (ip, ph) => route(ip, PH[ph].rt);

@@ -21,32 +21,32 @@ App.add((() => {
   const rect = (x0, y0, x1, y1, t = 'o') => [[x0, y0, x1, y0, t], [x1, y0, x1, y1, t], [x1, y1, x0, y1, t], [x0, y1, x0, y0, t]];
   const D = (dev, n, x, y, need) => ({ dev: dev === 'tv8' ? 'tv' : dev, n, x, y, need: need ?? NEED[dev][0], what: NEED[dev][1] });
   const EASY = [
-    { n: 'Garzonlakás', W: 80, H: 45, budget: 5000, isp: 1000, test: 15, pass: .85,
+    { n: 'Garzonlakás', W: 80, H: 45, budget: 5000, isp: 1000, test: 8, pass: .85,
       intro: 'Egy kis lakás, egy router. Húzd a routert jó helyre! Ha kell, egy kábellel közvetlenül is beköthetsz egy eszközt.',
       walls: [...rect(0, 0, 80, 45), [48, 0, 48, 28, 'i'], [0, 30, 14, 30, 'b'], [22, 30, 22, 45, 'b'], [20, 30, 22, 30, 'b']],
       rooms: [['Szoba', 24, 3], ['Háló', 64, 3], ['Fürdő', 9, 34]],
       devs: [D('tv', 'Okostévé', 30, 38), D('laptop', 'Laptop', 70, 10), D('phone', 'Telefon', 66, 38)],
       router: { x: 4, y: 40 }, people: 1, tip: 'A router ideális helye a lakás <b>közepe</b>, magasan, nem a sarokban és nem szekrényben.' },
-    { n: 'Családi ház', W: 118, H: 60, yard: [100, 118], budget: 25000, isp: 1000, test: 15, pass: .85, mw: [30, 52], mwP: [6, 14],
+    { n: 'Családi ház', W: 118, H: 60, yard: [100, 118], budget: 25000, isp: 1000, test: 8, pass: .85, mw: [30, 52], mwP: [6, 14],
       intro: 'Nagyobb ház kerttel. A kamera kint van, a konzolnak 100 Mbit/s kell. Délben valaki melegít a mikróban…',
       walls: [...rect(0, 0, 100, 60), [40, 0, 40, 25, 'i'], [40, 32, 40, 60, 'i'], [70, 0, 70, 40, 'i'], [70, 47, 70, 60, 'i'], [0, 30, 15, 30, 'i'], [22, 30, 40, 30, 'i'], [70, 25, 80, 25, 'i'], [87, 25, 100, 25, 'i'], [40, 42, 50, 42, 'b'], [56, 42, 70, 42, 'b']],
       rooms: [['Nappali', 20, 4], ['Konyha', 20, 34], ['Előszoba', 55, 4], ['Fürdő', 55, 45], ['Gyerekszoba', 85, 4], ['Hálószoba', 85, 29], ['Kert', 109, 4]],
       devs: [D('tv', 'Okostévé', 10, 14), D('fridge', 'Okoshűtő', 8, 50), D('speaker', 'Hangszóró', 62, 53), D('console', 'Konzol', 92, 10), D('phone', 'Telefon', 92, 51), D('laptop', 'Laptop', 30, 22), D('camera', 'Kamera', 111, 40)],
       router: { x: 6, y: 6 }, people: 2, tip: 'A mikrohullámú sütő a <b>2,4 GHz</b>-es sávban sugároz, a közelében erősen zavarja a WiFit.' },
-    { n: 'A router a bejáratnál', W: 140, H: 50, budget: 30000, isp: 1000, test: 15, pass: .85,
+    { n: 'A router a bejáratnál', W: 140, H: 50, budget: 30000, isp: 1000, test: 8, pass: .85,
       intro: 'A szolgáltató a bejáratnál vezette be az optikai kábelt, ezért a router <b>nem mozdítható</b>. A ház végében gyors net kell.',
       walls: [...rect(0, 0, 140, 50), [30, 0, 30, 20, 'i'], [30, 28, 30, 50, 'i'], [62, 0, 62, 30, 'i'], [62, 38, 62, 50, 'i'], [62, 30, 80, 30, 'b'], [80, 30, 80, 50, 'b'], [100, 0, 100, 22, 'i'], [100, 30, 100, 50, 'i'], [100, 26, 120, 26, 'i'], [128, 26, 140, 26, 'i']],
       rooms: [['Előszoba', 15, 3], ['Nappali', 46, 3], ['Konyha', 81, 3], ['Fürdő', 71, 40], ['Dolgozó', 120, 3], ['Gyerekszoba', 120, 30]],
       devs: [D('tv', 'Okostévé', 50, 44), D('speaker', 'Hangszóró', 90, 18), D('laptop', 'Laptop', 132, 12), D('console', 'Konzol', 126, 44), D('phone', 'Telefon', 108, 40)],
       router: { x: 4, y: 25, fixed: 1 }, people: 2, tip: 'Ha a router helye kötött, <b>mesh-pont</b>, <b>kábeles AP</b> vagy <b>powerline</b> viszi tovább a netet.' },
-    { n: 'Zavarok mindenhol', W: 130, H: 60, yard: [104, 130], budget: 35000, isp: 1000, test: 20, pass: .85, mw: [26, 10], mwP: [8, 12],
+    { n: 'Zavarok mindenhol', W: 130, H: 60, yard: [104, 130], budget: 35000, isp: 1000, test: 8, pass: .85, mw: [26, 10], mwP: [8, 12],
       intro: 'Társasház: a szomszédok WiFi-je is szól, a falak betonból vannak. Válassz jó csatornát!',
       walls: [...rect(0, 0, 104, 60, 'c'), [36, 0, 36, 24, 'c'], [36, 32, 36, 60, 'c'], [70, 0, 70, 38, 'i'], [70, 46, 70, 60, 'i'], [0, 34, 22, 34, 'i'], [28, 34, 36, 34, 'i'], [70, 30, 82, 30, 'b'], [90, 30, 104, 30, 'b']],
       rooms: [['Konyha', 18, 3], ['Nappali', 53, 3], ['Háló', 87, 3], ['Fürdő', 87, 46], ['Szoba', 18, 46], ['Kert', 117, 3]],
       devs: [D('fridge', 'Okoshűtő', 8, 12), D('tv', 'Okostévé', 60, 52), D('console', 'Konzol', 46, 10), D('laptop', 'Laptop', 18, 52), D('phone', 'Telefon', 94, 14), D('camera', 'Kamera', 122, 50)],
       router: { x: 52, y: 30 }, people: 2, nb: [[-6, 10, '24', 6], [-6, 50, '24', 1], [60, -6, '24', 6], [50, 66, '5', 36]], nbBusy: .5,
       tip: 'A <b>2,4 GHz</b>-en csak 3 csatorna nem fedi át egymást (1, 6, 11). Ha a szomszéd is a 6-oson van, osztozni kell a rádióidőn.' },
-    { n: 'Irodaház', W: 150, H: 70, budget: 60000, isp: 1000, test: 20, pass: .85,
+    { n: 'Irodaház', W: 150, H: 70, budget: 60000, isp: 1000, test: 8, pass: .85,
       intro: 'A router a szerverszobában, vasbeton falak, nyolc munkaállomás. A lehető legolcsóbban oldd meg!',
       walls: [...rect(0, 0, 150, 70, 'c'), [22, 0, 22, 22, 'c'], [0, 22, 22, 22, 'c'], [50, 0, 50, 26, 'g'], [50, 34, 50, 70, 'g'], [100, 0, 100, 26, 'c'], [100, 34, 100, 70, 'c'], [100, 40, 150, 40, 'g'], [22, 40, 50, 40, 'i']],
       rooms: [['Szerver', 11, 8], ['Nyitott iroda', 75, 3], ['Tárgyaló', 125, 3], ['Vezetői', 125, 50], ['Iroda', 36, 50]],
@@ -54,7 +54,7 @@ App.add((() => {
       router: { x: 8, y: 14, fixed: 1 }, people: 3, tip: 'Irodában a hozzáférési pontokat <b>kábellel</b> kötik a hálózatra, és a mennyezetre szerelik.' }
   ];
   const HARD = [
-    { n: 'Panelház, 7. emelet', W: 110, H: 60, budget: 34000, isp: 300, test: 30, pass: .95, mw: [16, 48], mwP: [5, 9], bt: [[95, 12]],
+    { n: 'Panelház, 7. emelet', W: 110, H: 60, budget: 34000, isp: 300, test: 12, pass: .95, mw: [16, 48], mwP: [5, 9], bt: [[95, 12]],
       intro: 'Vasbeton panel, és körülötted <b>hét szomszéd WiFi-je</b>, amelyek időnként csatornát váltanak. Az előfizetés csak 300 Mbit/s. A router a bejárati ajtónál van.',
       walls: [...rect(0, 0, 110, 60, 'c'), [38, 0, 38, 34, 'c'], [38, 42, 38, 60, 'c'], [74, 0, 74, 22, 'c'], [74, 30, 74, 60, 'c'], [0, 36, 30, 36, 'i'], [74, 30, 110, 30, 'i'], [38, 42, 56, 42, 'b'], [56, 42, 56, 60, 'b'], [86, 10, 92, 10, 'm']],
       rooms: [['Konyha', 15, 42], ['Előszoba', 15, 3], ['Nappali', 56, 3], ['Fürdő', 47, 50], ['Háló', 92, 3], ['Gyerekszoba', 92, 34]],
@@ -62,21 +62,21 @@ App.add((() => {
       router: { x: 4, y: 18, fixed: 1 }, people: 3,
       nb: [[-6, 10, '24', 6], [-6, 45, '24', 1], [30, -6, '24', 11], [70, -6, '24', 6], [116, 15, '24', 1], [116, 45, '5', 36], [60, 66, '5', 44]], nbBusy: .75, hop: 1,
       tip: 'Zsúfolt társasházban az <b>5 GHz</b> szabadabb, de a beton elnyeli. A legmegbízhatóbb a <b>kábel</b> – a konzolnak és a home office gépnek érdemes behúzni.' },
-    { n: 'Kertes ház akváriummal', W: 140, H: 70, yard: [112, 140], budget: 35000, isp: 500, test: 30, pass: .95, mw: [20, 56], mwP: [6, 10], washer: [90, 62],
+    { n: 'Kertes ház akváriummal', W: 140, H: 70, yard: [112, 140], budget: 35000, isp: 500, test: 12, pass: .95, mw: [20, 56], mwP: [6, 10], washer: [90, 62],
       intro: 'A router a garázsban van. A nappaliban egy nagy <b>akvárium</b> (a víz elnyeli a jelet), a konyhában <b>fém hűtő</b>, a kert végében kamera. A mosógép a powerline-t zavarja.',
       walls: [...rect(0, 0, 112, 70), [24, 0, 24, 30, 'i'], [0, 30, 24, 30, 'i'], [24, 38, 24, 70, 'i'], [60, 0, 60, 26, 'i'], [60, 34, 60, 70, 'i'], [84, 40, 84, 70, 'b'], [84, 40, 112, 40, 'b'], [84, 0, 84, 32, 'i'], [40, 18, 52, 18, 'w'], [40, 20, 52, 20, 'w'], [8, 52, 16, 52, 'm']],
       rooms: [['Garázs', 12, 3], ['Konyha', 12, 40], ['Nappali', 42, 3], ['Étkező', 72, 50], ['Dolgozó', 72, 3], ['Háló', 98, 3], ['Fürdő', 98, 50], ['Kert', 126, 3]],
       devs: [D('tv8', '8K tévé', 46, 10), D('laptop', 'Home office', 76, 14), D('console', 'Konzol', 104, 18), D('tablet', 'Tablet', 40, 60), D('fridge', 'Okoshűtő', 12, 58), D('camera', 'Kertkamera', 134, 60), D('phone', 'Telefon', 70, 62)],
       router: { x: 4, y: 6, fixed: 1 }, people: 3, nb: [[-6, 40, '24', 6], [70, 76, '24', 11], [146, 30, '5', 149]], nbBusy: .5, hop: 1,
       tip: 'A víz és a fém sokat elnyel. A <b>kertbe</b> sokszor kültéri AP kell, a <b>powerline</b> pedig olcsó, de a háztartási gépek zavarják.' },
-    { n: 'Nyitott iroda', W: 150, H: 70, budget: 60000, isp: 1000, test: 30, pass: .95,
+    { n: 'Nyitott iroda', W: 150, H: 70, budget: 60000, isp: 1000, test: 12, pass: .95,
       intro: '10 munkaállomás, mindegyik <b>80 Mbit/s</b>-ot kér (videókonferencia + felhő). Egy hozzáférési pont nem bírja el mindet: osztozni kell a sávszélességen! Fém polcok és sok szomszéd iroda hálózata.',
       walls: [...rect(0, 0, 150, 70, 'c'), [20, 0, 20, 20, 'c'], [0, 20, 20, 20, 'c'], [60, 14, 60, 56, 'm'], [100, 14, 100, 56, 'm'], [130, 0, 130, 30, 'g'], [130, 40, 130, 70, 'g']],
       rooms: [['Szerver', 10, 8], ['Fejlesztők', 40, 3], ['Értékesítés', 80, 3], ['Ügyfélszolgálat', 115, 3], ['Tárgyaló', 140, 50]],
       devs: [D('desktop', 'Gép 1', 34, 30, 80), D('desktop', 'Gép 2', 46, 50, 80), D('desktop', 'Gép 3', 30, 60, 80), D('desktop', 'Gép 4', 72, 24, 80), D('desktop', 'Gép 5', 86, 46, 80), D('desktop', 'Gép 6', 76, 62, 80), D('desktop', 'Gép 7', 110, 20, 80), D('desktop', 'Gép 8', 120, 50, 80), D('laptop', 'Tárgyaló 1', 140, 22, 80), D('laptop', 'Tárgyaló 2', 142, 60, 80)],
       router: { x: 8, y: 10, fixed: 1 }, people: 4, nb: [[-6, 50, '5', 36], [75, -6, '5', 44], [156, 35, '5', 149], [75, 76, '24', 6]], nbBusy: .7, hop: 1,
       tip: 'Egy hozzáférési pont sávszélességén az összes kliens <b>osztozik</b>. Sok felhasználóhoz több, kábellel bekötött AP kell, okosan elosztva.' },
-    { n: 'Régi kastély', W: 160, H: 70, budget: 45000, isp: 500, test: 30, pass: .95, washer: [150, 62], mw: [100, 60], mwP: [6, 10],
+    { n: 'Régi kastély', W: 160, H: 70, budget: 45000, isp: 500, test: 12, pass: .95, washer: [150, 62], mw: [100, 60], mwP: [6, 10],
       intro: 'Egy kastélyból lett szálloda: <b>méteres kőfalak</b>, amelyeken a WiFi alig jut át. A recepció a ház végében van, a vendégszobák a másikban. Kábel vagy powerline nélkül esélytelen!',
       walls: [...rect(0, 0, 160, 70, 'k'), [40, 0, 40, 30, 'k'], [40, 40, 40, 70, 'k'], [80, 0, 80, 30, 'k'], [80, 40, 80, 70, 'k'], [120, 0, 120, 30, 'k'], [120, 40, 120, 70, 'k'], [0, 35, 18, 35, 'i'], [140, 35, 160, 35, 'i']],
       rooms: [['Recepció', 20, 3], ['Étterem', 60, 3], ['Könyvtár', 100, 3], ['1. szoba', 150, 3], ['2. szoba', 150, 50], ['Lobbi', 20, 50]],
@@ -184,7 +184,8 @@ App.add((() => {
     const a = selA && aps.find(x => x.id === selA);
     $('#w-sel').innerHTML = a ? `<b>${a.t === 'router' ? 'Router' : ITEMS[a.t].n}</b> ${a.ok === false ? `<span style="color:var(--red)">– ${a.why}</span>` : a.cap ? `– ${Math.round(a.cap)} Mbit/s` : ''}${a.t !== 'router' ? '<button class="btn" id="w-del">Eltávolítás</button>' : ''}` : '<span>Kattints egy eszközre a részletekhez.</span>';
     const del = $('#w-del'); if (del) del.onclick = () => { aps = aps.filter(x => x !== a); cables = cables.filter(c => c.to !== a.id); selA = null; dirty = true; side() };
-    $('#w-test').disabled = !!test; $('#w-test').innerHTML = test ? `Teszt folyamatban… ${Math.ceil(L.test - test.t)} mp` : `${icon('play', 16)} Teszt indítása (${L.test} mp)`;
+    const allOk = lastRes && lastRes.length && lastRes.every(r => r.ok);
+    $('#w-test').disabled = !!test; $('#w-test').classList.toggle('ready', !test && !!allOk); $('#w-test').innerHTML = test ? `Teszt folyamatban… ${Math.ceil(L.test - test.t)} mp` : `${icon('check', 18, 2.4)} Kész vagyok – Teszt indítása<small>${allOk ? 'Most minden eszköz zöld – nyomd meg!' : 'Ha minden eszköz zöld, nyomd meg ezt a gombot'}</small>`;
   }
   function addItem(k) {
     if (test) return; if (spent() + ITEMS[k].cost > L.budget) { toast('Nincs rá keret.', '#f87171'); return }
@@ -285,6 +286,7 @@ App.add((() => {
       const lab = a.t === 'router' ? (a.fixed ? 'Router (rögzítve)' : 'Router – húzd!') : `${ITEMS[a.t].n}${a.ok ? ` • ${Math.round(a.cap)} Mbit/s` : ' • NEM MŰKÖDIK'}`;
       tag(lab, x, y + 32, a.ok === false ? '#f87171' : '#e5e7eb');
     });
+    if (!test && state === 'play' && res.length && res.every(r => r.ok)) { const msg = 'Minden eszköz zöld! Ha készen vagy, nyomd meg a „Kész vagyok – Teszt indítása” gombot →'; ctx.font = '700 15px Inter,sans-serif'; const tw = ctx.measureText(msg).width + 30; ctx.fillStyle = 'rgba(20,83,45,.95)'; rrect(ctx, X(L.W / 2) - tw / 2, Y(0) + 8, tw, 34, 17); ctx.fill(); ctx.strokeStyle = '#4ade80'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(msg, X(L.W / 2), Y(0) + 25) }
     if (test) { const p = test.t / L.test, up = test.tot ? test.ok / test.tot : 1; ctx.fillStyle = 'rgba(11,12,15,.9)'; rrect(ctx, X(0), Y(0) - 0, 260, 44, 10); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.font = '700 13px Inter,sans-serif'; ctx.fillText(`Teszt: ${Math.ceil(L.test - test.t)} mp • megfelelés ${(up * 100).toFixed(1)}%`, X(0) + 12, Y(0) + 15); ctx.fillStyle = '#262a33'; ctx.fillRect(X(0) + 12, Y(0) + 28, 236, 6); ctx.fillStyle = up >= L.pass ? '#4ade80' : '#f87171'; ctx.fillRect(X(0) + 12, Y(0) + 28, 236 * p, 6) }
   }
   function tag(t, x, y, c) { ctx.font = '600 11px Inter,sans-serif'; const w = ctx.measureText(t).width + 12; ctx.fillStyle = 'rgba(11,12,15,.9)'; rrect(ctx, x - w / 2, y - 9, w, 18, 6); ctx.fill(); ctx.strokeStyle = c; ctx.lineWidth = 1; ctx.stroke(); ctx.fillStyle = c; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(t, x, y) }
@@ -304,7 +306,7 @@ App.add((() => {
       .w-it{all:unset;cursor:pointer;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:7px 9px;display:flex;flex-direction:column;gap:2px}.w-it:hover{border-color:var(--accent)}.w-it[disabled]{opacity:.4;cursor:not-allowed}
       .w-it b{font-size:13.5px}.w-it span{font-size:12px;color:var(--green);font-weight:700}.w-it i{font-style:normal;font-size:11px;color:var(--muted);line-height:1.3}
       #w-sel{font-size:13px;color:#c9ccd3;background:var(--bg2);border-radius:10px;padding:7px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}#w-sel .btn{height:28px;font-size:12px;padding:0 10px;margin-left:auto}
-      #w-test{height:46px!important;font-size:16px!important}
+      #w-test{height:auto!important;min-height:58px;font-size:17px!important;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px!important}#w-test small{font-size:12px;font-weight:500;opacity:.85}#w-test.ready{animation:wReady 1s infinite alternate;box-shadow:0 0 26px var(--green)}@keyframes wReady{to{transform:scale(1.03);filter:brightness(1.15)}}
       .w-leg{height:10px;border-radius:5px;background:linear-gradient(90deg,hsla(0,95%,55%,.6),hsla(65,95%,55%,.6),hsla(130,95%,55%,.7))}
       #w-ov{position:absolute;inset:0;z-index:5;display:none;place-items:center;background:rgba(6,7,9,.6);backdrop-filter:blur(4px)}#w-ov.show{display:grid}
       .w-card{width:min(600px,92%);background:var(--panel);border:1px solid var(--line2);border-radius:22px;padding:26px 28px;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.5)}
@@ -357,7 +359,7 @@ App.add((() => {
   S.tick = dt => {
     T += dt; if (!L || !aps.length) { if (C) ctx.clearRect(0, 0, C.W, C.H); return }
     if (state === 'play' || state === 'intro') env(dt);
-    acc += dt; if (acc > .1) { acc = 0; lastRes = evalAll(true) }
+    acc += dt; if (acc > .1) { acc = 0; lastRes = evalAll(true); const ok = lastRes.length && lastRes.every(r => r.ok); if (ok !== S._ok && state === 'play' && !test) { S._ok = ok; side() } }
     if (dirty) heat = null;
     if (test) {
       test.t += dt; test.n = (test.n || 0) + 1; for (const r of lastRes) { test.tot++; if (r.ok) test.ok++; else test.worst[r.i] = (test.worst[r.i] || 0) + 1 }

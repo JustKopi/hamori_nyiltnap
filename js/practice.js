@@ -9,11 +9,36 @@ App.add((() => {
   function newPlug() { pool = W.map((w, i) => i).sort(() => Math.random() - .5); slots = Array(8).fill(null); sel = null; phase = 'sort'; render() }
   function render() {
     $('#rj-pool').innerHTML = pool.map(i => `<button class="rj-w ${sel === i ? 'sel' : ''}" data-w="${i}" style="${wireCss(W[i])}" title="${W[i][0]}"><span>${W[i][0]}</span></button>`).join('') || '<span class="rj-ok">Minden ér a helyén!</span>';
-    $('#rj-plug').innerHTML = slots.map((w, i) => `<div class="rj-s ${w === null ? '' : 'f'}" data-s="${i}"><b>${i + 1}</b>${w === null ? '<em>?</em>' : `<i style="${wireCss(W[w])}"></i><small>${W[w][0]}</small>`}</div>`).join('');
-    $$('.rj-w').forEach(b => b.onclick = () => { sel = sel === +b.dataset.w ? null : +b.dataset.w; sfx.click(); render() });
-    $$('.rj-s').forEach(s => s.onclick = () => { const i = +s.dataset.s; if (phase !== 'sort') return; if (slots[i] !== null) { pool.push(slots[i]); slots[i] = null } else if (sel !== null) { slots[i] = sel; pool = pool.filter(x => x !== sel); sel = null; beep(700 + i * 40, .04, 'triangle', .04) } render() });
+    $('#rj-plug').innerHTML = slots.map((w, i) => `<div class="rj-s ${w === null ? '' : 'f'}" data-s="${i}"><b>${i + 1}</b>${w === null ? (window.EASY ? `<i class="rj-gh" style="${wireCss(W[i])}"></i><small>${W[i][0]}</small>` : '<em>?</em>') : `<i style="${wireCss(W[w])}"></i><small>${W[w][0]}</small>`}</div>`).join('');
+    $$('.rj-w').forEach(b => b.onpointerdown = e => dragStart(e, b, { w: +b.dataset.w, from: -1 }));
+    $$('.rj-s').forEach(s => s.onpointerdown = e => { const i = +s.dataset.s; if (phase !== 'sort') return; if (slots[i] !== null) dragStart(e, s, { w: slots[i], from: i }); else slotClick(i) });
     $('#rj-crimp').disabled = slots.includes(null) || phase !== 'sort';
     $('#rj-st').innerHTML = racing ? `<b>Verseny:</b> ${done}/3 kész • ${Math.round(rT)} mp • ${mist} hiba` : `Kész csatlakozó: ${done}`;
+  }
+  // kattintás: kijelölés / lerakás; húzás: fogd és vidd (helyek között csere, a sorba visszahúzva kivétel)
+  function slotClick(i) { if (slots[i] !== null) { pool.push(slots[i]); slots[i] = null } else if (sel !== null) { slots[i] = sel; pool = pool.filter(x => x !== sel); sel = null; beep(700 + i * 40, .04, 'triangle', .04) } render() }
+  function putWire(w, from, to) {
+    if (to === from) return;
+    const prev = to >= 0 ? slots[to] : null;
+    if (from >= 0) slots[from] = null; else pool = pool.filter(x => x !== w);
+    if (to < 0) { pool.push(w); render(); return }
+    slots[to] = w; if (prev !== null) { if (from >= 0) slots[from] = prev; else pool.push(prev) }
+    beep(700 + to * 40, .05, 'triangle', .05); render();
+  }
+  function dragStart(e, el, d) {
+    e.preventDefault(); const x0 = e.clientX, y0 = e.clientY; let gh = null;
+    const mv = ev => {
+      if (!gh && Math.hypot(ev.clientX - x0, ev.clientY - y0) > 6) { gh = document.createElement('div'); gh.className = 'rj-drag'; gh.style.cssText = wireCss(W[d.w]); gh.innerHTML = `<span>${W[d.w][0]}</span>`; document.body.appendChild(gh); sel = null }
+      if (gh) { gh.style.left = ev.clientX - 59 + 'px'; gh.style.top = ev.clientY - 27 + 'px'; const t = document.elementFromPoint(ev.clientX, ev.clientY); $$('.rj-s').forEach(x => x.classList.toggle('over', !!t && x.contains(t))) }
+    };
+    const up = ev => {
+      removeEventListener('pointermove', mv); removeEventListener('pointerup', up);
+      if (!gh) { if (d.from >= 0) slotClick(d.from); else { sel = sel === d.w ? null : d.w; sfx.click(); render() } return }
+      gh.remove(); $$('.rj-s').forEach(x => x.classList.remove('over'));
+      const t = document.elementFromPoint(ev.clientX, ev.clientY), sl = t && t.closest('.rj-s'), inPool = t && t.closest('#rj-pool');
+      if (sl) putWire(d.w, d.from, +sl.dataset.s); else if (inPool && d.from >= 0) putWire(d.w, d.from, -1); else render();
+    };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
   }
   async function crimp() {
     phase = 'test'; const tool = $('#rj-tool'); tool.classList.add('go'); noise(.25, .08); beep(200, .2, 'sawtooth', .06); await new Promise(r => setTimeout(r, 700)); tool.classList.remove('go');
@@ -33,7 +58,7 @@ App.add((() => {
       #rj-plug::after{content:"RJ45 csatlakozó (érintkezők felül, fül alul)";position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;color:#334155;font-weight:600}
       .rj-s{width:64px;height:170px;border-radius:8px;background:#f8fafccc;border:2px dashed #94a3b8;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 0;cursor:pointer;color:#0f172a}
       .rj-s b{font-size:15px}.rj-s em{font-style:normal;font-size:26px;color:#94a3b8;margin-top:40px}.rj-s.f{border-style:solid;border-color:#64748b}
-      .rj-s i{width:22px;flex:1;border-radius:6px}.rj-s small{font-size:10px;text-align:center;line-height:1.1;height:24px}
+      .rj-s i{width:22px;flex:1;border-radius:6px}.rj-s .rj-gh{opacity:.28}.rj-s.over{border-color:var(--accent)!important;background:#e0f2fe;transform:scale(1.05)}.rj-s,.rj-w{touch-action:none;user-select:none}.rj-drag{position:fixed;z-index:100;width:118px;height:54px;border-radius:27px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;pointer-events:none;box-shadow:0 14px 30px #000a;transform:rotate(-4deg)}.rj-drag span{font-size:11px;font-weight:700;background:#0b0c0fcc;color:#fff;padding:1px 7px;border-radius:8px}.rj-s small{font-size:10px;text-align:center;line-height:1.1;height:24px}
       #rj-pool{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;min-height:70px}
       .rj-w{all:unset;cursor:pointer;width:118px;height:54px;border-radius:27px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px;box-shadow:inset 0 -6px 10px #0004;border:3px solid transparent}
       .rj-w span{font-size:11px;font-weight:700;background:#0b0c0fcc;color:#fff;padding:1px 7px;border-radius:8px}.rj-w.sel{border-color:#fff;transform:translateY(-4px);box-shadow:0 0 0 3px var(--accent)}
@@ -45,7 +70,7 @@ App.add((() => {
       .rj-side ol{margin:0;padding-left:22px}.rj-side li{margin:2px 0}#rj-st{font-size:16px}
     </style>
     <div id="rj"><div id="rj-main"><h2 style="margin:0">Krimpeld meg a hálózati kábelt!</h2>
-      <div style="color:var(--muted)">Kattints egy érre, majd a csatlakozó egyik helyére. Egy foglalt helyre kattintva visszaveszed az eret.</div>
+      <div style="color:var(--muted)"><b>Húzd</b> az ereket a csatlakozó helyeire (vagy kattints az érre, majd a helyre). Egy eret másik helyre húzva helyet cserélnek, a sorba visszahúzva kiveszed.</div>
       <div id="rj-plug"></div><div id="rj-pool"></div>
       <div style="display:flex;gap:14px;align-items:center"><span id="rj-tool">${icon('rj45', 44, 1.6)}</span><button class="btn go" id="rj-crimp">Krimpelés és tesztelés</button></div><div id="rj-leds"></div></div>
       <div class="rj-side"><b style="font-size:17px">T568B szabvány</b><div id="rj-st"></div>
@@ -129,9 +154,10 @@ App.add((() => {
 
 /* ---------- Hibakereső detektív ---------- */
 App.add((() => {
-  const S = { id: 'detektiv', icon: '', title: 'Hibakereső detektív', color: '#14b8a6', desc: 'Panaszok érkeznek. Vizsgáld meg a gépet a megfelelő eszközökkel, és találd ki, mi a hiba – a lehető legkevesebb lépésből!', topic: 'Hibaelhárítás, rendszeres hibakeresési módszer, diagnosztika' };
-  const TESTS = { led: ['LED-ek és kábel', 'plug'], ip: ['ipconfig', 'monitor'], ping: ['ping 8.8.8.8', 'activity'], dns: ['nslookup', 'search'], log: ['Eseménynapló', 'layers'], hw: ['Hardverteszt', 'chip'], ask: ['Kérdezd a felhasználót', 'user'] };
-  // [panasz, {teszt: eredmény}, [lehetséges okok], helyes index, magyarázat]
+  const S = { id: 'detektiv', icon: '', title: 'Hibakereső detektív', color: '#14b8a6', desc: 'Panaszok érkeznek. Nyomozz, mint egy detektív: vizsgáld meg a gépet, gyűjts nyomokat, és találd ki, mi a baj!', topic: 'Hibaelhárítás, rendszeres hibakeresési módszer, diagnosztika' };
+  // [szakmai név, hétköznapi leírás, ikon, réteg]
+  const TESTS = { led: ['Kábel és lámpák', 'Ránézek a kábelekre és a jelzőlámpákra', 'plug', 0], ip: ['ipconfig', 'Megnézem, kapott-e a gép „lakcímet” (IP-címet) a hálózattól', 'monitor', 1], ping: ['ping', 'Kiküldök egy „kopogtatást” az internetre: válaszol valaki?', 'activity', 1], dns: ['nslookup', 'Kipróbálom a „telefonkönyvet”: a nevekből (pl. youtube.com) tud-e címet keresni', 'search', 2], log: ['Eseménynapló', 'Elolvasom, mit jegyzett fel magának a gép', 'layers', 3], hw: ['Hardverteszt', 'Megvizsgálom az alkatrészeket: hőfok, lemez, videókártya', 'chip', 3], ask: ['Kérdezés', 'Megkérdezem a felhasználót, mi történt előtte', 'user', 4] };
+  const LAYERS = [['Kábel', 'plug'], ['Hálózat', 'globe'], ['Nevek (DNS)', 'search'], ['Gép', 'monitor'], ['Ember', 'user']];
   const CASES = [
     ['„Semmi nem megy az interneten, pedig tegnap még működött!”', { led: 'A hálózati kártya LED-je nem világít. A kábel kicsúszott a falból.', ip: 'IPv4-cím: 169.254.12.7 (automatikus magánhálózati cím – nincs DHCP-válasz)', ping: 'Általános hiba: a hálózat nem érhető el.', dns: 'Nem érhető el a DNS-kiszolgáló.', log: 'Hálózati kapcsolat megszakadt (kábel kihúzva).', hw: 'Minden alkatrész rendben.', ask: '„Tegnap takarítottak az irodában…”' }, ['Kihúzódott a hálózati kábel', 'Vírus van a gépen', 'Megtelt a merevlemez', 'Elromlott a monitor'], 0, 'A 169.254.x.x cím azt jelenti, hogy a gép nem kapott címet a DHCP-től – és a LED sem ég: fizikai réteg, a kábel!'],
     ['„A YouTube nem jön be, de a Discordon tudok beszélni!”', { led: 'A LED-ek rendben villognak.', ip: 'IPv4: 192.168.1.23, átjáró: 192.168.1.1, DNS: 0.0.0.0', ping: 'ping 8.8.8.8: 4 válasz, 0% veszteség.', dns: 'nslookup youtube.com: a kiszolgáló nem érhető el.', log: 'DNS-kliens: a névfeloldás sikertelen.', hw: 'Minden rendben.', ask: '„Valaki beállított valamit a hálózatnál…”' }, ['Rossz DNS-beállítás', 'Kiégett a hálózati kártya', 'Lejárt az internet-előfizetés', 'Túl lassú a processzor'], 0, 'A ping IP-címre megy, de a névfeloldás nem: a DNS a hibás (0.0.0.0 nem valódi szerver).'],
@@ -142,49 +168,90 @@ App.add((() => {
     ['„A gép magától kikapcsol, főleg játék közben.”', { led: 'Rendben.', ip: 'Rendben.', ping: 'Rendben.', dns: 'Rendben.', log: 'Kritikus: a rendszer váratlanul leállt (Kernel-Power 41).', hw: 'Processzor hőmérséklete terhelésnél: <b>104 °C</b>. A hűtő ventilátora porral teli.', ask: '„Már 3 éve nem takarítottam ki.”' }, ['Túlmelegedés a poros hűtő miatt', 'Kevés a tárhely', 'Rossz a DNS', 'Elavult a böngésző'], 0, 'A processzor védelme túl magas hőmérsékletnél leállítja a gépet. Portalanítás és friss hővezető paszta kell!'],
     ['„Nem tudok belépni a gépemre, azt írja: rossz jelszó.”', { led: 'Rendben.', ip: '—', ping: '—', dns: '—', log: 'Biztonsági napló: 5 sikertelen bejelentkezés, a fiók zárolva.', hw: 'Rendben.', ask: '„A billentyűzeten világít a Caps Lock…”' }, ['Bekapcsolt Caps Lock, majd zárolódott a fiók', 'Elromlott a merevlemez', 'Vírus', 'Lassú a hálózat'], 0, 'A Caps Lock miatt nagybetűvel ment a jelszó, és a sok próbálkozás zárolta a fiókot. A rendszergazda feloldja, a felhasználó figyeljen a Caps Lockra!']
   ];
-  let deck = [], i = 0, used = [], pts = 0, racing = false, t = 0, best = 0, res = [];
-  function start() { deck = [...CASES].sort(() => Math.random() - .5).slice(0, 5).map(c => { const o = c[2].map((x, k) => [x, k === c[3]]).sort(() => Math.random() - .5); return { c, o } }); i = 0; pts = 0; t = 0; res = []; next() }
-  function next() { used = []; render() }
+  // „Mit jelent ez?” – hétköznapi magyarázat esetenként és vizsgálatonként
+  const SIMPLE = [
+    { led: 'A lámpa nem ég: nincs fizikai kapcsolat, a kábel kicsúszott!', ip: 'A gép nem kapott „lakcímet” a hálózattól – teljesen egyedül van.', ping: 'Semmi nem jut ki a gépről a világba.', dns: 'A telefonkönyv sem érhető el – de ez csak következmény.', log: 'A gép maga is észrevette: kihúzták a kábelt!', ask: 'Takarítás után könnyen kirúghatták a kábelt.' },
+    { ip: 'Van címe, de a telefonkönyv (DNS) címe 0.0.0.0 – ilyen szerver nem létezik!', ping: 'Szám szerinti címre eljut a kopogtatás → van internet!', dns: 'Nevekből (youtube.com) nem tud címet keresni – ezért nem jön be az oldal.', log: 'A gép feljegyezte: a nevek feloldása nem sikerül.', ask: 'Valaki átállított valamit a hálózati beállításokban.' },
+    { led: 'A monitor kábele rossz „lyukba” van dugva!', hw: 'A videókártya hibátlan – csak a monitor nem hozzá van kötve.', ask: 'Költözés után könnyű rossz helyre dugni a kábelt.' },
+    { log: 'A gép szól: szinte elfogyott a hely.', hw: 'A tárhely 99%-ig tele van – nincs hova dolgoznia a gépnek.', ask: 'Sok videó = megtelt a tárhely.' },
+    { dns: 'Valaki átírta a telefonkönyvet egy idegen, gyanús szerverre!', log: 'Tegnap egy ismeretlen program települt a gépre.', ask: 'Ismeretlen oldalról letöltött „ingyenes” játék – gyakori kártevőforrás!' },
+    { led: 'A nyomtató nem csatlakozik a WiFi-hez.', ping: 'A nyomtató nem válaszol a hálózaton.', log: 'A nyomtatási feladatok várnak, mert a gép nem éri el a nyomtatót.', ask: 'Új router = új WiFi-név és jelszó. A nyomtató a régit keresi!' },
+    { log: 'A gép többször váratlanul leállt.', hw: '104 °C! Túl forró – a por eltömítette a hűtőt.', ask: '3 év alatt rengeteg por gyűlik össze a gépben.' },
+    { log: 'Túl sok rossz jelszó → a fiók biztonsági okból lezárt.', ask: 'Caps Lock = minden nagybetűvel megy, ezért „rossz” a jelszó!' }
+  ];
+  const neutral = t => /^(Rendben\.?|Minden rendben\.?|A LED-ek rendben villognak\.|A gép hardvere rendben\.|A gép: .* rendben\.)$/.test(t.trim());
+  let deck = [], i = 0, used = [], pts = 0, racing = false, t = 0, best = 0, res = [], done = false;
+  function start() { deck = [...CASES.map((c, k) => [c, k])].sort(() => Math.random() - .5).slice(0, 5).map(([c, k]) => { let o = c[2].map((x, j) => [x, j === c[3]]); if (window.EASY) o = [o.find(x => x[1]), ...o.filter(x => !x[1]).slice(0, 2)]; o.sort(() => Math.random() - .5); return { c, k, o } }); i = 0; pts = 0; t = 0; res = []; next() }
+  function next() { used = []; done = false; render() }
+  function clue(k, key) {
+    const { c, k: ci } = deck[i], tech = c[1][key], simple = tech === '—' ? 'Ennél a panasznál ez a vizsgálat nem mond semmit.' : (SIMPLE[ci][key] || (neutral(tech) ? 'Ez rendben van – nem itt van a hiba.' : 'Érdekes nyom – gondold végig, mit jelent!'));
+    const good = !!SIMPLE[ci][key];
+    return `<div class="dt-clue ${good ? 'hot' : ''}" style="--r:${(k % 2 ? 1 : -1) * (1 + k % 3)}deg"><i class="dt-pin"></i><div class="dt-ct">${icon(TESTS[key][2], 16)} ${TESTS[key][0]}</div><div class="dt-tech">${tech}</div><div class="dt-mean"><b>Mit jelent?</b> ${simple}</div></div>`;
+  }
   function render() {
     if (i >= deck.length) return end();
-    const { c, o } = deck[i];
-    $('#dt-in').innerHTML = `<div class="dt-top"><span>${i + 1}. eset / ${deck.length}</span><span>Pont: <b>${pts}</b>${racing ? ` • ${Math.round(t)} mp` : ''}</span></div>
-      <div class="dt-comp">${icon('phone', 22)}<span>${c[0]}</span></div>
-      <h4>Vizsgálat <small>(minden vizsgálat −20 pont, ezért csak azt nézd meg, ami kell!)</small></h4>
-      <div class="dt-tests">${Object.entries(TESTS).map(([k, [n, ic]]) => `<button class="btn ${used.includes(k) ? 'sel' : ''}" data-t="${k}">${icon(ic, 16)} ${n}</button>`).join('')}</div>
-      <div class="dt-res">${used.map(k => `<div><b>${TESTS[k][0]}:</b> ${c[1][k]}</div>`).join('') || '<div class="dt-ph">Válassz egy vizsgálatot!</div>'}</div>
-      <h4>Mi a hiba?</h4><div class="dt-opts">${o.map((x, k) => `<button class="btn" data-o="${k}">${x[0]}</button>`).join('')}</div>`;
-    $$('[data-t]').forEach(b => b.onclick = () => { if (!used.includes(b.dataset.t)) { used.push(b.dataset.t); beep(600, .05, 'triangle', .04) } render() });
-    $$('[data-o]').forEach(b => b.onclick = () => answer(o[+b.dataset.o][1]));
+    const { c, o } = deck[i], lay = new Set(used.map(k => TESTS[k][3]));
+    $('#dt-in').innerHTML = `<div class="dt-top"><span class="dt-badge">${icon('detektiv', 18)} ${i + 1}. eset / ${deck.length}</span><span>Pont: <b>${pts}</b>${racing ? ` • ${Math.round(t)} mp` : ''}</span></div>
+      <div class="dt-scene"><div class="dt-person"><span class="dt-av">${icon('user', 30)}</span><div class="dt-bubble">${c[0]}</div></div><div class="dt-pc"><img alt="" src="${Dev.img('desktop', 120)}"><span class="dt-q">?</span></div></div>
+      <div class="dt-grid"><div><h4>1. Nyomozz! <small>${window.EASY ? 'Könnyű mód: a vizsgálat ingyenes' : 'minden vizsgálat −20 pont – csak azt nézd meg, ami kell'}</small></h4>
+        <div class="dt-tests">${Object.entries(TESTS).map(([k, v]) => `<button class="dt-t ${used.includes(k) ? 'used' : ''}" data-t="${k}" ${done ? 'disabled' : ''}><span class="dt-ti">${icon(v[2], 20)}</span><span><b>${v[1]}</b><small>${v[0]}</small></span></button>`).join('')}</div>
+        <div class="dt-ladder">${LAYERS.map(([n, ic], k) => `<div class="${lay.has(k) ? 'on' : ''}">${icon(ic, 14)} ${n}</div>`).join('<em>›</em>')}</div></div>
+        <div><h4>2. Nyomtábla</h4><div class="dt-board">${used.map((k, n) => clue(n, k)).join('') || '<div class="dt-ph">Még nincs nyom. Válassz egy vizsgálatot bal oldalt!<br><small>Tipp: a profik alulról kezdik – először a kábelt nézik meg.</small></div>'}</div></div></div>
+      <h4>3. Ki a tettes? Mi okozza a hibát?</h4><div class="dt-opts">${o.map((x, k) => `<button class="dt-o" data-o="${k}" ${done ? 'disabled' : ''}><b>${String.fromCharCode(65 + k)}</b><span>${x[0]}</span></button>`).join('')}</div><div id="dt-ex"></div>`;
+    $$('[data-t]').forEach(b => b.onclick = () => { if (done || used.includes(b.dataset.t)) return; used.push(b.dataset.t); beep(500 + used.length * 80, .06, 'triangle', .05); render(); const cl = $$('.dt-clue'); const l = cl[cl.length - 1]; if (l) l.classList.add('new') });
+    $$('[data-o]').forEach(b => b.onclick = () => answer(o[+b.dataset.o][1], b));
   }
-  function answer(right) {
-    const { c } = deck[i], g = right ? Math.max(40, 200 - used.length * 20) : 0; pts += g; res.push(right); right ? sfx.ok() : sfx.bad();
-    $('#dt-in').insertAdjacentHTML('beforeend', `<div class="dt-ex ${right ? 'ok' : 'bad'}"><b>${right ? `Megoldva! +${g} pont` : 'Nem ez volt a hiba.'}</b><p>${c[4]}</p><button class="btn go" id="dt-nx">Következő eset</button></div>`);
-    $$('[data-o],[data-t]').forEach(b => b.disabled = true); $('#dt-nx').onclick = () => { i++; next() };
+  function answer(right, btn) {
+    if (done) return; done = true; const { c } = deck[i], g = right ? (window.EASY ? 200 : Math.max(40, 200 - used.length * 20)) : 0; pts += g; res.push(right);
+    right ? (sfx.win(), FX.burstEl(btn, 30)) : sfx.bad();
+    $$('.dt-o').forEach(b => { b.disabled = true; const ok = deck[i].o[+b.dataset.o][1]; b.classList.toggle('right', ok); if (b === btn && !ok) b.classList.add('wrong') });
+    $('#dt-ex').innerHTML = `<div class="dt-ex ${right ? 'ok' : 'bad'}"><div class="dt-stamp">${right ? 'MEGOLDVA' : 'TÉVES NYOM'}</div><div><b>${right ? `+${g} pont` : 'A helyes megoldás zölddel látszik.'}</b><p>${c[4]}</p><button class="btn go" id="dt-nx">${i < deck.length - 1 ? 'Következő eset' : 'Eredmény'}</button></div></div>`;
+    $$('[data-t]').forEach(b => b.disabled = true); $('#dt-nx').onclick = () => { i++; next() }; $('#dt-ex').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function end() {
     const sc = pts + (racing ? Math.max(0, Math.round(150 - t)) * 3 : 0); best = Math.max(best, sc);
     if (racing) { racing = false; Comp.finish(sc, `${res.filter(Boolean).length}/${deck.length} eset megoldva, ${Math.round(t)} mp`) }
-    $('#dt-in').innerHTML = `<h2>${res.filter(Boolean).length} / ${deck.length} eset megoldva</h2><div class="ph-big" style="font-size:52px;font-weight:900">${sc} pont</div>
-      <div class="learn"><b>A profi hibakeresés lépései:</b> 1. Kérdezd meg, mi történt. 2. Kezdd alulról: kábel, LED, áram (fizikai réteg). 3. Haladj felfelé: IP-cím, ping, DNS, alkalmazás. 4. Nézd meg a naplókat. 5. Egyszerre csak egy dolgot változtass! Ezt a módszert minden rendszergazda és hálózatos technikus használja.</div>
-      <button class="btn go" id="dt-re" style="margin-top:12px;height:46px">Új esetek</button>`;
+    $('#dt-in').innerHTML = `<div class="dt-end"><span class="dt-badge">${icon('detektiv', 18)} Nyomozás lezárva</span><h2>${res.filter(Boolean).length} / ${deck.length} eset megoldva</h2><div class="dt-big">${sc} pont</div>
+      <div class="dt-steps">${[['plug', 'Kábel, áram', 'Be van dugva? Világít a lámpa?'], ['globe', 'Hálózat', 'Van címe? Kijut az internetre?'], ['search', 'Nevek', 'Működik a „telefonkönyv”?'], ['monitor', 'Gép', 'Mit írt a naplóba? Jók az alkatrészek?'], ['user', 'Ember', 'Mi történt előtte?']].map(([ic, n, d], k) => `<div><span>${k + 1}</span>${icon(ic, 22)}<b>${n}</b><small>${d}</small></div>`).join('')}</div>
+      <div class="learn">Így dolgozik egy igazi rendszergazda: <b>alulról felfelé</b> halad, minden lépésnél gyűjt egy nyomot, és csak azt változtatja meg, amiről biztosan tudja, hogy hibás. Ez a módszer a képzés egyik legfontosabb része.</div>
+      <button class="btn go" id="dt-re" style="margin-top:14px;height:48px;padding:0 24px">Új esetek</button></div>`;
     $('#dt-re').onclick = start;
   }
   S.build = r => {
     r.innerHTML = `<style>
-      #dt{position:absolute;inset:0;overflow:auto;padding:22px}#dt-in{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
-      .dt-top{display:flex;justify-content:space-between;color:var(--muted);font-weight:700}
-      .dt-comp{display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:14px;padding:16px;font-size:21px;font-weight:600}.dt-comp svg{color:var(--accent);flex:none}
-      #dt-in h4{margin:6px 0 0;font-size:15px}#dt-in h4 small{color:var(--muted);font-weight:500}
-      .dt-tests,.dt-opts{display:flex;flex-wrap:wrap;gap:8px}.dt-tests .btn{height:40px;font-size:14px;display:inline-flex;gap:6px;align-items:center}
-      .dt-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}.dt-opts .btn{height:auto;min-height:52px;font-size:16px;text-align:left;white-space:normal}
-      .dt-res{display:flex;flex-direction:column;gap:6px;font-family:var(--mono);font-size:14px;background:#08090b;border-radius:12px;padding:12px;color:#d1fae5;min-height:50px}.dt-ph{color:var(--muted);font-family:Inter,sans-serif}
-      .dt-ex{border-radius:14px;padding:14px 16px;border:1px solid}.dt-ex.ok{background:rgba(74,222,128,.08);border-color:#1f5134}.dt-ex.bad{background:rgba(248,113,113,.08);border-color:#7f1d1d}.dt-ex p{margin:6px 0 10px}.dt-ex .btn{height:42px}
+      #dt{position:absolute;inset:0;overflow:auto;padding:20px}#dt-in{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+      .dt-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-weight:700}.dt-badge{display:inline-flex;gap:8px;align-items:center;background:color-mix(in srgb,var(--accent) 16%,transparent);color:var(--accent);border-radius:999px;padding:6px 14px;font-weight:800}
+      .dt-scene{display:flex;align-items:center;gap:20px;background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--accent) 14%,var(--panel)),var(--panel));border:1px solid var(--line);border-radius:20px;padding:18px 22px}
+      .dt-person{display:flex;gap:14px;align-items:flex-start;flex:1}.dt-av{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:#334155;color:#e2e8f0;flex:none}
+      .dt-bubble{position:relative;background:#f8fafc;color:#0f172a;border-radius:18px;padding:14px 18px;font-size:22px;font-weight:700;line-height:1.35;animation:dtIn .4s}.dt-bubble::before{content:"";position:absolute;left:-10px;top:18px;border:10px solid transparent;border-right-color:#f8fafc;border-left:0}
+      @keyframes dtIn{from{opacity:0;transform:translateY(8px)}}
+      .dt-pc{position:relative;width:140px;flex:none}.dt-pc img{width:140px;filter:drop-shadow(0 10px 20px #0008)}.dt-q{position:absolute;right:6px;top:-6px;width:38px;height:38px;border-radius:50%;background:var(--red);color:#fff;font-weight:900;font-size:24px;display:grid;place-items:center;animation:dtP 1.2s infinite}@keyframes dtP{50%{transform:scale(1.15)}}
+      .dt-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:16px}@media(max-width:900px){.dt-grid{grid-template-columns:1fr}}
+      #dt-in h4{margin:0 0 8px;font-size:18px}#dt-in h4 small{color:var(--muted);font-weight:500;font-size:13px;margin-left:6px}
+      .dt-tests{display:flex;flex-direction:column;gap:7px}.dt-t{all:unset;cursor:pointer;display:flex;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;transition:all .15s}
+      .dt-t:hover{border-color:var(--accent);transform:translateX(3px)}.dt-t b{display:block;font-size:15px;font-weight:600;line-height:1.3}.dt-t small{font-family:var(--mono);color:var(--muted);font-size:12px}
+      .dt-ti{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);flex:none}
+      .dt-t.used{opacity:.55;border-style:dashed}.dt-t.used .dt-ti{background:var(--panel2);color:var(--muted)}.dt-t[disabled]{cursor:default}
+      .dt-ladder{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-top:10px;font-size:12.5px;color:var(--muted)}.dt-ladder div{display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 9px}.dt-ladder div.on{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.dt-ladder em{font-style:normal}
+      .dt-board{min-height:320px;background:#3b2f22;background-image:radial-gradient(#4a3b2b 1px,transparent 1px);background-size:14px 14px;border:6px solid #5b4632;border-radius:16px;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+      .dt-ph{grid-column:1/-1;color:#e7d9c4;text-align:center;padding:60px 10px;font-size:16px;line-height:1.6}.dt-ph small{color:#c4b29a}
+      .dt-clue{position:relative;background:#fef9c3;color:#1c1917;border-radius:4px;padding:16px 12px 12px;transform:rotate(var(--r));box-shadow:0 8px 16px #0006}.dt-clue.hot{background:#fde68a}.dt-clue.new{animation:dtC .45s cubic-bezier(.2,1.4,.4,1)}@keyframes dtC{from{opacity:0;transform:scale(.6) rotate(-12deg)}}
+      .dt-pin{position:absolute;top:-6px;left:50%;width:14px;height:14px;border-radius:50%;background:#dc2626;box-shadow:0 2px 3px #0008;transform:translateX(-50%)}
+      .dt-ct{display:flex;gap:6px;align-items:center;font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#57534e}.dt-tech{font-family:var(--mono);font-size:12px;color:#44403c;margin:6px 0;line-height:1.4}
+      .dt-mean{font-size:15px;line-height:1.4;border-top:1px dashed #a8a29e;padding-top:6px}.dt-mean b{color:#b45309}
+      .dt-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:760px){.dt-opts{grid-template-columns:1fr}}
+      .dt-o{all:unset;cursor:pointer;display:flex;gap:12px;align-items:center;background:var(--panel);border:2px solid var(--line);border-radius:16px;padding:14px 16px;font-size:17px;font-weight:600;transition:all .15s}.dt-o:hover{border-color:var(--accent)}
+      .dt-o b{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--panel2);flex:none}.dt-o.right{border-color:var(--green);background:rgba(74,222,128,.1)}.dt-o.right b{background:var(--green);color:#0b0c0f}.dt-o.wrong{border-color:var(--red);background:rgba(248,113,113,.1)}.dt-o[disabled]{cursor:default}
+      .dt-ex{display:flex;gap:18px;align-items:center;border-radius:16px;padding:16px 20px;border:1px solid;animation:dtIn .3s}.dt-ex.ok{background:rgba(74,222,128,.08);border-color:#1f5134}.dt-ex.bad{background:rgba(248,113,113,.08);border-color:#7f1d1d}.dt-ex p{margin:6px 0 10px;font-size:16px}.dt-ex .btn{height:44px}
+      .dt-stamp{font-size:26px;font-weight:900;letter-spacing:.06em;border:4px solid;border-radius:10px;padding:6px 12px;transform:rotate(-8deg);flex:none;animation:dtS .4s cubic-bezier(.2,1.6,.4,1)}.ok .dt-stamp{color:var(--green)}.bad .dt-stamp{color:var(--red)}@keyframes dtS{from{transform:rotate(-8deg) scale(2.4);opacity:0}}
+      .dt-end{text-align:center}.dt-end h2{font-size:34px;margin:12px 0 4px}.dt-big{font-size:58px;font-weight:900;color:var(--accent)}
+      .dt-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:18px 0}.dt-steps div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}.dt-steps span{position:absolute;top:8px;left:10px;color:var(--muted);font-weight:800}.dt-steps svg{color:var(--accent)}.dt-steps small{color:var(--muted);font-size:12.5px}
+      @media(max-width:760px){.dt-steps{grid-template-columns:1fr 1fr}.dt-scene{flex-direction:column}.dt-board{grid-template-columns:1fr}}
     </style><div id="dt"><div id="dt-in"></div></div>`;
     start();
   };
   S.tick = dt => { if (racing && i < deck.length) t += dt };
-  S.comp = { rules: '5 hibás gép: derítsd ki a hibát a lehető legkevesebb vizsgálattal és leggyorsabban! Minden felesleges vizsgálat pontlevonással jár.', start: () => { racing = true; start() } };
+  S.comp = { rules: '5 hibás gép: nyomozz, és találd meg a hibát a lehető legkevesebb vizsgálattal és leggyorsabban!', start: () => { racing = true; start() } };
   S.score = () => best || pts;
   S.leave = () => { racing = false };
   return S;

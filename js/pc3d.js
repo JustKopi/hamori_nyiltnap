@@ -17,7 +17,7 @@ App.add((() => {
   const cam = { th: .62, ph: 1.08, r: 12.5, tgt: V(1.9, 1.7, -.3), goalTgt: V(1.9, 1.7, -.3), goalR: 12.5, vth: 0, vph: 0 };
   let xray = true, shell = [];
   let rotors = [], rgbM = [], tweens = [], items = [], uidN = 1, slots = {}, conns = {}, cableMesh = {}, caseP = null, caseG = null, caseFans = [], panel = null, panelOpened = false;
-  let paste = { state: 'none', p: null }, blob = null, os = new Set(), sel = null, ghosts = [], hover = null, tool = 'hand', auto = false, driver = null, busy = false;
+  let paste = { state: 'none', p: null }, blob = null, os = new Set(), sel = null, ghosts = [], hover = null, tool = 'hand', auto = !!window.EASY, driver = null, busy = false;
   let powered = false, load = 0, monitorTex = null, monitorCtx = null, mode = 'orders', order = null, wallet = store.get('pc-wallet', 0), spent = 0, lastPost = null, sensors = null, shopCat = 'case', cart = [], filt = { col: 'all', rgb: false };
   const META = new WeakMap(), meta = o => META.get(o) || {};
   const G = () => { const [W, H, D] = caseP.dim; return { W, H, D, bx: -W / 2 + .17, ay: H - .8, az: -D / 2 + .32 } };

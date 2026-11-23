@@ -27,7 +27,7 @@ App.add((() => {
   function reset() { G = { on: false, t: 60, hp: [100, 100, 100], score: 0, spawn: 1, list: [], caught: {}, missed: {}, wrong: 0, combo: 0, lvl: 1, burst: 0, hitT: [0, 0, 0], flash: 0 } }
   function spawn(d) {
     const ln = rnd(0, lanes - 1); if (G.list.some(p => !p.dead && p.ln === ln && p.x < 130)) return;
-    const small = d === DDOS; G.list.push({ d, ln, x: -300, y: laneY(ln), sp: (small ? 150 : 90) + (60 - G.t) * 2.2 + Math.random() * 30, small, w: small ? 70 : 290, tgt: small ? rnd(0, 2) : d[6] });
+    const small = d === DDOS; G.list.push({ d, ln, x: -300, y: laneY(ln), sp: ((small ? 150 : 90) + (60 - G.t) * 2.2 + Math.random() * 30) * (window.EASY ? .6 : 1), small, w: small ? 70 : 290, tgt: small ? rnd(0, 2) : d[6] });
   }
   const burst = (x, y, cols, n) => { for (let k = 0; k < n; k++) { const a = Math.random() * 7, s = Math.random() * 6 + 1; parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, c: pick(cols) }) } };
   const pop = (x, y, t, c) => pops.push({ x, y, t, c, life: 1.2 });
@@ -98,8 +98,8 @@ App.add((() => {
   }
   function step(dt) {
     if (!G.on) return; G.t -= dt; G.spawn -= dt;
-    const lv = G.t > 40 ? 1 : G.t > 20 ? 2 : 3; if (lv !== G.lvl) { G.lvl = lv; toast(lv === 2 ? '2. szint: figyeld a portszámokat is!' : '3. szint: DDoS-támadás érkezik!', '#fbbf24', 2000) }
-    if (G.spawn <= 0) { const pool = PK.filter(x => x[7] <= G.lvl); spawn(Math.random() < .55 ? pick(pool.filter(x => x[3])) : pick(pool.filter(x => !x[3]))); G.spawn = Math.max(.45, 1.25 - (60 - G.t) * .012) }
+    const lv = window.EASY ? (G.t > 30 ? 1 : 2) : G.t > 40 ? 1 : G.t > 20 ? 2 : 3; if (lv !== G.lvl) { G.lvl = lv; toast(lv === 2 ? '2. szint: figyeld a portszámokat is!' : '3. szint: DDoS-támadás érkezik!', '#fbbf24', 2000) }
+    if (G.spawn <= 0) { const pool = PK.filter(x => x[7] <= G.lvl); spawn(Math.random() < .55 ? pick(pool.filter(x => x[3])) : pick(pool.filter(x => !x[3]))); G.spawn = Math.max(.45, 1.25 - (60 - G.t) * .012) * (window.EASY ? 1.7 : 1) }
     if (G.lvl === 3) { G.burst -= dt; if (G.burst <= 0) { for (let k = 0; k < 7; k++) setTimeout(() => G.on && spawn(DDOS), k * 110); G.burst = 5.5 } }
     const wx = wallX();
     for (const p of G.list) {

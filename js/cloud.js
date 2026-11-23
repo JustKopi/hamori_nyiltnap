@@ -16,13 +16,13 @@ App.add((() => {
   let root, G, best = 0, sel = null, endless = false, bestEnd = store.get('felho-end', 0);
   const LIMIT = -3000; const seen = new Set();
   function fresh() {
-    return { on: false, t: DUR, money: 1000, queue: [], hosts: [mkHost(0), mkHost(1), mkHost(2), mkHost(3)], spawnT: 1, failT: 22, lost: 0, served: 0, migr: 0, kwh: 0, uid: 0, msg: [] };
+    return { on: false, t: DUR, money: window.EASY ? 2500 : 1000, queue: [], hosts: [mkHost(0), mkHost(1), mkHost(2), mkHost(3), ...(window.EASY ? [mkHost(4)] : [])], spawnT: 1, failT: window.EASY ? 40 : 22, lost: 0, served: 0, migr: 0, kwh: 0, uid: 0, msg: [] };
   }
   function mkHost(i) { return { i, on: true, vms: [], fail: 0, dead: false } }
   const used = (h, k) => h.vms.reduce((a, v) => a + v[k], 0);
   function spawn() {
     if (G.queue.length >= 5) return; const r = pick(REQ), late = DUR - G.t;
-    G.queue.push({ id: ++G.uid, n: r[0], ic: r[1], cpu: r[2], ram: r[3], kind: r[4], col: r[5], wait: 14, life: rnd(18, 34), pay: Math.round((r[2] * 3 + r[3] / 3) * (1 + late / 120) * PAYX) });
+    G.queue.push({ id: ++G.uid, n: r[0], ic: r[1], cpu: r[2], ram: r[3], kind: r[4], col: r[5], wait: window.EASY ? 24 : 14, wait0: window.EASY ? 24 : 14, life: rnd(18, 34), pay: Math.round((r[2] * 3 + r[3] / 3) * (1 + late / 120) * PAYX) });
     beep(1100, .05, 'triangle', .04); render();
   }
   function place(req, h) {
@@ -92,7 +92,7 @@ App.add((() => {
     $('#c-stat').textContent = `${G.served} kiszolgált • ${G.lost} elvesztett • ${G.migr} migráció`;
     const sr = selReq();
     $('#c-step').innerHTML = !sel ? `${icon('arrow', 16, 2)} <b>1. lépés:</b> fogj meg (vagy válassz) egy ügyfélkérést balról${G.hosts.some(h => h.fail) ? ' – vagy mentsd a <b style="color:var(--red)">piros</b> szerver gépeit!' : ''}` : `${icon('arrow', 16, 2)} <b>2. lépés:</b> húzd rá vagy kattints egy <b style="color:var(--green)">zöld keretes</b> szerverre${sel.from === 'h' ? ` (${sr ? sr.n : ''} költöztetése)` : ''} • újra kattintva a kérésre megszakítod`;
-    for (const r of G.queue) { const e = $(`[data-w="${r.id}"]`); if (e) { e.style.width = r.wait / 14 * 100 + '%'; e.style.background = r.wait < 5 ? 'var(--red)' : 'var(--yellow)' } }
+    for (const r of G.queue) { const e = $(`[data-w="${r.id}"]`); if (e) { e.style.width = r.wait / (r.wait0 || 14) * 100 + '%'; e.style.background = r.wait < 5 ? 'var(--red)' : 'var(--yellow)' } }
     G.hosts.forEach((h, i) => { const e = $(`[data-hs="${i}"]`); if (e) e.textContent = h.dead ? 'MEGHIBÁSODOTT – javítás alatt' : h.fail ? `HIBA! ${Math.ceil(h.fail)} mp a leállásig – költöztesd a gépeket!` : h.on ? `${h.vms.length} gép fut` : 'kikapcsolva, nem fogyaszt'; for (const v of h.vms) { const l = $(`[data-l="${v.id}"]`); if (l) l.style.width = v.life / v.life0 * 100 + '%' } });
   }
   let acc = 0;

@@ -54,7 +54,7 @@ App.add((() => {
   }
   function start() { Object.assign(G, { on: true, list: shuffle([...Q]).slice(0, 10), i: 0, score: 0, right: 0 }); show() }
   function show() {
-    const q = G.list[G.i]; G.t = 15; G.locked = false;
+    const q = G.list[G.i]; G.t = window.EASY ? 25 : 15; G.locked = false;
     const ans = shuffle([1, 2, 3, 4]);
     $('#q-main').innerHTML = `<div class="q-card"><div class="q-top"><span>Kérdés ${G.i + 1} / 10</span><span>${G.score} pont</span></div>
       <div class="q-bar"><i id="q-t"></i></div><h2 class="q-q">${q[0]}</h2>
@@ -100,7 +100,7 @@ App.add((() => {
   S.comp = { rules: '10 kérdés, kérdésenként 15 másodperc. A gyors helyes válasz több pontot ér!', start: () => start() };
   S.score = () => best;
   S.tick = dt => {
-    if (!G.on || G.locked) return; G.t -= dt; const b = $('#q-t'); if (b) b.style.width = (G.t / 15 * 100) + '%';
+    if (!G.on || G.locked) return; G.t -= dt; const b = $('#q-t'); if (b) b.style.width = (G.t / (window.EASY ? 25 : 15) * 100) + '%';
     if (G.t <= 0) answer(0, null);
   };
   return S;

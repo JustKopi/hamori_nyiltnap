@@ -169,6 +169,7 @@ App.add((() => {
       <div id="ts-hint"></div><button class="btn" id="ts-h">${icon('bulb', 16)} Tipp${ST.race ? ' (−100 pont)' : ''}</button>
       ${ST.race ? `<div class="ts-time" id="ts-time"></div>` : ''}`;
     $('#ts-h').onclick = () => { ST.hints++; $('#ts-hint').innerHTML = m.hint.map(h => `<button class="btn ts-c">${esc(h)}</button>`).join(''); $$('.ts-c').forEach(b => b.onclick = () => { if (!busy) { run(b.textContent).then(storyCheck); inp.focus() } }); $('#ts-h').style.display = 'none' };
+      if (window.EASY && ST.on && !ST.race) { $('#ts-h').click(); ST.hints-- }
   }
   function startStory(race) {
     Object.assign(ST, { on: true, step: 0, t: 0, hints: 0, gw: false, dns: false, blocked: false, disk: false, nginx: false, backup: false, saw: {}, race });
