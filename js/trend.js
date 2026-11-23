@@ -36,75 +36,165 @@ App.add((() => {
   const F = { L: look(), part: 'top', theme: 0, t: 90, on: false, run: null, cv: null, ctx: null, round: 0, total: 0, racing: false, best: 0, custom: 0 };
   const hsl = hex => { const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0; if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60 } return [h, s, l] };
   const rgbOf = hex => { const n = parseInt(hex.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255] };
-  // ---- minták (canvas) ----
-  const pc = {};
-  function patFill(c, p, x0, y0, x1, y1) {
-    if (p.pat === 'grad') { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, p.c); g.addColorStop(1, p.c2); return g }
-    if (p.pat === 'solid' || p.pat === 'glitter') return p.c;
-    const key = p.pat + p.c + p.c2; if (pc[key]) return pc[key];
-    const o = document.createElement('canvas'); o.width = o.height = 16; const q = o.getContext('2d'); q.fillStyle = p.c; q.fillRect(0, 0, 16, 16); q.fillStyle = p.c2;
-    if (p.pat === 'stripe') { q.fillRect(0, 0, 16, 6) } else if (p.pat === 'dots') { q.beginPath(); q.arc(8, 8, 3.4, 0, 7); q.fill() } else if (p.pat === 'check') { q.globalAlpha = .6; q.fillRect(0, 0, 8, 16); q.fillRect(0, 0, 16, 8); q.globalAlpha = 1; q.fillRect(0, 0, 8, 8) }
-    return (pc[key] = c.createPattern(o, 'repeat'));
+  // ---- 3D modell (Three.js) ----
+  const col = h => new THREE.Color(h).convertSRGBToLinear();
+  const M3 = { r: null, scene: null, cam: null, root: null, pv: {}, rotY: 0, vel: .25, drag: null, dirty: true, glit: [], neon: [], tx: {}, stage: null, runway: null, flash: null, wings: [], tail: [] };
+  function m3tex(p) {
+    const key = p.pat + p.c + p.c2; if (M3.tx[key]) return M3.tx[key];
+    const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S; const q = cv.getContext('2d');
+    q.fillStyle = p.c; q.fillRect(0, 0, S, S); q.fillStyle = p.c2;
+    if (p.pat === 'stripe') for (let y = 0; y < S; y += 64) q.fillRect(0, y, S, 24);
+    if (p.pat === 'dots') for (let y = 0; y < S; y += 64) for (let x = 0; x < S; x += 64) { q.beginPath(); q.arc(x + 32 + (y / 64 % 2) * 16, y + 32, 13, 0, 7); q.fill() }
+    if (p.pat === 'check') { q.globalAlpha = .55; for (let k = 0; k < S; k += 64) { q.fillRect(k, 0, 28, S); q.fillRect(0, k, S, 28) } q.globalAlpha = 1; for (let y = 0; y < S; y += 64) for (let x = 0; x < S; x += 64) q.fillRect(x, y, 28, 28) }
+    if (p.pat === 'grad') { const g = q.createLinearGradient(0, 0, 0, S); g.addColorStop(0, p.c); g.addColorStop(1, p.c2); q.fillStyle = g; q.fillRect(0, 0, S, S) }
+    const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(p.pat === 'grad' ? 1 : 3, p.pat === 'grad' ? 1 : 3); t.anisotropy = 4;
+    return (M3.tx[key] = t);
   }
-  function paint(c, path, p, box, T) {
-    c.save(); if (p.neon) { c.shadowColor = p.c; c.shadowBlur = 22 + Math.sin(T * 4) * 6 }
-    c.fillStyle = patFill(c, p, ...box); c.fill(path); c.shadowBlur = 0; c.lineWidth = 2; c.strokeStyle = 'rgba(0,0,0,.35)'; c.stroke(path);
-    if (p.pat === 'glitter') { c.clip(path); for (let k = 0; k < 26; k++) { const sx = box[0] + ((k * 73.1) % (box[2] - box[0] || 1)), sy = box[1] + ((k * 41.7 + 13) % (box[3] - box[1] || 1)), a = .5 + .5 * Math.sin(T * 5 + k * 1.7); c.fillStyle = `rgba(255,255,255,${a})`; c.beginPath(); c.moveTo(sx, sy - 4); c.lineTo(sx + 1.2, sy - 1.2); c.lineTo(sx + 4, sy); c.lineTo(sx + 1.2, sy + 1.2); c.lineTo(sx, sy + 4); c.lineTo(sx - 1.2, sy + 1.2); c.lineTo(sx - 4, sy); c.lineTo(sx - 1.2, sy - 1.2); c.fill() } }
-    c.restore();
+  let sparkTex = null;
+  function sparkle() {
+    if (sparkTex) return sparkTex; const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S; const q = cv.getContext('2d'); q.fillStyle = '#000'; q.fillRect(0, 0, S, S);
+    for (let k = 0; k < 160; k++) { const x = Math.random() * S, y = Math.random() * S, r = 1 + Math.random() * 2.5; q.fillStyle = '#fff'; q.beginPath(); q.arc(x, y, r, 0, 7); q.fill() }
+    sparkTex = new THREE.CanvasTexture(cv); sparkTex.wrapS = sparkTex.wrapT = THREE.RepeatWrapping; sparkTex.repeat.set(3, 3); return sparkTex;
   }
-  const PP = (...pts) => { const p = new Path2D(); pts.forEach(([x, y], i) => i ? p.lineTo(x, y) : p.moveTo(x, y)); p.closePath(); return p };
-  // ---- modell rajzolása (400×640-es koordinátákban) ----
-  function drawModel(c, L, T, walk = 0) {
-    const sw = Math.sin(walk * 6) * (walk ? 1 : 0), skin = L.skin, A = L.acc;
-    if (A.list.includes('wings')) { c.save(); c.globalAlpha = .75 + .25 * Math.sin(T * 3); c.shadowColor = A.c2; c.shadowBlur = 26; [-1, 1].forEach(d => { const w = new Path2D(); w.moveTo(200 + d * 20, 220); w.bezierCurveTo(200 + d * 170, 90, 200 + d * 190, 260, 200 + d * 60, 330); w.closePath(); c.fillStyle = A.c2 + '66'; c.fill(w); c.strokeStyle = A.c2; c.lineWidth = 3; c.stroke(w) }); c.restore() }
-    // haj hátsó része
-    const H = L.hair, hairBox = [140, 40, 260, 300];
-    if (H.type === 'long') paint(c, PP([150, 100], [250, 100], [262, 290], [138, 290]), H, hairBox, T);
-    if (H.type === 'pony') { paint(c, PP([238, 88], [262, 96], [268 + sw * 6, 250], [246 + sw * 6, 250]), H, hairBox, T) }
-    // lábak, karok (bőr)
-    c.fillStyle = skin; c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 2;
-    const legL = PP([172, 370], [196, 370], [194 + sw * 4, 560], [176 + sw * 4, 560]), legR = PP([204, 370], [228, 370], [224 - sw * 4, 560], [206 - sw * 4, 560]);
-    c.fill(legL); c.fill(legR); c.stroke(legL); c.stroke(legR);
-    const armL = PP([138, 182], [154, 178], [148 - sw * 8, 330], [130 - sw * 8, 330]), armR = PP([246, 178], [262, 182], [270 + sw * 8, 330], [252 + sw * 8, 330]);
-    c.fill(armL); c.fill(armR); c.stroke(armL); c.stroke(armR);
-    c.fillRect(190, 140, 20, 30); const torso = PP([150, 175], [250, 175], [236, 300], [164, 300]); c.fill(torso); const hip = PP([164, 296], [236, 296], [232, 375], [168, 375]); c.fill(hip);
-    // alsó
-    const B = L.bottom, bb = [150, 290, 250, 560];
-    if (B.type === 'skirt') paint(c, PP([164, 292], [236, 292], [262, 410], [138, 410]), B, bb, T);
-    if (B.type === 'pleat') { const p = PP([164, 292], [236, 292], [258, 395], [142, 395]); paint(c, p, B, bb, T); c.strokeStyle = 'rgba(0,0,0,.25)'; for (let k = 1; k < 7; k++) { c.beginPath(); c.moveTo(164 + k * 10.3, 296); c.lineTo(142 + k * 16.6, 393); c.stroke() } }
-    if (B.type === 'pants' || B.type === 'cargo') { const w = B.type === 'cargo' ? 6 : 0; paint(c, PP([162, 292], [238, 292], [232 + w - sw * 4, 545], [204 - w - sw * 4, 545], [200, 380], [196 + w + sw * 4, 545], [168 - w + sw * 4, 545]), B, bb, T); if (B.type === 'cargo') { c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(160 + sw * 2, 420, 22, 26); c.fillRect(218 - sw * 2, 420, 22, 26) } }
-    if (B.type === 'gown') paint(c, PP([164, 292], [236, 292], [290, 560], [110, 560]), B, bb, T);
-    // cipő
-    const Sh = L.shoes, sb = [160, 520, 240, 590], hh = Sh.type === 'platform' ? 18 : Sh.type === 'heel' ? 8 : 0, bootH = Sh.type === 'boot' ? 70 : 0;
-    [[185 + sw * 4, -1], [215 - sw * 4, 1]].forEach(([x, d]) => { if (B.type === 'gown') return; paint(c, PP([x - 13, 545 - bootH], [x + 13, 545 - bootH], [x + 14 + d * 8, 568 + hh], [x - 14 + d * 8, 568 + hh]), Sh, sb, T); if (Sh.type === 'sneaker') { c.fillStyle = '#fff'; c.fillRect(x - 15 + d * 8, 562, 30, 6) } });
+  function m3mat(p, o = {}) {
+    const m = new THREE.MeshStandardMaterial({ map: p.pat === 'solid' || p.pat === 'glitter' ? null : m3tex(p), color: p.pat === 'solid' || p.pat === 'glitter' ? col(p.c) : 0xffffff, roughness: o.r ?? .62, metalness: p.pat === 'glitter' ? .45 : (o.m ?? .05), side: o.side || THREE.FrontSide, flatShading: !!o.flat });
+    if (p.pat === 'glitter') { m.emissiveMap = sparkle(); m.emissive = col('#ffffff'); m.emissiveIntensity = .8; M3.glit.push(m) }
+    if (p.neon) { m.emissive = col(p.c); m.emissiveIntensity = .55; M3.neon.push(m) }
+    return m;
+  }
+  const V2 = (r, y) => new THREE.Vector2(r, y);
+  const lathe = (pts, seg = 40) => new THREE.LatheGeometry(pts.map(([r, y]) => V2(r, y)), seg);
+  const torsoR = y => { const P = [[.9, .15], [.98, .168], [1.1, .138], [1.22, .146], [1.32, .168], [1.4, .178], [1.46, .13]]; if (y <= P[0][0]) return P[0][1]; for (let i = 1; i < P.length; i++) if (y <= P[i][0]) { const [y0, r0] = P[i - 1], [y1, r1] = P[i], f = (y - y0) / (y1 - y0); return r0 + (r1 - r0) * f } return .13 };
+  const shell = (y0, y1, off, top) => { const pts = []; for (let y = y0; y <= y1 + 1e-6; y += .02) pts.push([torsoR(y) + off, y]); if (top) { pts.push([.11 + off, 1.48], [.06 + off * .5, 1.505]) } return lathe(pts) };
+  function add(par, geo, mat, x = 0, y = 0, z = 0, cast = true) { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true; par.add(m); return m }
+  function build() {
+    const L = F.L, sc = M3.scene; if (M3.root) { M3.root.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose() }); sc.remove(M3.root) }
+    M3.glit = []; M3.neon = []; M3.wings = []; M3.tail = [];
+    const root = new THREE.Group(), body = new THREE.Group(); root.add(body); M3.root = root; M3.body = body; sc.add(root);
+    const skin = new THREE.MeshStandardMaterial({ color: col(L.skin), roughness: .55, metalness: 0 }), dark = new THREE.MeshStandardMaterial({ color: col(0x1b1220), roughness: .3 });
+    // törzs, nyak, fej
+    const torso = add(body, shell(.88, 1.46, 0, true), skin); torso.scale.z = .74;
+    add(body, new THREE.CylinderGeometry(.045, .05, .12, 16), skin, 0, 1.53, 0);
+    const head = new THREE.Group(); head.position.set(0, 1.69, 0); body.add(head); M3.head = head;
+    add(head, new THREE.SphereGeometry(.14, 40, 32), skin).scale.set(1, 1.1, 1.02);
+    [-1, 1].forEach(d => {
+      const e = add(head, new THREE.SphereGeometry(.024, 20, 16), dark, d * .05, 0, .128, false); e.scale.set(1, 1.35, .6);
+      add(head, new THREE.SphereGeometry(.007, 8, 8), new THREE.MeshBasicMaterial({ color: col(0xffffff) }), d * .05 + .008, .012, .142, false);
+      const lash = add(head, new THREE.TorusGeometry(.027, .004, 6, 16, Math.PI * .8), dark, d * .05, .006, .132, false); lash.rotation.z = Math.PI * .1;
+      const ch = add(head, new THREE.SphereGeometry(.026, 16, 12), new THREE.MeshStandardMaterial({ color: col(0xf472b6), transparent: true, opacity: .45, roughness: .9 }), d * .085, -.045, .11, false); ch.scale.set(1, .6, .4);
+      const br = add(head, new THREE.CapsuleGeometry(.005, .03, 4, 8), dark, d * .052, .055, .128, false); br.rotation.z = Math.PI / 2 + d * .15;
+    });
+    add(head, new THREE.SphereGeometry(.012, 12, 10), skin, 0, -.025, .145, false);
+    const mouth = add(head, new THREE.TorusGeometry(.026, .006, 8, 20, Math.PI), new THREE.MeshStandardMaterial({ color: col(0xbe185d), roughness: .4 }), 0, -.062, .128, false); mouth.rotation.z = Math.PI;
+    // haj
+    const H = L.hair, hm = m3mat(H, { r: .45, side: THREE.DoubleSide });
+    const cap = add(head, new THREE.SphereGeometry(.152, 40, 24, 0, Math.PI * 2, 0, Math.PI * .52), hm); cap.scale.set(1.02, 1.12, 1.06); cap.rotation.x = -.32;
+    const back = add(head, new THREE.SphereGeometry(.155, 32, 24, Math.PI, Math.PI, 0, Math.PI * .75), hm); back.scale.set(1.03, 1.12, 1.07);
+    if (H.type === 'long') { const lb = add(head, new THREE.CylinderGeometry(.15, .19, .5, 32, 1, true, Math.PI * .58, Math.PI * .84), hm, 0, -.27, -.01); lb.scale.z = .8 }
+    if (H.type === 'bob') { const bb = add(head, new THREE.CylinderGeometry(.158, .17, .17, 32, 1, true, Math.PI * .3, Math.PI * 1.4), hm, 0, -.1, 0); bb.scale.z = 1.05 }
+    if (H.type === 'pony') { add(head, new THREE.SphereGeometry(.03, 12, 10), hm, 0, .06, -.165); for (let k = 0; k < 6; k++) M3.tail.push(add(head, new THREE.SphereGeometry(.05 - k * .005, 16, 12), hm, 0, .03 - k * .07, -.2 - k * .01)) }
+    if (H.type === 'bun') add(head, new THREE.SphereGeometry(.075, 24, 16), hm, 0, .17, -.04);
+    if (H.type === 'buns') [-1, 1].forEach(d => add(head, new THREE.SphereGeometry(.06, 20, 14), hm, d * .1, .13, -.02));
+    // végtagok csuklókkal
+    const limb = (x, y, upLen, loLen, r1, r2) => { const a = new THREE.Group(); a.position.set(x, y, 0); body.add(a); const b = new THREE.Group(); b.position.y = -upLen - .02; a.add(b); add(a, new THREE.CapsuleGeometry(r1, upLen - r1, 6, 16), skin, 0, -upLen / 2, 0); add(b, new THREE.CapsuleGeometry(r2, loLen - r2, 6, 16), skin, 0, -loLen / 2, 0); return [a, b] };
+    const [aL, eL] = limb(-.2, 1.42, .27, .25, .042, .036), [aR, eR] = limb(.2, 1.42, .27, .25, .042, .036);
+    aL.rotation.z = -.12; aR.rotation.z = .12;
+    [eL, eR].forEach(e => { add(e, new THREE.SphereGeometry(.043, 16, 12), skin, 0, -.27, 0); add(e, new THREE.SphereGeometry(.039, 14, 10), skin, 0, .01, 0) });
+    const [hL, kL] = limb(-.085, .93, .43, .42, .068, .052), [hR, kR] = limb(.085, .93, .43, .42, .068, .052);
+    [kL, kR].forEach(k => add(k, new THREE.SphereGeometry(.058, 16, 12), skin, 0, .01, 0)); [aL, aR].forEach(a => add(a, new THREE.SphereGeometry(.05, 16, 12), skin, 0, 0, 0));
+    M3.pv = { aL, aR, eL, eR, hL, hR, kL, kR };
+    add(body, lathe([[.02, .86], [.14, .87], [.16, .93], [.15, .98]]), skin).scale.z = .8;
     // felső
-    const Tp = L.top, tb = [130, 170, 270, 360];
-    if (Tp.type === 'tee') { paint(c, PP([150, 172], [250, 172], [272, 215], [254, 228], [242, 205], [238, 305], [162, 305], [158, 205], [146, 228], [128, 215]), Tp, tb, T) }
-    if (Tp.type === 'crop') { paint(c, PP([158, 174], [242, 174], [244, 255], [156, 255]), Tp, tb, T) }
-    if (Tp.type === 'corset') { paint(c, PP([156, 186], [244, 186], [238, 305], [162, 305]), Tp, tb, T); c.strokeStyle = 'rgba(255,255,255,.6)'; c.lineWidth = 1.5; for (let k = 0; k < 6; k++) { c.beginPath(); c.moveTo(192, 200 + k * 17); c.lineTo(208, 208 + k * 17); c.moveTo(208, 200 + k * 17); c.lineTo(192, 208 + k * 17); c.stroke() } }
+    const Tp = L.top, tm = m3mat(Tp);
+    const sleeve = (len, long) => [[aL, eL], [aR, eR]].forEach(([a, e]) => { add(a, new THREE.CylinderGeometry(.052, .048, long ? .28 : .13, 20), tm, 0, long ? -.14 : -.065, 0); if (long) add(e, new THREE.CylinderGeometry(.046, .044, .24, 20), tm, 0, -.12, 0) });
+    if (Tp.type === 'tee') { add(body, shell(.98, 1.46, .02, true), tm).scale.z = .76; sleeve(.13, false) }
+    if (Tp.type === 'crop') { add(body, shell(1.24, 1.46, .012, true), tm).scale.z = .76 }
+    if (Tp.type === 'corset') { add(body, shell(.98, 1.36, .014, false), tm).scale.z = .76; for (let k = 0; k < 6; k++) add(body, new THREE.TorusGeometry(.012, .003, 6, 12), new THREE.MeshStandardMaterial({ color: col(0xffffff) }), 0, 1.04 + k * .055, .132, false); [-1, 1].forEach(d => { const st = add(body, new THREE.CapsuleGeometry(.012, .1, 4, 8), tm, d * .09, 1.42, .02); st.rotation.z = d * .15 }) }
     if (Tp.type === 'hoodie' || Tp.type === 'blazer') {
-      paint(c, PP([150, 170], [250, 170], [266 + sw * 8, 330], [248 + sw * 8, 334], [240, 230], [240, 345], [160, 345], [160, 230], [152 - sw * 8, 334], [134 - sw * 8, 330]), Tp, tb, T);
-      c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = 2;
-      if (Tp.type === 'blazer') { c.beginPath(); c.moveTo(178, 172); c.lineTo(200, 240); c.lineTo(222, 172); c.stroke(); c.beginPath(); c.moveTo(200, 240); c.lineTo(200, 345); c.stroke(); c.fillStyle = 'rgba(0,0,0,.4)'; [270, 300].forEach(y => { c.beginPath(); c.arc(206, y, 3, 0, 7); c.fill() }) }
-      else { c.beginPath(); c.roundRect(176, 280, 48, 30, 8); c.stroke(); c.beginPath(); c.moveTo(192, 176); c.lineTo(192, 220); c.moveTo(208, 176); c.lineTo(208, 220); c.stroke() }
+      add(body, shell(.9, 1.46, .02, true), tm).scale.z = .78; sleeve(.28, true);
+      if (Tp.type === 'hoodie') { const hood = add(body, new THREE.TorusGeometry(.11, .04, 12, 24, Math.PI * 1.1), tm, 0, 1.5, -.06); hood.rotation.x = Math.PI / 2 + .3; hood.rotation.z = -Math.PI * .05; add(body, new THREE.BoxGeometry(.18, .09, .03), tm, 0, 1.04, .14) }
+      else { const lp = new THREE.MeshStandardMaterial({ color: col(Tp.c).multiplyScalar(.7), roughness: .5 }); [-1, 1].forEach(d => { const l = add(body, new THREE.BoxGeometry(.06, .2, .01), lp, d * .05, 1.34, .145); l.rotation.z = d * .35 }); [1.18, 1.08].forEach(y => add(body, new THREE.SphereGeometry(.012, 10, 8), new THREE.MeshStandardMaterial({ color: col(0xd4af37), metalness: .9, roughness: .2 }), .02, y, .15)) }
     }
-    // fej
-    c.fillStyle = skin; c.beginPath(); c.ellipse(200, 108, 40, 48, 0, 0, 7); c.fill(); c.stroke();
-    c.fillStyle = '#1f2937'; [184, 216].forEach(x => { c.beginPath(); c.ellipse(x, 110, 4, 5 * (((T * .7) % 4) < .12 ? .2 : 1), 0, 0, 7); c.fill() });
-    c.strokeStyle = '#be185d'; c.lineWidth = 3; c.beginPath(); c.arc(200, 126, 10, .2, Math.PI - .2); c.stroke(); c.fillStyle = 'rgba(244,114,182,.35)'; [176, 224].forEach(x => { c.beginPath(); c.arc(x, 124, 7, 0, 7); c.fill() });
-    // haj elöl
-    const front = new Path2D(); front.moveTo(158, 112); front.bezierCurveTo(150, 52, 250, 48, 242, 112); front.bezierCurveTo(232, 82, 200, 70, 176, 86); front.closePath();
-    paint(c, front, H, hairBox, T);
-    if (H.type === 'bun') { const b = new Path2D(); b.arc(200, 52, 24, 0, 7); paint(c, b, H, hairBox, T) }
-    if (H.type === 'buns') [160, 240].forEach(x => { const b = new Path2D(); b.arc(x, 66, 20, 0, 7); paint(c, b, H, hairBox, T) });
-    if (H.type === 'bob') { paint(c, PP([156, 100], [166, 150], [150, 152]), H, hairBox, T); paint(c, PP([244, 100], [234, 150], [250, 152]), H, hairBox, T) }
+    // alsó
+    const B = L.bottom, bm = m3mat(B, { side: THREE.DoubleSide, flat: B.type === 'pleat' });
+    if (B.type === 'skirt') add(body, lathe([[.155, 1.06], [.19, .96], [.27, .82], [.33, .7]]), bm).scale.z = .82;
+    if (B.type === 'gown') add(body, lathe([[.15, 1.06], [.2, .9], [.34, .5], [.5, .15], [.56, .02]], 56), bm).scale.z = .86;
+    if (B.type === 'pleat') { const g = new THREE.CylinderGeometry(.16, .32, .34, 28, 1, true); const pa = g.attributes.position; for (let i = 0; i < pa.count; i++) { const y = pa.getY(i); if (y < 0) { const s = (i % 2 ? 1.08 : .94); pa.setX(i, pa.getX(i) * s); pa.setZ(i, pa.getZ(i) * s) } } g.computeVertexNormals(); add(body, g, bm, 0, .9, 0).scale.z = .82 }
+    if (B.type === 'pants' || B.type === 'cargo') {
+      const w = B.type === 'cargo' ? .016 : 0; const hp = [[.02, .845], [.15 + w, .86], [.166 + w, .93]]; for (let y = .96; y <= 1.1; y += .02) hp.push([torsoR(y) + .014, y]); add(body, lathe(hp), bm).scale.z = .78;
+      [[hL, kL], [hR, kR]].forEach(([h, k]) => { add(h, new THREE.CylinderGeometry(.085 + w, .07 + w, .45, 20, 1, true), bm, 0, -.22, 0); add(k, new THREE.CylinderGeometry(.068 + w, .062 + w * 1.6, .42, 20, 1, true), bm, 0, -.21, 0); if (B.type === 'cargo') add(h, new THREE.BoxGeometry(.04, .09, .07), bm, h === hL ? -.095 : .095, -.25, 0) });
+    }
+    // cipő
+    const Sh = L.shoes, sm = m3mat(Sh, { r: .4 }), sole = new THREE.MeshStandardMaterial({ color: Sh.type === 'sneaker' ? 0xffffff : 0x111111, roughness: .7 });
+    [kL, kR].forEach(k => {
+      const f = new THREE.Group(); f.position.y = -.43; k.add(f);
+      const hh = Sh.type === 'platform' ? .07 : Sh.type === 'heel' ? .02 : 0;
+      add(f, new THREE.BoxGeometry(.09, .06, .2), sm, 0, -.02 + hh, .04).geometry.translate(0, 0, 0);
+      add(f, new THREE.SphereGeometry(.046, 16, 12), sm, 0, -.02 + hh, .13).scale.set(1, .7, 1);
+      add(f, new THREE.BoxGeometry(.1, .025 + hh, .22), sole, 0, -.05 + hh / 2, .045);
+      if (Sh.type === 'heel') add(f, new THREE.CylinderGeometry(.012, .008, .08, 10), sole, 0, -.04, -.05);
+      if (Sh.type === 'boot') add(k, new THREE.CylinderGeometry(.064, .06, .3, 20), sm, 0, -.3, 0);
+    });
     // kiegészítők
-    const ac = A.list, ap = { ...A, pat: A.pat === 'glitter' ? 'glitter' : 'solid' };
-    if (ac.includes('glasses')) { c.save(); c.fillStyle = A.c; c.globalAlpha = .9; if (A.neon) { c.shadowColor = A.c; c.shadowBlur = 16 } [182, 218].forEach(x => { c.beginPath(); c.roundRect(x - 17, 98, 34, 22, 9); c.fill() }); c.fillRect(196, 104, 8, 4); c.restore() }
-    if (ac.includes('visor')) { c.save(); const g = c.createLinearGradient(160, 96, 240, 124); g.addColorStop(0, A.c); g.addColorStop(1, A.c2); c.fillStyle = g; c.shadowColor = A.c2; c.shadowBlur = 18; c.beginPath(); c.roundRect(156, 94, 88, 30, 12); c.fill(); c.restore() }
-    if (ac.includes('phones')) { c.save(); c.strokeStyle = A.c; c.lineWidth = 7; if (A.neon) { c.shadowColor = A.c; c.shadowBlur = 16 } c.beginPath(); c.arc(200, 108, 50, Math.PI * 1.08, Math.PI * 1.92); c.stroke(); c.fillStyle = A.c; [150, 250].forEach(x => { c.beginPath(); c.roundRect(x - 9, 96, 18, 30, 8); c.fill() }); c.restore() }
-    if (ac.includes('tiara')) { c.save(); c.fillStyle = '#e5e7eb'; c.shadowColor = A.c; c.shadowBlur = 14; c.beginPath(); c.moveTo(172, 68); c.lineTo(180, 50); c.lineTo(190, 62); c.lineTo(200, 40); c.lineTo(210, 62); c.lineTo(220, 50); c.lineTo(228, 68); c.closePath(); c.fill(); c.fillStyle = A.c; c.beginPath(); c.arc(200, 54, 4, 0, 7); c.fill(); c.restore() }
-    if (ac.includes('bag')) { const b = PP([258 + sw * 8, 300], [300 + sw * 8, 300], [304 + sw * 8, 344], [254 + sw * 8, 344]); paint(c, b, ap, [254, 300, 304, 344], T); c.strokeStyle = A.c; c.lineWidth = 3; c.beginPath(); c.arc(279 + sw * 8, 300, 14, Math.PI, 0); c.stroke() }
+    const A = L.acc, am = m3mat(A, { r: .35, m: .3 }), ac = A.list;
+    if (ac.includes('glasses')) { const g = new THREE.Group(); g.position.set(0, 0, .14); head.add(g); [-1, 1].forEach(d => { add(g, new THREE.TorusGeometry(.034, .006, 8, 24), am, d * .052, 0, 0, false); const ln = add(g, new THREE.CircleGeometry(.032, 24), new THREE.MeshStandardMaterial({ color: col(A.c), transparent: true, opacity: .55, roughness: .1, metalness: .5 }), d * .052, 0, 0, false) }); add(g, new THREE.CylinderGeometry(.004, .004, .04, 6), am, 0, .005, 0, false).rotation.z = Math.PI / 2 }
+    if (ac.includes('visor')) { const vm = new THREE.MeshStandardMaterial({ map: m3tex({ ...A, pat: 'grad' }), emissive: col(A.c2), emissiveIntensity: .7, transparent: true, opacity: .9, side: THREE.DoubleSide, metalness: .6, roughness: .15 }); M3.neon.push(vm); add(head, new THREE.CylinderGeometry(.165, .165, .065, 40, 1, true, -Math.PI * .42, Math.PI * .84), vm, 0, 0, .01, false) }
+    if (ac.includes('phones')) { const band = add(head, new THREE.TorusGeometry(.17, .014, 10, 32, Math.PI), am, 0, 0, 0); band.rotation.y = 0; [-1, 1].forEach(d => { const cup = add(head, new THREE.CylinderGeometry(.05, .05, .045, 24), am, d * .165, -.01, 0); cup.rotation.z = Math.PI / 2 }) }
+    if (ac.includes('tiara')) { const tm2 = new THREE.MeshStandardMaterial({ color: col(0xe5e7eb), metalness: .95, roughness: .15 }); const g = new THREE.Group(); g.position.set(0, .11, .02); g.rotation.x = -.35; head.add(g); add(g, new THREE.TorusGeometry(.13, .007, 8, 32, Math.PI), tm2).rotation.x = -Math.PI / 2; for (let k = 0; k < 5; k++) { const a = Math.PI * (.15 + k * .175), h = k === 2 ? .07 : .045; const s = add(g, new THREE.ConeGeometry(.012, h, 8), tm2, Math.cos(a) * .13, h / 2, Math.sin(a) * .13); } add(g, new THREE.OctahedronGeometry(.016), new THREE.MeshStandardMaterial({ color: col(A.c), emissive: col(A.c), emissiveIntensity: .6, metalness: .5, roughness: .1 }), 0, .075, .13) }
+    if (ac.includes('bag')) { const bg = add(body, new THREE.BoxGeometry(.16, .13, .06), am, .27, .98, .02); bg.rotation.z = -.1; const strap = add(body, new THREE.CylinderGeometry(.008, .008, .62, 6), am, .05, 1.22, .13); strap.rotation.z = -.95 }
+    if (ac.includes('wings')) { const shp = new THREE.Shape(); shp.moveTo(0, 0); shp.bezierCurveTo(.25, .5, .7, .45, .62, .05); shp.bezierCurveTo(.55, -.25, .2, -.35, 0, 0); const wm = new THREE.MeshStandardMaterial({ color: col(A.c2), emissive: col(A.c2), emissiveIntensity: .9, transparent: true, opacity: .55, side: THREE.DoubleSide }); M3.neon.push(wm); [-1, 1].forEach(d => { const g = new THREE.Group(); g.position.set(d * .04, 1.3, -.12); body.add(g); const w = add(g, new THREE.ShapeGeometry(shp, 24), wm, 0, 0, 0, false); w.scale.x = d; M3.wings.push([g, d]) }) }
+    root.traverse(o => { if (o.isMesh && o.material && o.material.emissiveIntensity === undefined) { } });
+    M3.dirty = false;
+  }
+  function m3Init() {
+    if (M3.r || M3.tried || typeof THREE === 'undefined') return; M3.tried = true;
+    const r = new THREE.WebGLRenderer({ canvas: F.cv, antialias: true }); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = .82; r.shadowMap.enabled = !window.LOWFX; r.shadowMap.type = THREE.PCFSoftShadowMap; r.setPixelRatio(Math.min(window.LOWFX ? 1 : 2, devicePixelRatio || 1)); M3.r = r;
+    const sc = new THREE.Scene(); sc.background = new THREE.Color(0x150c1a); sc.fog = new THREE.Fog(0x150c1a, 7, 16); M3.scene = sc;
+    M3.cam = new THREE.PerspectiveCamera(32, 1, .05, 50); M3.cam.position.set(0, 1.12, 3.6);
+    sc.add(new THREE.HemisphereLight(0xffe4f2, 0x24102a, .5));
+    const key = new THREE.DirectionalLight(0xfff4f0, 1.15); key.position.set(1.6, 3.4, 2.6); key.castShadow = true; key.shadow.mapSize.set(1024, 1024); key.shadow.camera.near = .5; key.shadow.camera.far = 10; ['left', 'bottom'].forEach(k => key.shadow.camera[k] = -2); ['right', 'top'].forEach(k => key.shadow.camera[k] = 2); sc.add(key);
+    const rim = new THREE.SpotLight(0xff4fa3, 1.6, 10, .6, .5); rim.position.set(-1.6, 3, -2.4); rim.target.position.set(0, 1, 0); sc.add(rim, rim.target);
+    const fill = new THREE.PointLight(0x60a5fa, .7, 8); fill.position.set(-2.2, 1.4, 1.6); sc.add(fill);
+    // forgó színpad
+    const st = new THREE.Group(); sc.add(st); M3.stage = st;
+    add(st, new THREE.CylinderGeometry(1.1, 1.15, .06, 64), new THREE.MeshStandardMaterial({ color: col(0x241a2e), roughness: .35, metalness: .4 }), 0, -.03, 0, false).receiveShadow = true;
+    const ring = add(st, new THREE.TorusGeometry(1.12, .015, 8, 96), new THREE.MeshStandardMaterial({ color: col(0xff4fa3), emissive: col(0xff4fa3), emissiveIntensity: 1.4 }), 0, .005, 0, false); ring.rotation.x = Math.PI / 2;
+    const fl = add(sc, new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: col(0x120a16), roughness: .9 }), 0, -.06, 0, false); fl.rotation.x = -Math.PI / 2; fl.receiveShadow = true;
+    // kifutó
+    const rw = new THREE.Group(); rw.visible = false; sc.add(rw); M3.runway = rw;
+    const rp = add(rw, new THREE.BoxGeometry(1.8, .1, 14), new THREE.MeshStandardMaterial({ color: col(0x1d1424), roughness: .25, metalness: .5 }), 0, -.05, -5, false); rp.receiveShadow = true;
+    [-1, 1].forEach(d => { add(rw, new THREE.BoxGeometry(.04, .03, 14), new THREE.MeshStandardMaterial({ color: col(0xff4fa3), emissive: col(0xff4fa3), emissiveIntensity: 1.6 }), d * .9, .01, -5, false); for (let k = 0; k < 10; k++) { const p = add(rw, new THREE.CylinderGeometry(.06, .06, .02, 12), new THREE.MeshStandardMaterial({ color: col(0xffffff), emissive: col(0xc084fc), emissiveIntensity: 1.2 }), d * 1.3, .2 + Math.random() * .6, -k * 1.4 + 1, false); p.rotation.x = Math.PI / 2 } });
+    M3.flash = new THREE.PointLight(0xffffff, 0, 6); sc.add(M3.flash);
+    // forgatás egérrel / ujjal
+    F.cv.style.touchAction = 'none';
+    F.cv.addEventListener('pointerdown', e => { if (F.run) return; M3.drag = { x: e.clientX, r: M3.rotY }; M3.vel = 0; F.cv.setPointerCapture(e.pointerId) });
+    F.cv.addEventListener('pointermove', e => { if (!M3.drag) return; const nr = M3.drag.r + (e.clientX - M3.drag.x) * .012; M3.vel = (nr - M3.rotY) * 30; M3.rotY = nr });
+    F.cv.addEventListener('pointerup', () => { M3.drag = null; if (Math.abs(M3.vel) < .05) M3.vel = .25 });
+  }
+  function m3Frame(T, dt) {
+    if (!M3.r || !F.cv.clientWidth) return; if (M3.dirty) build();
+    const w = F.cv.clientWidth, h = F.cv.clientHeight, sz = M3.r.getSize(new THREE.Vector2()); if (sz.x !== w || sz.y !== h) { M3.r.setSize(w, h, false); M3.cam.aspect = w / h; M3.cam.updateProjectionMatrix() }
+    const R = F.run, P = M3.pv, root = M3.root, cam = M3.cam; M3.runway.visible = !!R; M3.stage.visible = !R;
+    let walk = 0;
+    if (R) {
+      const p = Math.min(1, R.t / 3.2); walk = p < 1 ? R.t : 0; root.position.set(0, 0, -7 + p * 6.9); root.rotation.y = 0;
+      cam.position.set(Math.sin(R.t * .4) * .3, 1.25, root.position.z + 3.4 + (1 - p) * .6); cam.lookAt(0, 1.0, root.position.z);
+      M3.flash.intensity = Math.random() < .12 ? 3 + Math.random() * 3 : M3.flash.intensity * .7; M3.flash.position.set((Math.random() - .5) * 3, 1.2, root.position.z + 1.6);
+    } else {
+      if (!M3.drag) { M3.rotY += M3.vel * dt; M3.vel += (.25 - M3.vel) * Math.min(1, dt * .8) }
+      root.position.set(0, 0, 0); root.rotation.y = M3.rotY; cam.position.set(0, 1.0, 4.3); cam.lookAt(0, 1.08, 0); M3.flash.intensity = 0;
+    }
+    // járás / pózok
+    const s = Math.sin(walk * 7.5), posing = R && R.t >= 3.2;
+    P.hL.rotation.x = walk ? s * .45 : 0; P.hR.rotation.x = walk ? -s * .45 : 0; P.kL.rotation.x = walk ? Math.max(0, -s) * .6 : 0; P.kR.rotation.x = walk ? Math.max(0, s) * .6 : 0;
+    P.aL.rotation.x = walk ? -s * .35 : Math.sin(T * 1.2) * .04; P.aR.rotation.x = walk ? s * .35 : -Math.sin(T * 1.2) * .04;
+    P.aR.rotation.z = posing ? .75 : .12; P.eR.rotation.z = posing ? -1.9 : 0; P.eR.rotation.x = 0; P.aL.rotation.z = -.12;
+    M3.body.position.y = walk ? Math.abs(Math.cos(walk * 7.5)) * .025 : Math.sin(T * 2) * .004; M3.body.rotation.y = walk ? s * .08 : posing ? -.25 : 0; M3.head.rotation.y = posing ? .3 : Math.sin(T * .7) * .08;
+    M3.tail.forEach((b, k) => { b.position.x = Math.sin(T * 3 + k * .5 + walk * 7.5) * .012 * k });
+    M3.wings.forEach(([g, d]) => { g.rotation.y = d * (.35 + Math.sin(T * 4) * .25) });
+    M3.glit.forEach(m => m.emissiveIntensity = .5 + .5 * Math.sin(T * 6));
+    M3.neon.forEach(m => { if (m.emissiveIntensity !== undefined && !m.transparent) m.emissiveIntensity = .45 + .2 * Math.sin(T * 4) });
+    M3.r.render(M3.scene, cam);
   }
   // ---- kód (CSS) ----
   function cssOf() {
@@ -156,22 +246,7 @@ App.add((() => {
     F.best = Math.max(F.best, pts);
   }
   function newTheme(i) { let n; do n = Math.floor(Math.random() * THEMES.length); while (n === F.theme && i === undefined); F.theme = i ?? n; F.t = 90; F.on = true; F.custom = 0; renderEd(); $('#ds-th').innerHTML = `<small>A téma</small><b>${THEMES[F.theme].n}</b><span>${THEMES[F.theme].d}</span>`; toast(`Új téma: <b>${THEMES[F.theme].n}</b>`, '#ec4899', 2200) }
-  function dsDraw(T) {
-    const cv = F.cv; if (!cv || !cv.clientWidth) return; const c = F.ctx, d = Math.min(2, devicePixelRatio || 1), W = cv.clientWidth, H = cv.clientHeight;
-    if (cv.width !== Math.round(W * d)) { cv.width = Math.round(W * d); cv.height = Math.round(H * d) }
-    c.setTransform(d, 0, 0, d, 0, 0); const R = F.run;
-    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, R ? '#1a0b1f' : '#1b1424'); g.addColorStop(1, '#0b0c10'); c.fillStyle = g; c.fillRect(0, 0, W, H);
-    if (R) { // kifutó: fényszórók, vakuk
-      c.fillStyle = '#2a1830'; c.beginPath(); c.moveTo(W * .42, H * .25); c.lineTo(W * .58, H * .25); c.lineTo(W * .9, H); c.lineTo(W * .1, H); c.closePath(); c.fill();
-      for (let k = 0; k < 6; k++) { const x = W * (.12 + k * .152), a = .12 + .1 * Math.sin(T * 3 + k); c.fillStyle = `rgba(236,72,153,${a})`; c.beginPath(); c.moveTo(x, 0); c.lineTo(x - 60, H); c.lineTo(x + 60, H); c.closePath(); c.fill() }
-      if (Math.random() < .25) { c.fillStyle = 'rgba(255,255,255,.8)'; c.beginPath(); c.arc(Math.random() < .5 ? Math.random() * W * .25 : W - Math.random() * W * .25, H * (.5 + Math.random() * .4), 6 + Math.random() * 10, 0, 7); c.fill() }
-    } else { c.fillStyle = '#ffffff08'; for (let k = 0; k < 14; k++) c.fillRect(0, H - 40 - k * 30, W, 1) }
-    const p = R ? Math.min(1, R.t / 3.2) : 1, scl = (R ? .35 + .65 * p : 1) * Math.min(W / 420, H / 660), cx = W / 2, by = R ? H * (.3 + .68 * p) : H - 16;
-    c.save(); c.translate(cx, by); c.scale(scl, scl); c.translate(-200, -590 + (R ? Math.abs(Math.sin(R.t * 6)) * -6 : 0));
-    c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(200, 580, 70, 12, 0, 0, 7); c.fill();
-    drawModel(c, F.L, T, R && p < 1 ? R.t : 0); c.restore();
-    if (R && p >= 1) { c.font = '900 34px Inter,sans-serif'; c.textAlign = 'center'; c.fillStyle = '#fff'; c.shadowColor = '#ec4899'; c.shadowBlur = 20; c.fillText('PÓZ!', W / 2, 60); c.shadowBlur = 0 }
-  }
+  function dsDraw(T, dt) { m3Init(); if (M3.r) m3Frame(T, dt || .016) }
   function renderEd() {
     const P = PARTS[F.part] || null, isSkin = F.part === 'skin', p = isSkin ? null : F.L[F.part];
     $$('[data-dp]').forEach(b => b.classList.toggle('sel', b.dataset.dp === F.part));
@@ -195,7 +270,7 @@ App.add((() => {
     const hx = $('#ds-hex'); if (hx) { hx.addEventListener('keydown', e => e.stopPropagation()); hx.oninput = e => { let v = e.target.value.trim(); if (!v.startsWith('#')) v = '#' + v; if (/^#[0-9a-fA-F]{6}$/.test(v)) { p.c = v.toLowerCase(); F.custom++; $('#ds-pick').value = p.c; renderCode(); const r = $('.ds-rgb'); if (r) { const [a, b2, c2] = rgbOf(p.c); r.textContent = `RGB(${a}, ${b2}, ${c2})` } } } }
     const pk = $('#ds-pick'); if (pk) pk.oninput = e => { p.c = e.target.value; F.custom++; $('#ds-hex').value = p.c; renderCode() };
   }
-  function renderCode() { $('#ds-code').innerHTML = hl(cssOf()) }
+  function renderCode() { $('#ds-code').innerHTML = hl(cssOf()); M3.dirty = true }
   /* ================= 2. For You algoritmus ================= */
   const TOP = [['tanc', 'Tánc', 'music', '#f472b6'], ['allat', 'Cuki állatok', 'heart', '#fbbf24'], ['suti', 'Sütés-főzés', 'drop', '#fb923c'], ['gaming', 'Gaming', 'gamepad', '#a78bfa'], ['divat', 'Divat és smink', 'star', '#ec4899'], ['zene', 'Zene', 'sound', '#60a5fa'], ['tudomany', 'Tudomány', 'bulb', '#4ade80'], ['sport', 'Sport', 'activity', '#22d3ee'], ['diy', 'Kreatív DIY', 'hand', '#facc15'], ['tech', 'Tech és kódolás', 'code', '#38bdf8']];
   const CAP = {
@@ -245,7 +320,7 @@ App.add((() => {
       #ds,#fy{position:absolute;inset:64px 12px 12px}
       #ds{display:grid;grid-template-columns:minmax(0,1fr) 380px 340px;gap:12px}
       #ds-stage{position:relative;border-radius:20px;overflow:hidden;border:1px solid #ec489955;min-height:0}#ds-cv{position:absolute;inset:0;width:100%;height:100%}
-      #ds-th{position:absolute;top:12px;left:12px;right:12px;background:#0b0c10cc;border:1px solid #ec489966;border-radius:16px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(6px)}#ds-th small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#f9a8d4}#ds-th b{font-size:24px;color:#fff}#ds-th span{font-size:13.5px;color:#e5e7eb}
+      #ds-th{position:absolute;top:12px;left:12px;max-width:min(330px,60%);background:#0b0c10cc;border:1px solid #ec489966;border-radius:16px;padding:10px 14px;display:flex;flex-direction:column;gap:2px;backdrop-filter:blur(6px)}#ds-th small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#f9a8d4}#ds-th b{font-size:21px;color:#fff}#ds-th span{font-size:12.5px;color:#e5e7eb;line-height:1.35}
       #ds-time{position:absolute;bottom:14px;left:14px;font-size:30px;font-weight:900;color:#fff;text-shadow:0 0 12px #ec4899}
       #ds-go{position:absolute;bottom:14px;right:14px;height:56px;font-size:20px;padding:0 22px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;border:0;box-shadow:0 10px 30px -8px #ec4899}
       #ds-side{display:flex;flex-direction:column;gap:10px;min-height:0}
@@ -285,7 +360,7 @@ App.add((() => {
         <div class="learn" style="margin-top:0"><b>Tippek:</b> nézz tudatosan változatos tartalmat, ne adj meg személyes adatot, és időnként töröld az előzményeidet. Az ilyen rendszereket <b>programozók és adatelemzők</b> építik – akár te is lehetsz egyikük!</div></div>
       <div><div id="fy-phone"><div id="fy-feed"></div></div><div class="fy-btns"><button class="btn" id="fy-no">${icon('back', 18, 2)} Nem érdekel</button><button class="btn fy-like" id="fy-like">${icon('heart', 20, 2.2)} Lájk</button><button class="btn" id="fy-next">Tovább ${icon('arrow', 18, 2)}</button></div></div>
       <div class="fy-panel"><h3>Mit „tud” rólad az algoritmus?</h3><div id="fy-st"></div><div id="fy-bars"></div><div><b>Szűrőbuborék-mérő</b> <span style="color:var(--muted);font-size:13px">(az utolsó 10 videóból mennyi egyféle)</span></div><div class="fy-bw"><div id="fy-bub"></div></div><div id="fy-bubv" style="font-size:13px;color:var(--muted)"></div><button class="btn" id="fy-rs">Előzmények törlése</button></div></div>`;
-    F.cv = $('#ds-cv'); F.ctx = F.cv.getContext('2d');
+    F.cv = $('#ds-cv');
     $$('[data-tt]', r).forEach(b => b.onclick = () => { setTab(b.dataset.tt); sfx.click() });
     $$('[data-dp]', r).forEach(b => b.onclick = () => { F.part = b.dataset.dp; sfx.click(); renderEd() });
     $('#ds-go').onclick = runway;
@@ -299,13 +374,13 @@ App.add((() => {
       if (F.on && !window.EASY) { F.t -= dt; if (F.t <= 0) { F.t = 0; runway() } }
       const tm = $('#ds-time'); if (tm) tm.textContent = F.run ? '' : window.EASY ? '' : `${Math.ceil(F.t)} mp`;
       if (F.run) { const prev = F.run.t; F.run.t += dt; if (prev < 3.2 && F.run.t >= 3.2) beep(1200, .08, 'triangle', .05); if (prev < 4.2 && F.run.t >= 4.2) showScores() }
-      dsDraw(T);
+      dsDraw(T, dt);
     } else if (Y.cur && (performance.now() - Y.t0) / 1000 > 5) nextVideo('watched');
   };
-  S.enter = () => { if (F.cv) { F.cv.width = 0 } };
+  S.enter = () => { M3.dirty = true };
   S.leave = () => { F.racing = false };
-  S.comp = { rules: 'Divatkód verseny: 3 téma egymás után, mindegyikre 90 másodperc. A három AI-zsűritag pontjai összeadódnak (téma, színek, CSS-minták).', start: () => { setTab('ds'); F.racing = true; F.round = 0; F.total = 0; F.run = null; $('#ds-over').style.display = 'none'; F.L = look(); newTheme() } };
+  S.comp = { rules: 'Divatkód verseny: 3 téma egymás után, mindegyikre 90 másodperc. A három AI-zsűritag pontjai összeadódnak (téma, színek, CSS-minták).', start: () => { setTab('ds'); F.racing = true; F.round = 0; F.total = 0; F.run = null; $('#ds-over').style.display = 'none'; F.L = look(); M3.dirty = true; renderEd(); renderCode(); newTheme() } };
   S.score = () => F.best;
-  S._dbg = () => ({ F, Y, judge, runway, nextVideo });
+  S._dbg = () => ({ F, Y, M3, judge, runway, nextVideo });
   return S;
 })());
