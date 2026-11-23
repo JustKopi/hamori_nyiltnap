@@ -2,7 +2,7 @@
 
 /* ---------- RJ45-krimpelő (T568B) ---------- */
 App.add((() => {
-  const S = { id: 'rj45', icon: '', title: 'RJ45-krimpelő', color: '#f97316', desc: 'Rakd sorba a nyolc eret a T568B szabvány szerint, krimpeld rá a csatlakozót, és mérd ki a kábeltesztelővel!', topic: 'Strukturált kábelezés, T568B, kábeltesztelés' };
+  const S = { id: 'rj45', icon: '', title: 'RJ45-krimpelő', color: '#f97316', desc: 'Nézd meg, milyen egy hálózati kábel és hova lehet bedugni, krimpelj RJ45 csatlakozót, majd kösd be a kábeleket a jó aljzatokba!', topic: 'Strukturált kábelezés, T568B, kábeltesztelés' };
   const W = [['fehér-narancs', '#fb923c', 1], ['narancs', '#fb923c', 0], ['fehér-zöld', '#22c55e', 1], ['kék', '#3b82f6', 0], ['fehér-kék', '#3b82f6', 1], ['zöld', '#22c55e', 0], ['fehér-barna', '#a16207', 1], ['barna', '#a16207', 0]];
   let pool = [], slots = [], sel = null, phase = 'sort', racing = false, rT = 0, done = 0, mist = 0, best = 0, root;
   const wireCss = (w) => w[2] ? `background:repeating-linear-gradient(45deg,#f5f5f4 0 7px,${w[1]} 7px 13px)` : `background:${w[1]}`;
@@ -49,10 +49,169 @@ App.add((() => {
     render();
     setTimeout(() => { leds.innerHTML = ''; if (racing && done >= 3) { racing = false; const sc = Math.max(50, Math.round(1500 - rT * 8 - mist * 150)); best = Math.max(best, sc); Comp.finish(sc, `3 csatlakozó ${Math.round(rT)} mp alatt, ${mist} hiba`); done = 0 } newPlug() }, 2600);
   }
+  /* ---------- csatlakozó-formák (60×40-es mezőben, SVG-hez és canvashoz is) ---------- */
+  const SH = {
+    rj45: { n: 'RJ45 hálózati', p: 'M8 6H52V32H38V37H22V32H8Z', pins: [8, 12, 5, 8, 16], c: '#60a5fa' },
+    rj11: { n: 'RJ11 telefon', p: 'M17 10H43V30H35V34H25V30H17Z', pins: [4, 24, 4, 12, 18], c: '#e5e7eb' },
+    usba: { n: 'USB-A', p: 'M8 13H52V28H8Z', in: 'M12 14H48V20H12Z', c: '#3b82f6' },
+    usbc: { n: 'USB-C', p: 'M14 15H46A5.5 5.5 0 0 1 46 26H14A5.5 5.5 0 0 1 14 15Z', c: '#9ca3af' },
+    hdmi: { n: 'HDMI', p: 'M8 13H52V21L46 28H14L8 21Z', c: '#111827' },
+    dp: { n: 'DisplayPort', p: 'M8 13H52V28H15L8 21Z', c: '#111827' },
+    jack: { n: '3,5 mm jack (hang)', p: 'M30 13A7 7 0 1 1 29.99 13Z', c: '#84cc16' },
+    dc: { n: 'Kerek tápcsatlakozó', p: 'M30 11A9 9 0 1 1 29.99 11Z', in: 'M30 18A2.5 2.5 0 1 1 29.99 18Z', c: '#111827' },
+    iec: { n: 'Hálózati tápkábel', p: 'M10 9H50V24L42 32H18L10 24Z', in: 'M17 17H21V23H17Z M28 17H32V23H28Z M39 17H43V23H39Z', c: '#111827' },
+    lc: { n: 'Optikai (LC)', p: 'M13 14H27V28H13Z M33 14H47V28H33Z', c: '#38bdf8' }
+  };
+  function face(k, mode, size = 60) {
+    const s = SH[k], port = mode === 'port';
+    const pins = s.pins ? Array.from({ length: s.pins[0] }, (_, i) => `<rect x="${s.pins[1] + i * s.pins[2]}" y="${s.pins[3]}" width="${Math.max(1.4, s.pins[2] * .45)}" height="${s.pins[4] - s.pins[3]}" fill="#fbbf24"/>`).join('') : '';
+    return `<svg viewBox="0 0 60 40" width="${size}" height="${size * 2 / 3}" aria-hidden="true"><path d="${s.p}" fill="${port ? '#05070a' : s.c}" stroke="${port ? '#94a3b8' : '#0008'}" stroke-width="${port ? 2 : 1.2}" fill-rule="evenodd"/>${s.in ? `<path d="${s.in}" fill="${port ? (k === 'usba' ? '#1d4ed8' : '#94a3b8') : '#0006'}"/>` : ''}${pins}</svg>`;
+  }
+  /* ---------- 1. Ismerd meg: animált bemutató ---------- */
+  const PAIRS = [['#fb923c', 0, 1], ['#22c55e', 2, 5], ['#3b82f6', 4, 3], ['#a16207', 6, 7]]; // szín, csíkos ér T568B-helye, egyszínű ér helye
+  const SCN = [
+    { h: 'Ez egy UTP hálózati kábel', s: 'Kívül műanyag köpeny, belül 4 csavart érpár: összesen 8 vékony rézvezeték.', d: 7 },
+    { h: 'Kibontjuk és sorba rakjuk', s: 'A csavarás véd a zavaroktól. A végén kiegyenesítjük az ereket, és T568B szerint sorba rakjuk.', d: 6 },
+    { h: 'Ráhúzzuk az RJ45 dugót', s: 'A krimpelő fogó belenyomja a 8 aranyozott érintkezőt az erekbe. Klikk – kész a csatlakozó!', d: 6 },
+    { h: 'Hova lehet bedugni?', s: 'Minden eszközbe, amelyiknek van RJ45 aljzata: ha bedugtad, kigyullad a zöld lámpa.', d: 13 },
+    { h: 'Össze ne keverd!', s: 'Sok dugó hasonlít, de csak a saját aljzatába illik. Az RJ11 telefondugó befér, mégsem működik vele a hálózat.', d: 9 }
+  ];
+  const SOCK = [['pc', 'Számítógép (hálózati kártya)'], ['kapcsolo', 'Kapcsoló (switch)'], ['router', 'Router'], ['home', 'Fali aljzat'], ['video', 'Okostévé'], ['gamepad', 'Játékkonzol']];
+  const I = { sc: 0, t: 0, play: true, cv: null, ctx: null, p2: {} };
+  const P2 = k => I.p2[k] || (I.p2[k] = new Path2D(SH[k].p));
+  const ez = t => t <= 0 ? 0 : t >= 1 ? 1 : t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2, seg = (t, a, b) => ez((t - a) / (b - a));
+  function txt(c, s, x, y, sz = 18, col = '#e2e8f0', al = 'center', w = 800) { c.font = `${w} ${sz}px Inter,system-ui,sans-serif`; c.fillStyle = col; c.textAlign = al; c.fillText(s, x, y) }
+  function callout(c, x, y, tx, ty, s, a) { if (a <= 0) return; c.globalAlpha = a; c.strokeStyle = '#fde047'; c.lineWidth = 2; c.beginPath(); c.moveTo(x, y); c.lineTo(tx, ty); c.stroke(); c.beginPath(); c.arc(x, y, 4, 0, 7); c.fillStyle = '#fde047'; c.fill(); c.font = '700 16px Inter,sans-serif'; const w = c.measureText(s).width + 18; c.fillStyle = '#0b0c10e0'; c.fillRect(tx - w / 2, ty - 15, w, 28); c.strokeRect(tx - w / 2, ty - 15, w, 28); txt(c, s, tx, ty + 5, 16, '#fde047', 'center', 700); c.globalAlpha = 1 }
+  function wires(c, x0, x1, cy, amp, spread, ex = 0) {
+    // 8 ér: párok csavarva (amp), majd egymás mellé terítve (spread 0..1) T568B sorrendben
+    PAIRS.forEach(([col, a, b], k) => [[a, 1, 0], [b, 0, Math.PI]].forEach(([pos, striped, ph]) => {
+      c.beginPath(); for (let x = x0; x <= x1 + ex; x += 4) { const pairY = cy + (k - 1.5) * 20, tw = pairY + Math.sin(x * .09 + ph + k) * 5 * amp, fin = cy + (pos - 3.5) * 11, f = spread * Math.min(1, Math.max(0, (x - x0) / 60)); const y = tw + (fin - tw) * f; x === x0 ? c.moveTo(x, y) : c.lineTo(x, y) }
+      c.lineCap = 'round'; c.lineWidth = 8; c.strokeStyle = col; c.stroke(); if (striped) { c.setLineDash([5, 6]); c.strokeStyle = '#f5f5f4'; c.lineWidth = 8; c.stroke(); c.setLineDash([]) }
+    }));
+  }
+  function plug(c, x, y, sc, press, alpha = 1) {
+    c.save(); c.translate(x, y); c.scale(sc, sc); c.globalAlpha = alpha;
+    c.fillStyle = 'rgba(226,232,240,.35)'; c.strokeStyle = '#e2e8f0'; c.lineWidth = 2; c.beginPath(); c.roundRect(-10, -42, 130, 84, 8); c.fill(); c.stroke();
+    c.fillStyle = 'rgba(226,232,240,.5)'; c.beginPath(); c.moveTo(20, 42); c.lineTo(100, 42); c.lineTo(90, 58); c.lineTo(30, 58); c.closePath(); c.fill(); c.stroke();
+    for (let i = 0; i < 8; i++) { c.fillStyle = '#fbbf24'; c.fillRect(92, -38 + i * 10.5, 22, 5 + press * 2) }
+    c.restore(); c.globalAlpha = 1;
+  }
+  function introDraw() {
+    if (!I.cv || !I.cv.clientWidth) return; const c = I.ctx, W = 1000, H = 560, t = I.t, S0 = SCN[I.sc];
+    c.setTransform(I.cv.width / W, 0, 0, I.cv.height / H, 0, 0);
+    const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#0f172a'); g.addColorStop(1, '#111827'); c.fillStyle = g; c.fillRect(0, 0, W, H);
+    txt(c, S0.h, W / 2, 50, 30); c.font = '500 17px Inter,sans-serif'; c.fillStyle = '#94a3b8'; c.textAlign = 'center'; c.fillText(S0.s, W / 2, 82);
+    const cy = 300;
+    if (I.sc === 0) {
+      const slide = seg(t, 0, 1.3), endX = -380 + slide * 1080, cut = seg(t, 2.6, 4), jEnd = endX - cut * 270;
+      wires(c, Math.min(jEnd, endX) - 2, endX, cy, 1, 0);
+      const jg = c.createLinearGradient(0, cy - 40, 0, cy + 40); jg.addColorStop(0, '#93c5fd'); jg.addColorStop(.5, '#3b82f6'); jg.addColorStop(1, '#1e3a8a'); c.fillStyle = jg; c.beginPath(); c.roundRect(-20, cy - 42, jEnd + 20, 84, 30); c.fill();
+      c.fillStyle = '#ffffff30'; c.fillRect(-20, cy - 30, jEnd + 10, 6); txt(c, 'CAT6 UTP  •  4 PAIR  •  23 AWG', Math.max(120, jEnd - 260), cy + 6, 14, '#dbeafe', 'center', 700);
+      if (t > 1.6 && t < 3.2) { const kx = endX - 270, ky = cy - 120 + seg(t, 1.6, 2.4) * 70 - seg(t, 2.6, 3.2) * 70; c.save(); c.translate(kx, ky); c.fillStyle = '#e5e7eb'; c.beginPath(); c.moveTo(0, 0); c.lineTo(60, 10); c.lineTo(0, 22); c.closePath(); c.fill(); c.fillStyle = '#f97316'; c.fillRect(-70, 2, 70, 18); c.restore() }
+      callout(c, 160, cy - 40, 200, cy - 120, 'műanyag köpeny', seg(t, 1.2, 1.8));
+      callout(c, jEnd + 130, cy - 20, jEnd + 160, cy + 130, '4 csavart érpár = 8 rézér', seg(t, 4.2, 4.8));
+    } else if (I.sc === 1) {
+      const jEnd = 430; const amp = 1 - seg(t, .5, 2.5), sp = seg(t, 2.5, 4.2);
+      c.fillStyle = '#3b82f6'; c.beginPath(); c.roundRect(-20, cy - 42, jEnd + 20, 84, 30); c.fill(); wires(c, jEnd - 2, 740, cy, amp, sp);
+      if (t > 4.4) { const a = seg(t, 4.4, 5); c.globalAlpha = a; ['fehér-narancs', 'narancs', 'fehér-zöld', 'kék', 'fehér-kék', 'zöld', 'fehér-barna', 'barna'].forEach((n, i) => { txt(c, `${i + 1}`, 765, cy + (i - 3.5) * 11 + 4, 11, '#fde047', 'left', 800); txt(c, n, 785, cy + (i - 3.5) * 11 + 4, 11, '#cbd5e1', 'left', 600) }); c.globalAlpha = 1 }
+    } else if (I.sc === 2) {
+      c.fillStyle = '#3b82f6'; c.beginPath(); c.roundRect(-20, cy - 42, 450, 84, 30); c.fill(); wires(c, 428, 610, cy, 0, 1);
+      const px = 900 - seg(t, .3, 2) * 410, press = seg(t, 2.6, 3.1) - seg(t, 3.6, 4);
+      plug(c, px, cy, 1, press);
+      if (t > 2.2 && t < 4.2) { const jy = 70 * (1 - press); c.fillStyle = '#ef4444'; c.fillRect(px - 20, cy - 170 + jy, 170, 60); c.fillRect(px - 20, cy + 110 - jy, 170, 60); txt(c, 'krimpelő fogó', px + 65, cy - 130 + jy, 15, '#fff', 'center', 800) }
+      if (t > 3 && t < 3.8) { txt(c, 'KLIKK!', px + 60, cy - 70, 34, '#fde047'); }
+      callout(c, px + 103, cy - 34, px + 150, cy - 150, '8 aranyozott érintkező', seg(t, 4.2, 4.7)); callout(c, px + 60, cy + 52, px + 120, cy + 150, 'rögzítő fül', seg(t, 4.6, 5.1));
+    } else if (I.sc === 3) {
+      const n = SOCK.length, k = Math.min(n - 1, Math.floor(t / 2)), lt = t - k * 2;
+      SOCK.forEach(([ic, name], i) => {
+        const sx = 110 + i * 156, sy = 420, done = i < k || (i === k && lt > 1.1);
+        c.fillStyle = '#1e293b'; c.beginPath(); c.roundRect(sx - 66, sy - 120, 132, 190, 16); c.fill(); c.strokeStyle = i === k ? '#22d3ee' : '#334155'; c.lineWidth = 2; c.stroke();
+        drawIcon(c, ic, sx, sy - 80, 46, '#cbd5e1', 2); c.save(); c.translate(sx - 30, sy - 22); c.fillStyle = '#05070a'; c.strokeStyle = '#94a3b8'; c.lineWidth = 2; c.fill(P2('rj45')); c.stroke(P2('rj45')); c.restore();
+        const blink = done && Math.sin(T * 18 + i) > 0; [[-22, '#22c55e', done], [22, '#f59e0b', blink]].forEach(([dx, col, on]) => { c.beginPath(); c.arc(sx + dx, sy + 30, 6, 0, 7); c.fillStyle = on ? col : '#334155'; if (on) { c.shadowColor = col; c.shadowBlur = 12 } c.fill(); c.shadowBlur = 0 });
+        c.font = '700 12.5px Inter,sans-serif'; c.fillStyle = '#e2e8f0'; c.textAlign = 'center'; const words = name.split(' '); const l1 = words.slice(0, 2).join(' '), l2 = words.slice(2).join(' '); c.fillText(l1, sx, sy + 56); if (l2) c.fillText(l2, sx, sy + 72);
+      });
+      const tx = 110 + k * 156, ty = 398, from = [W / 2, 170], m = seg(lt, 0, .8), ins = seg(lt, .8, 1.1), out = seg(lt, 1.6, 1.95);
+      const x = from[0] + (tx - from[0]) * (m - out * 0), y = from[1] + (ty - 60 - from[1]) * m + ins * 46 - out * 46;
+      c.strokeStyle = '#3b82f6'; c.lineWidth = 12; c.lineCap = 'round'; c.beginPath(); c.moveTo(W / 2, 110); c.quadraticCurveTo(W / 2, (110 + y) / 2, x, y - 40); c.stroke();
+      c.save(); c.translate(x, y); c.rotate(Math.PI / 2); c.scale(.45, .45); c.translate(-115, 0); plug(c, 0, 0, 1, 0); c.restore();
+      if (lt > 1.1 && lt < 1.6) txt(c, 'Klikk – kapcsolat!', tx, 300, 18, '#4ade80');
+    } else {
+      const items = [['rj45', 'RJ45 – hálózat', 'Ez kell ide!', '#4ade80'], ['rj11', 'RJ11 – telefon', 'Befér, de nem jó', '#fbbf24'], ['usba', 'USB-A', 'Nem fér bele', '#f87171'], ['hdmi', 'HDMI – kép', 'Nem fér bele', '#f87171'], ['lc', 'Optikai kábel', 'Másik aljzat kell', '#f87171']];
+      items.forEach(([k, n, v, col], i) => {
+        const a = seg(t, .3 + i * .9, .9 + i * .9), x = 120 + i * 190, y = 290 - (1 - a) * 40; c.globalAlpha = a;
+        c.fillStyle = '#1e293b'; c.beginPath(); c.roundRect(x - 80, y - 110, 160, 230, 18); c.fill();
+        c.save(); c.translate(x - 60, y - 80); c.scale(2, 2); c.fillStyle = SH[k].c; c.strokeStyle = '#0008'; c.lineWidth = .8; c.fill(P2(k), 'evenodd'); c.stroke(P2(k)); if (SH[k].pins) for (let q = 0; q < SH[k].pins[0]; q++) { c.fillStyle = '#fbbf24'; c.fillRect(SH[k].pins[1] + q * SH[k].pins[2], SH[k].pins[3], Math.max(1.4, SH[k].pins[2] * .45), SH[k].pins[4] - SH[k].pins[3]) } c.restore();
+        txt(c, n, x, y + 30, 15, '#e2e8f0', 'center', 800); c.fillStyle = col; c.beginPath(); c.roundRect(x - 70, y + 52, 140, 34, 17); c.fill(); txt(c, v, x, y + 75, 14, '#0b0c10', 'center', 800); c.globalAlpha = 1;
+      });
+    }
+    // jelenet-pöttyök és idősáv
+    SCN.forEach((_, i) => { c.beginPath(); c.arc(W / 2 + (i - 2) * 22, H - 22, i === I.sc ? 7 : 5, 0, 7); c.fillStyle = i === I.sc ? '#22d3ee' : '#475569'; c.fill() });
+    c.fillStyle = '#22d3ee'; c.fillRect(0, H - 4, W * Math.min(1, I.t / S0.d), 4);
+  }
+  let T = 0;
+  function introTick(dt) { T += dt; if (I.play) { I.t += dt; if (I.t > SCN[I.sc].d) { if (I.sc < SCN.length - 1) { I.sc++; I.t = 0 } else { I.t = SCN[I.sc].d; I.play = false; introBtns() } } } introDraw() }
+  function introBtns() { const b = $('#rj-ip'); if (b) b.innerHTML = I.play ? 'Szünet' : (I.sc === SCN.length - 1 && I.t >= SCN[I.sc].d ? 'Újra' : 'Lejátszás') }
+  /* ---------- 3. Melyik dugó hova? ---------- */
+  const LV = [
+    { n: 'A számítógép hátulja', ports: [['iec', 'Táp'], ['hdmi', 'Monitor 1'], ['dp', 'Monitor 2'], ['usba', 'USB'], ['usba', 'USB'], ['rj45', 'Hálózat'], ['jack', 'Hang ki']],
+      plugs: [['iec', 'Tápkábel a konnektorból'], ['hdmi', 'Monitor kábele (HDMI)'], ['dp', 'Másik monitor (DisplayPort)'], ['usba', 'Billentyűzet'], ['usba', 'Egér'], ['rj45', 'Hálózati kábel'], ['jack', 'Fejhallgató']] },
+    { n: 'Az otthoni router', ports: [['dc', 'Táp 12 V'], ['rj11', 'DSL (telefonvonal)'], ['rj45', 'LAN 1'], ['rj45', 'LAN 2'], ['rj45', 'LAN 3'], ['usba', 'USB']],
+      plugs: [['dc', 'Router tápegysége'], ['rj11', 'Internet a telefonvonalról'], ['rj45', 'Asztali gép'], ['rj45', 'Okostévé'], ['rj45', 'Játékkonzol'], ['usba', 'Pendrive (fájlmegosztás)']], hint: 'Az internet itt telefonvonalon érkezik: annak az RJ11 aljzat kell!' },
+    { n: 'Szerverszekrény (kapcsoló)', ports: [['lc', 'SFP optika 1'], ['lc', 'SFP optika 2'], ['rj45', 'Port 1'], ['rj45', 'Port 2'], ['rj45', 'Port 3'], ['rj45', 'Port 4'], ['usbc', 'Konzol (USB-C)'], ['iec', 'Táp']],
+      plugs: [['lc', 'Optikai gerinc az épület felé'], ['lc', 'Optika a szervertermbe'], ['rj45', 'Tanári gép'], ['rj45', 'Nyomtató'], ['rj45', 'WiFi-hozzáférési pont'], ['rj45', 'Kamera'], ['usbc', 'Rendszergazda laptopja'], ['iec', 'Szünetmentes táp']] }
+  ];
+  const G = { lv: 0, filled: [], left: [], t: 0, on: false, miss: 0, total: 0 };
+  function portsStart(l) {
+    G.lv = l; const L = LV[l]; G.filled = L.ports.map(() => null); G.left = L.plugs.map((p, i) => i).sort(() => Math.random() - .5); G.t = 0; G.on = true; if (l === 0) { G.miss = 0; G.total = 0 } portsRender();
+    if (L.hint) toast(L.hint, '#38bdf8', 3800);
+  }
+  function portsRender() {
+    const L = LV[G.lv];
+    $('#rp-h').innerHTML = `<b>${G.lv + 1}/${LV.length}. ${L.n}</b><span>${Math.round(G.t)} mp • ${G.miss} rossz próba</span>`;
+    $('#rp-panel').className = 'rp-panel rp-l' + G.lv;
+    $('#rp-panel').innerHTML = L.ports.map(([k, n], i) => `<div class="rp-port ${G.filled[i] !== null ? 'in' : ''}" data-p="${i}"><div class="rp-hole">${face(k, 'port', 78)}${G.filled[i] !== null ? `<div class="rp-plugged">${face(k, 'plug', 78)}</div>` : ''}</div><small>${G.filled[i] !== null || window.EASY ? n : '?'}</small><i class="rp-led"></i></div>`).join('');
+    $('#rp-tray').innerHTML = G.left.map(i => { const [k, n] = L.plugs[i]; return `<div class="rp-plug" data-i="${i}"><div class="rp-cab" style="--cc:${k === 'rj45' ? '#3b82f6' : k === 'lc' ? '#facc15' : '#1f2937'}"></div>${face(k, 'plug', 76)}<b>${n}</b><small>${SH[k].n}</small></div>` }).join('') || '';
+    $$('.rp-plug').forEach(p => p.onpointerdown = e => plugDrag(e, p, +p.dataset.i));
+  }
+  function plugDrag(e, el, i) {
+    if (!G.on) return; e.preventDefault(); const L = LV[G.lv], k = L.plugs[i][0], r = el.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top;
+    const gh = el.cloneNode(true); gh.classList.add('rp-ghost'); gh.style.width = r.width + 'px'; gh.style.left = r.left + 'px'; gh.style.top = r.top + 'px'; document.body.appendChild(gh); el.style.opacity = .25;
+    const mv = ev => { gh.style.left = ev.clientX - ox + 'px'; gh.style.top = ev.clientY - oy + 'px'; const t = document.elementFromPoint(ev.clientX, ev.clientY); $$('.rp-port').forEach(p => p.classList.toggle('over', !!t && p.contains(t) && !p.classList.contains('in'))) };
+    const up = ev => {
+      removeEventListener('pointermove', mv); removeEventListener('pointerup', up); $$('.rp-port').forEach(p => p.classList.remove('over'));
+      gh.style.pointerEvents = 'none'; const t = document.elementFromPoint(ev.clientX, ev.clientY), port = t && t.closest('.rp-port');
+      if (port && !port.classList.contains('in')) {
+        const pi = +port.dataset.p, pk = L.ports[pi][0];
+        if (pk === k) { G.filled[pi] = i; G.left = G.left.filter(x => x !== i); gh.remove(); beep(1200, .03, 'square', .05); beep(700, .08, 'triangle', .05, 0, .04); portsRender(); const np = $(`.rp-port[data-p="${pi}"]`); np.classList.add('pop'); FX.burstEl(np, 14, ['#4ade80', '#fde047']); if (!G.left.length) setTimeout(levelDone, 500); return }
+        G.miss++; sfx.bad(); toast(`<b>Nem illik!</b> Ez <b>${SH[k].n}</b> dugó, az aljzat pedig <b>${SH[pk].n}</b>. ${k === 'rj11' && pk === 'rj45' ? 'Az RJ11 kisebb: befér, de nem működik vele a hálózat.' : k === 'rj45' && pk === 'rj11' ? 'Az RJ45 szélesebb, mint a telefonaljzat.' : 'Nézd meg az alakját!'}`, '#f87171', 2600);
+        port.classList.remove('no'); void port.offsetWidth; port.classList.add('no');
+      }
+      gh.style.transition = 'left .3s cubic-bezier(.2,.8,.2,1),top .3s cubic-bezier(.2,.8,.2,1),opacity .3s'; const rr = el.getBoundingClientRect(); gh.style.left = rr.left + 'px'; gh.style.top = rr.top + 'px'; gh.style.opacity = 0; setTimeout(() => { gh.remove(); el.style.opacity = '' }, 300);
+    };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  }
+  function levelDone() {
+    G.total += G.t; sfx.win(); FX.confetti();
+    const last = G.lv === LV.length - 1, sc = Math.max(100, Math.round(1500 - G.total * 10 - G.miss * 60));
+    if (last) { G.on = false; portBest = Math.max(portBest, sc) }
+    const o = $('#rp-over'); o.style.display = 'flex';
+    o.innerHTML = `<div class="card"><h2>${last ? 'Minden kábel a helyén!' : 'Szint teljesítve!'}</h2><p>${LV[G.lv].n}: ${Math.round(G.t)} mp${last ? ` • összesen ${Math.round(G.total)} mp, ${G.miss} rossz próba • <b>${sc} pont</b>` : ''}</p>
+      <div class="learn">${['A gép hátulján minden csatlakozó más alakú, hogy ne lehessen összekeverni. A <b>hálózati kábel</b> mindig az RJ45 aljzatba megy.', 'A routerben a <b>LAN</b> aljzatokba kötjük az otthoni eszközöket. Az internet érkezhet telefonvonalon (<b>DSL, RJ11</b>), kábeltévén vagy optikán.', 'A szerverszekrényben az épületek közötti nagy távolságot <b>optikai kábel</b> hidalja át, fénnyel. A rendszergazda a <b>konzolporton</b> állítja be a kapcsolót.'][G.lv]}</div>
+      <div style="margin-top:14px"><button class="btn go" id="rp-next">${last ? 'Újra az elejéről' : 'Következő szint ▶'}</button></div></div>`;
+    $('#rp-next').onclick = () => { o.style.display = 'none'; portsStart(last ? 0 : G.lv + 1) };
+  }
+  let portBest = 0;
+  let rtab = 'intro';
+  function setRTab(t) {
+    rtab = t; $$('[data-rt]').forEach(b => b.classList.toggle('sel', b.dataset.rt === t));
+    $('#rj-intro').style.display = t === 'intro' ? '' : 'none'; $('#rj').style.display = t === 'crimp' ? '' : 'none'; $('#rj-ports').style.display = t === 'ports' ? '' : 'none';
+    if (t === 'intro') { const cv = I.cv, r = cv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1); cv.width = Math.round(r.width * d) || 1000; cv.height = Math.round(r.width * .56 * d) || 560 }
+    if (t === 'ports' && !G.on) portsStart(0);
+  }
   S.build = r => {
     root = r;
     r.innerHTML = `<style>
-      #rj{position:absolute;inset:0;overflow:auto;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}
+      #rj{position:absolute;inset:64px 0 0 0;overflow:auto;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}
       #rj-main{display:flex;flex-direction:column;gap:16px;align-items:center}
       #rj-plug{display:flex;gap:8px;padding:22px 26px 40px;background:linear-gradient(#e2e8f0cc,#cbd5e1aa);border:3px solid #94a3b8;border-radius:16px 16px 26px 26px;position:relative;box-shadow:inset 0 -12px 0 #94a3b844}
       #rj-plug::after{content:"RJ45 csatlakozó (érintkezők felül, fül alul)";position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;color:#334155;font-weight:600}
@@ -67,9 +226,30 @@ App.add((() => {
       #rj-crimp{height:54px;font-size:20px;padding:0 30px}
       #rj-leds{display:flex;gap:8px;min-height:64px}.rj-l{display:flex;flex-direction:column;align-items:center;gap:3px;width:64px;font-size:11px}.rj-l i{width:22px;height:22px;border-radius:50%}.rj-l.g i{background:#22c55e;box-shadow:0 0 14px #22c55e}.rj-l.r i{background:#ef4444;box-shadow:0 0 14px #ef4444}.rj-l span{text-align:center;line-height:1.1}
       .rj-side{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;font-size:14.5px;line-height:1.5;display:flex;flex-direction:column;gap:10px}
+      #rj-tabs{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:3;display:flex;gap:4px;background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:5px}#rj-tabs .btn{height:40px;font-size:14.5px;padding:0 14px;white-space:nowrap}
+      #rj-intro{position:absolute;inset:64px 0 0 0;display:flex;flex-direction:column;align-items:center;gap:10px;padding:0 20px 16px;overflow:auto}
+      #rj-icv{width:min(100%,calc((100vh - 200px) * 1.786));aspect-ratio:1000/560;border-radius:18px;border:1px solid var(--line);display:block}
+      .rj-ib{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.rj-ib .btn{height:44px;font-size:15px;padding:0 18px}
+      #rj-ports{position:absolute;inset:64px 0 0 0;overflow:auto;padding:0 20px 20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+      #rp-h{display:flex;gap:16px;align-items:baseline;font-size:20px}#rp-h span{font-size:15px;color:var(--muted)}
+      .rp-panel{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;padding:22px 26px;border-radius:18px;background:linear-gradient(#3f4652,#262b33);border:3px solid #4b5563;box-shadow:inset 0 2px 0 #ffffff22,0 20px 40px #0008;max-width:1100px}
+      .rp-l1{background:linear-gradient(#f1f5f9,#cbd5e1);border-color:#94a3b8}.rp-l1 small{color:#0f172a!important}.rp-l2{background:linear-gradient(#1f2937,#0b0f14);border-color:#374151}
+      .rp-port{display:flex;flex-direction:column;align-items:center;gap:6px;width:112px;padding:8px 4px;border-radius:12px;transition:transform .2s,background .2s}.rp-port small{font-size:12px;color:#e5e7eb;text-align:center;font-weight:700;min-height:30px}
+      .rp-hole{position:relative;width:90px;height:62px;display:grid;place-items:center;background:#0b0c10;border-radius:8px;box-shadow:inset 0 3px 8px #000}
+      .rp-plugged{position:absolute;inset:0;display:grid;place-items:center;animation:rpIn .35s cubic-bezier(.2,1.4,.4,1)}@keyframes rpIn{from{transform:translateY(-40px) scale(1.3);opacity:0}}
+      .rp-led{width:10px;height:10px;border-radius:50%;background:#374151}.rp-port.in .rp-led{background:#22c55e;box-shadow:0 0 10px #22c55e;animation:rpLed 1.2s infinite}@keyframes rpLed{50%{opacity:.4}}
+      .rp-port.over{background:#22d3ee33;transform:scale(1.08)}.rp-port.no{animation:rpNo .4s}@keyframes rpNo{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}.rp-port.pop{animation:rpPop .4s}@keyframes rpPop{50%{transform:scale(1.15)}}
+      #rp-tray{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:1100px;min-height:120px}
+      .rp-plug{position:relative;width:150px;background:var(--panel);border:2px solid var(--line2);border-radius:16px;padding:12px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:grab;touch-action:none;user-select:none;transition:transform .15s,border-color .15s}
+      .rp-plug:hover{transform:translateY(-4px);border-color:var(--accent)}.rp-plug b{font-size:13.5px;text-align:center;line-height:1.25}.rp-plug small{font-size:11.5px;color:var(--muted)}
+      .rp-cab{position:absolute;top:-14px;width:12px;height:26px;border-radius:6px;background:var(--cc)}
+      .rp-ghost{position:fixed;z-index:200;pointer-events:none;transform:rotate(-4deg) scale(1.05);box-shadow:0 20px 40px #000a;border-color:var(--accent)}
       .rj-side ol{margin:0;padding-left:22px}.rj-side li{margin:2px 0}#rj-st{font-size:16px}
     </style>
-    <div id="rj"><div id="rj-main"><h2 style="margin:0">Krimpeld meg a hálózati kábelt!</h2>
+    <div id="rj-tabs"><button class="btn" data-rt="intro">1. Ismerd meg a kábelt</button><button class="btn" data-rt="crimp">2. Krimpelés</button><button class="btn" data-rt="ports">3. Melyik dugó hova?</button></div>
+    <div id="rj-intro"><canvas id="rj-icv" width="1000" height="560"></canvas><div class="rj-ib"><button class="btn" id="rj-ib">Előző</button><button class="btn" id="rj-ip">Szünet</button><button class="btn" id="rj-in">Következő</button><button class="btn go" id="rj-ig">Jöhet a krimpelés ▶</button></div></div>
+    <div id="rj-ports" style="display:none"><div id="rp-h"></div><div id="rp-panel" class="rp-panel"></div><div style="color:var(--muted)">Húzd a kábeleket a megfelelő aljzatba! Figyeld a dugók <b>alakját</b>.</div><div id="rp-tray"></div><div class="big-overlay" id="rp-over" style="display:none"></div></div>
+    <div id="rj" style="display:none"><div id="rj-main"><h2 style="margin:0">Krimpeld meg a hálózati kábelt!</h2>
       <div style="color:var(--muted)"><b>Húzd</b> az ereket a csatlakozó helyeire (vagy kattints az érre, majd a helyre). Egy eret másik helyre húzva helyet cserélnek, a sorba visszahúzva kiveszed.</div>
       <div id="rj-plug"></div><div id="rj-pool"></div>
       <div style="display:flex;gap:14px;align-items:center"><span id="rj-tool">${icon('rj45', 44, 1.6)}</span><button class="btn go" id="rj-crimp">Krimpelés és tesztelés</button></div><div id="rj-leds"></div></div>
@@ -77,10 +257,18 @@ App.add((() => {
         <details><summary style="cursor:pointer;color:var(--accent);font-weight:700">Puska (ha elakadsz)</summary><ol>${W.map(w => `<li>${w[0]}</li>`).join('')}</ol></details>
         <div class="learn" style="margin-top:0">A hálózati kábelben <b>4 csavart érpár</b> fut. A csavarás csökkenti a zavarokat. Ha mindkét végén T568B a sorrend, <b>egyenes kábel</b> lesz belőle: így kötjük a gépeket a kapcsolóhoz. A technikusok a <b>kábeltesztelővel</b> ellenőrzik, hogy mind a 8 ér jó helyre került-e.</div></div></div>`;
     $('#rj-crimp').onclick = crimp; newPlug();
+    I.cv = $('#rj-icv'); I.ctx = I.cv.getContext('2d');
+    $$('[data-rt]', r).forEach(b => b.onclick = () => { setRTab(b.dataset.rt); sfx.click() });
+    $('#rj-ib').onclick = () => { I.sc = Math.max(0, I.sc - 1); I.t = 0; I.play = true; introBtns() };
+    $('#rj-in').onclick = () => { I.sc = Math.min(SCN.length - 1, I.sc + 1); I.t = 0; I.play = true; introBtns() };
+    $('#rj-ip').onclick = () => { if (!I.play && I.sc === SCN.length - 1 && I.t >= SCN[I.sc].d) { I.sc = 0; I.t = 0 } I.play = !I.play; introBtns() };
+    $('#rj-ig').onclick = () => setRTab('crimp');
+    setRTab('intro');
   };
-  S.tick = dt => { if (racing) { rT += dt; if (Math.random() < .05) render() } };
-  S.comp = { rules: 'Készíts el 3 hibátlan T568B csatlakozót a lehető leggyorsabban! Minden rossz krimpelés pontlevonással jár.', start: () => { racing = true; rT = 0; done = 0; mist = 0; newPlug() } };
-  S.score = () => best || done * 100;
+  S.tick = dt => { if (racing) { rT += dt; if (Math.random() < .05) render() } if (rtab === 'intro') introTick(dt); if (rtab === 'ports' && G.on && $('#rp-over').style.display !== 'flex') { const s0 = Math.round(G.t); G.t += dt; if (Math.round(G.t) !== s0) { const h = $('#rp-h span'); if (h) h.textContent = `${Math.round(G.t)} mp • ${G.miss} rossz próba` } } };
+  S.enter = () => { if (I.cv) { I.sc = 0; I.t = 0; I.play = true; introBtns() } };
+  S.comp = { rules: 'Készíts el 3 hibátlan T568B csatlakozót a lehető leggyorsabban! Minden rossz krimpelés pontlevonással jár.', start: () => { setRTab('crimp'); racing = true; rT = 0; done = 0; mist = 0; newPlug() } };
+  S.score = () => Math.max(best || done * 100, portBest);
   S.leave = () => { racing = false };
   return S;
 })());
