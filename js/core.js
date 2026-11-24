@@ -123,6 +123,8 @@ const CATS = [
   ['play', 'Gyakorlati kihívások', ['rj45', 'phish', 'detektiv']],
   ['quiz', 'Kvíz', ['kviz']],
 ];
+// csempeszínek: minden kártya saját, kétszínű átmenetet kap
+const TILE_PAL = [['#60a5fa', '#a78bfa'], ['#22d3ee', '#3b82f6'], ['#f472b6', '#fb923c'], ['#a3e635', '#22d3ee'], ['#4ade80', '#14b8a6'], ['#fb7185', '#f59e0b'], ['#2dd4bf', '#818cf8'], ['#c084fc', '#f472b6'], ['#fb923c', '#facc15'], ['#f43f5e', '#c026d3'], ['#e879f9', '#60a5fa'], ['#facc15', '#f97316'], ['#fde047', '#4ade80'], ['#38bdf8', '#34d399'], ['#14b8a6', '#a3e635'], ['#86efac', '#22d3ee'], ['#a78bfa', '#38bdf8'], ['#f59e0b', '#ef4444'], ['#fb7185', '#a78bfa'], ['#fcd34d', '#fb7185'], ['#5eead4', '#f0abfc']];
 const ORDER = ['pc', 'internet', 'trend', 'ai', 'evo', 'ugyelet', 'wifi', 'robot', 'rj45', 'tuzfal', 'weblap', 'phish', 'router', 'felho', 'detektiv', 'terminal', 'kapcsolo', 'szakma', 'jelszo', 'kviz'];
 const HOW = {
   evo: ['Válassz fajt és kezdőhelyet', 'Vezesd át őket aszályon, áradáson, fagyon', 'Hány napig bírják? Ha kihalnak, kezdd újra!'],
@@ -184,8 +186,9 @@ const App = {
   byId(id) { return this.stations.find(s => s.id === id) },
   card(s, i = 0) {
     const how = HOW[s.id] || [];
-    return `<button class="tile" style="--accent:${s.color};--d:${i * 45}ms" data-id="${s.id}">
-      <span class="tile-wm">${icon(s.id, 150, 1.2)}</span><span class="tile-sh"></span>
+    const pal = TILE_PAL[i % TILE_PAL.length];
+    return `<button class="tile" style="--accent:${pal[0]};--a2:${pal[1]};--d:${i * 45}ms;--img:url('img/cards/${s.id}.jpg')" data-id="${s.id}">
+      <span class="tile-img"></span><span class="tile-wm">${icon(s.id, 150, 1.2)}</span><span class="tile-sh"></span>
       <span class="tile-ic">${icon(s.id, 34)}</span>
       <span class="tile-tt">${s.title}</span>
       <span class="tile-body"><span class="tile-ds">${s.desc}</span>
