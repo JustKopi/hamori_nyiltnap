@@ -116,7 +116,7 @@ App.add((() => {
   const step = () => G.steps[G.i], cur = () => step().acc;
   function progress() { $('#pd-prog').innerHTML = G.steps.map((s, k) => `<span class="${k === G.i ? 'on' : G.res[k] ? G.res[k].ok ? 'ok' : 'bad' : ''} ${s.quiz ? 'q' : ''}" title="${s.quiz ? 'Kvízkérdés' : 'Fiók'}">${s.quiz ? '?' : icon('user', 15, 2.4)}</span>`).join('') }
   function show() {
-    progress(); G.lock = false; G.pause = false; G.guess = []; G.tries = 0; $('#pd-res').style.display = 'none';
+    progress(); G.lock = false; G.pause = false; G.guess = []; G.tries = 0; G.fails = 0; $('#pd-res').style.display = 'none';
     const st = step();
     if (st.quiz) {
       G.pause = true; $('#pd-acc').style.display = 'none'; $('#pd-quiz').style.display = '';
@@ -127,7 +127,7 @@ App.add((() => {
     const t = cur();
     $('#pd-card').innerHTML = `<div class="pd-ph"><span class="pd-av" style="--c:${t.col}">${icon(t.av, 34, 1.8)}</span><div><b>${t.who}</b><small>${t.role}</small></div></div>
       <div class="pd-lbl">A profilja:</div><div class="pd-bio">${t.bio.map(x => `<div>${x}</div>`).join('')}</div>
-      <div class="pd-leak">${icon('search', 18, 2)}<span><b>Nyom a jelszóról:</b> ${t.leak.txt}</span></div>`;
+      <div class="pd-leak">${icon('search', 18, 2)}<span><b>Nyom a jelszóról:</b> ${t.leak.txt}<br><span class="pd-bt ${bruteSec(t.leak) < 60 ? 'fast' : 'slow'}">Ha a gép minden kombinációt végigpróbál: kb. <b>${human(bruteSec(t.leak))}</b>${bruteSec(t.leak) < 60 ? ' – ez gyors!' : ' – ez túl sok idő.'}</span></span></div>`;
     $('#pd-chips').innerHTML = t.chips.map(c => `<button class="pd-chip" data-c="${esc(c)}">${esc(c)}</button>`).join('');
     $$('.pd-chip').forEach(b => b.onclick = () => { if (G.lock || G.guess.length >= 4) return; G.guess.push(b.dataset.c); sfx.blip(); guessUI() });
     $('#pd-crack').innerHTML = '<span class="pd-idle">Nézd meg a profilt és a nyomot, aztán válassz módszert!</span>';
@@ -155,24 +155,26 @@ App.add((() => {
     const bonus = Math.max(0, 40 - G.tries * 10); G.pts += 100 + bonus; sfx.ok();
     result(true, `Feltörted! +${100 + bonus} pont`, `Módszer: ${how}`);
   }
+  const TIP = { common: 'Ez egy nagyon gyakori jelszó lehet – próbáld a <b>Gyakori jelszavak</b> gombot!', personal: 'A jelszó a profil adataiból áll – rakd össze 2-3 darabból (pl. név, állat, évszám)!', short: 'Nézd meg a nyomot: ilyen rövid jelszót a <b>Minden kombináció</b> gyorsan megtalál!', strong: 'Ha semmi nem működik, és a nyom szerint évekig tartana… lehet, hogy ez a fiók <b>biztonságos</b>!', phrase: 'Ha semmi nem működik, és a nyom szerint évekig tartana… lehet, hogy ez a fiók <b>biztonságos</b>!', '2fa': 'A jelszó a profil adataiból áll – rakd össze 2-3 darabból!' };
+  function fail(html) { G.fails++; $('#pd-crack').innerHTML = `<span class="pd-no">${html}</span>` + (G.fails >= 2 ? `<span class="pd-tip">💡 Tipp: ${TIP[cur().kind]}</span>` : ''); sfx.bad() }
   function dict() {
     if (G.lock) return; const t = cur(); spend(COST.dict); if (!G.on) return;
-    crackAnim(900, () => { if (COMMON.includes(t.pw.toLowerCase())) solved('gyakori jelszavak listája'); else { $('#pd-crack').innerHTML = '<span class="pd-no">Nincs a gyakori jelszavak között. Próbálj mást!</span>'; sfx.bad() } });
+    crackAnim(900, () => { if (COMMON.includes(t.pw.toLowerCase())) solved('gyakori jelszavak listája'); else fail('Nincs a gyakori jelszavak között. Próbálj mást!') });
   }
   function brute() {
     if (G.lock) return; const t = cur(), sec = bruteSec(t.leak); spend(COST.brute); if (!G.on) return;
     crackAnim(1100, () => {
       if (sec < 60) solved(`minden kombináció (${human(sec)} alatt)`);
-      else { $('#pd-crack').innerHTML = `<span class="pd-no">Ehhez <b>${human(sec)}</b> kellene – túl hosszú! Próbálj mást!</span>`; sfx.bad() }
+      else fail(`Ehhez <b>${human(sec)}</b> kellene – túl hosszú! Próbálj mást!`)
     });
   }
   function tryGuess() {
     if (G.lock || !G.guess.length) return; const t = cur(), g = G.guess.join(''); G.tries++; spend(COST.guess); if (!G.on) return;
     if (g === t.pw) { crackAnim(500, () => solved('kitaláltad a profil adataiból')); return }
     const parts = t.parts || [], hit = G.guess.filter(x => parts.includes(x)), all = parts.length && hit.length === parts.length;
-    let msg = hit.length ? `<b>${hit.length}</b> darab stimmel${window.EASY ? ` (${hit.map(esc).join(', ')})` : ''}${all ? ' – de a sorrend vagy a többi darab nem jó!' : '.'}` : 'Egyik darab sem szerepel benne.';
+    let msg = !parts.length ? 'Ez a jelszó <b>nem a profil adataiból</b> készült – hiába rakod össze a darabokat. Próbálj más módszert!' : hit.length ? `<b>${hit.length}</b> darab stimmel${window.EASY ? ` (${hit.map(esc).join(', ')})` : ''}${all ? ' – de a sorrend vagy a többi darab nem jó!' : '.'}` : 'Egyik darab sem szerepel benne.';
     if (t.kind === 'common' && G.guess.some(x => x.toLowerCase() === t.pw)) msg = 'Közel jársz… de a gyakori jelszavak csupa kisbetűsek. Próbáld a <b>Gyakori jelszavak</b> gombot!';
-    $('#pd-crack').innerHTML = `<span class="pd-no">Nem jó. ${msg}</span>`; sfx.bad(); G.guess = []; guessUI();
+    fail(`Nem jó. ${msg}`); G.guess = []; guessUI();
   }
   function markSafe() {
     if (G.lock) return; const t = cur(), ok = ['strong', 'phrase', '2fa'].includes(t.kind);
@@ -252,7 +254,7 @@ App.add((() => {
       .pd-ph b{font-size:24px}.pd-ph small{display:block;color:var(--muted);font-size:15px}
       .pd-lbl{margin:14px 0 6px;font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
       .pd-bio{display:flex;flex-direction:column;gap:7px}.pd-bio div{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;font-size:16.5px}.pd-bio b{color:var(--yellow);font-size:17px}
-      .pd-leak{margin-top:12px;display:flex;gap:10px;align-items:center;font-size:16px;color:#fde68a;background:rgba(250,204,21,.08);border:2px solid rgba(250,204,21,.4);border-radius:12px;padding:10px 12px}.pd-leak svg{flex:none}
+      .pd-leak{margin-top:12px;display:flex;gap:10px;align-items:center;font-size:16px;color:#fde68a;background:rgba(250,204,21,.08);border:2px solid rgba(250,204,21,.4);border-radius:12px;padding:10px 12px}.pd-leak svg{flex:none}.pd-bt{display:inline-block;margin-top:4px;font-size:15px}.pd-bt.fast{color:#4ade80}.pd-bt.slow{color:#fca5a5}
       .pd-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
       .pd-act{all:unset;box-sizing:border-box;cursor:pointer;display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;border:2px solid color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 12%,#14161b);transition:transform .15s,box-shadow .15s}
       .pd-act:hover:not(:disabled){transform:translateY(-3px);box-shadow:0 10px 24px -10px var(--c)}.pd-act:disabled{opacity:.45;cursor:default}
@@ -261,7 +263,7 @@ App.add((() => {
       #pd-chips{display:flex;flex-wrap:wrap;gap:7px}.pd-chip{all:unset;cursor:pointer;font-family:var(--mono);font-size:17px;font-weight:700;padding:7px 12px;border-radius:10px;background:#1e293b;border:1px solid #334155;color:#fde68a}.pd-chip:hover{background:#334155}
       #pd-guess{margin:10px 0 8px;min-height:48px;display:flex;flex-wrap:wrap;gap:3px;align-items:center;background:#08090b;border:2px dashed var(--line2);border-radius:12px;padding:6px 10px;font-family:var(--mono);font-size:22px}#pd-guess span{background:#1e293b;border-radius:6px;padding:2px 6px;color:#fde68a}#pd-guess i{font-family:var(--font);font-size:14px;color:var(--muted)}
       .pd-gb{display:flex;gap:8px}.pd-gb .btn{flex:1;font-size:16px}
-      #pd-crack{margin-top:10px;min-height:52px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;background:#000;border-radius:12px;padding:10px 14px;font-size:16.5px}#pd-crack code{font-family:var(--mono);color:#4ade80;font-size:18px}.pd-idle{color:var(--muted)}.pd-no{color:#fbbf24}
+      #pd-crack{margin-top:10px;min-height:52px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center;background:#000;border-radius:12px;padding:10px 14px;font-size:16.5px}.pd-tip{display:block;width:100%;color:#93c5fd;font-weight:700}#pd-crack code{font-family:var(--mono);color:#4ade80;font-size:18px}.pd-idle{color:var(--muted)}.pd-no{color:#fbbf24}
       #pd-res{position:absolute;inset:0;z-index:3;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;border-radius:18px;background:#0b0c10f2;border:3px solid}
       #pd-res.good{border-color:#16a34a}#pd-res.bad{border-color:#dc2626}.pd-rt{display:flex;gap:10px;align-items:center;font-size:28px;font-weight:900}#pd-res.good .pd-rt{color:#4ade80}#pd-res.bad .pd-rt{color:#f87171}
       .pd-rp{font-size:18px}.pd-rp code{font-family:var(--mono);font-size:24px;color:#fde68a;background:#1e293b;border-radius:8px;padding:2px 10px;word-break:break-all}.pd-rx{color:var(--muted);font-size:15px}.pd-rw{font-size:18px;max-width:680px;line-height:1.5;color:#e2e8f0}#pd-res .btn{font-size:22px;padding:0 30px;height:54px}
@@ -329,6 +331,6 @@ App.add((() => {
   S.score = () => best;
   S.comp = { rules: 'Jelszó-detektív: ítéld meg helyesen a 6 fiókot, és válaszolj a kvízkérdésekre! Pont jár minden feltört gyenge fiókért, minden helyesen biztonságosnak jelölt fiókért, a jó válaszokért és a megmaradt időért.', start: () => { racing = true; setView('game'); start() } };
   S.comp.live = () => racing && G ? G.pts : 0;
-  S._dbg = () => ({ get G() { return G }, makeTarget, genQuiz, bruteSec });
+  S._dbg = () => ({ get G() { return G }, makeTarget, genQuiz, bruteSec, show });
   return S;
 })());
