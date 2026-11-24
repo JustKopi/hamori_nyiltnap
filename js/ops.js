@@ -13,8 +13,10 @@ App.add((() => {
     cpu: { t: 'Túlterhelés! CPU 100% ', fix: 'scale' }, down: { t: 'A szolgáltatás leállt ', fix: 'restart' }, disk: { t: 'Megtelt a lemez ', fix: 'clean' },
     virus: { t: 'Kártevőt észleltünk ', fix: 'av' }, ransom: { t: 'Zsarolóvírus! Fájlok titkosítva ', fix: 'backup' }, cable: { t: 'Nincs hálózati kapcsolat ', fix: 'cable' },
   };
-  const TOOLS = [['scale', 'plus', 'Új konténer indítása', 'Több példány = elosztott terhelés'], ['restart', 'refresh', 'Szolgáltatás újraindítása', ''], ['clean', 'trash', 'Naplófájlok törlése', ''],
-  ['av', 'shield', 'Vírusirtó futtatása', ''], ['backup', 'save', 'Visszaállítás mentésből', ''], ['cable', 'plug', 'Kábel ellenőrzése', '']];
+  // szerszám: azonosító, ikon, név, mire jó, szín
+  const TOOLS = [['scale', 'plus', 'Új konténer indítása', 'több példány osztja el a terhelést', '#5b9dff'], ['restart', 'refresh', 'Szolgáltatás újraindítása', 'leállt program újra elindul', '#a78bfa'], ['clean', 'trash', 'Naplófájlok törlése', 'hely szabadul fel a lemezen', '#facc15'],
+  ['av', 'shield', 'Vírusirtó futtatása', 'kártevő eltávolítása', '#4ade80'], ['backup', 'save', 'Visszaállítás mentésből', 'az adatok visszaállítása', '#22d3ee'], ['cable', 'plug', 'Kábel ellenőrzése', 'fizikai kapcsolat ellenőrzése', '#fb923c']];
+  const PIC = { cpu: 'flame', down: 'siren', disk: 'layers', virus: 'bug', ransom: 'lock', cable: 'plug' };
   let best = 0;
   const DUR = 90;
   const G = { on: false, t: DUR, spawn: 3, fixes: 0, up: 0, tot: 0, tool: null, sel: null, hist: [], tk: [], tid: 0, open: null, tpts: 0, sat: 80, tok: 0, tkT: 4 };
@@ -77,10 +79,9 @@ App.add((() => {
     }
     rKey = key;
     grid.innerHTML = srv.map((s, i) => `<div class="o-srv ${s.p ? 'bad' : ''} ${G.sel === i ? 'sel' : ''}" data-i="${i}">
-      <div class="o-h"><span class="o-ic"><img alt="" src="${Dev.img('rack', 44)}" style="width:44px"></span><div><b>${s.n}</b><div class="o-os">${s.os}</div></div><span class="o-led"></span></div>
-      ${[['CPU', s.cpu], ['RAM', s.ram], ['Lemez', s.disk]].map(([k, v]) => `<div class="o-m"><span>${k}</span><div class="o-b"><i style="width:${v}%;background:${v > 85 ? 'var(--red)' : v > 65 ? 'var(--yellow)' : 'var(--green)'}"></i></div><span>${Math.round(v)}%</span></div>`).join('')}
-      <div class="o-c">${'▣'.repeat(s.cont)} <span>${s.cont} konténer</span></div>
-      <div class="o-p">${s.p ? PROB[s.p].t : 'Minden rendben'}</div>${s.p && window.EASY ? `<div class="o-hint">Teendő: <b>${TOOLS.find(x => x[0] === PROB[s.p].fix)[2]}</b></div>` : ''}</div>`).join('');
+      <div class="o-h"><span class="o-ic"><img alt="" src="${Dev.img('rack', 36)}" style="width:36px"></span><div><b>${s.n}</b><div class="o-os">${s.os} • <span class="o-c">${'▣'.repeat(s.cont)} ${s.cont} konténer</span></div></div><span class="o-led"></span></div>
+      <div class="o-ms">${[['CPU', s.cpu], ['RAM', s.ram], ['Lemez', s.disk]].map(([k, v]) => `<div class="o-m"><span>${k}</span><div class="o-b"><i style="width:${v}%;background:${v > 85 ? 'var(--red)' : v > 65 ? 'var(--yellow)' : 'var(--green)'}"></i></div><span>${Math.round(v)}%</span></div>`).join('')}</div>
+      ${s.p ? `<div class="o-p">${icon(PIC[s.p], 22, 2.2)}<span>${PROB[s.p].t}</span></div><div class="o-drop">${window.EASY ? `Ide húzd: <b>${TOOLS.find(x => x[0] === PROB[s.p].fix)[2]}</b>` : `${icon('hand', 16, 2)} Húzd ide a megfelelő szerszámot!`}</div>` : `<div class="o-ok">${icon('check', 18, 2.6)} Minden rendben</div>`}</div>`).join('');
     $$('.o-srv').forEach(e => e.onpointerdown = () => { G.sel = +e.dataset.i; sfx.click(); tryFix() });
   }
   function log(t, cls = '') { const l = $('#o-log'); const d = document.createElement('div'); d.className = cls; d.textContent = `${new Date().toLocaleTimeString('hu-HU')}  ${t}`; l.prepend(d); while (l.children.length > 30) l.lastChild.remove() }
@@ -113,7 +114,7 @@ App.add((() => {
   function proIntro() {
     if (G.on) return; const o = $('#o-over'); o.style.display = 'flex';
     o.innerHTML = `<div class="card"><h2>Rendszergazda-ügyelet</h2>
-      <p>Te felelsz az iskola 6 szerveréért! Ha valamelyik <b style="color:var(--red)">pirosan villog</b>, olvasd el a hibát, <b>húzd rá a megfelelő eszközt</b> lentről (vagy kattints az eszközre, majd a szerverre).<br>Közben <b>e-mailek, chatek és telefonhívások</b> is jönnek a kollégáktól: nyisd meg őket jobbra, és válaszd a helyes megoldást, mielőtt lejár az idő!<br>Cél: magas <b>rendelkezésre állás</b> és <b>elégedett felhasználók</b> 90 másodpercen át.</p>
+      <p>Te felelsz az iskola 6 szerveréért! Ha valamelyik <b style="color:var(--red)">pirosan villog</b>, olvasd el a hibát, és <b>húzd rá a megfelelő szerszámot</b> a lenti szerszámosládából (vagy kattints a szerszámra, majd a szerverre).<br>Közben <b>e-mailek, chatek és telefonhívások</b> is jönnek a kollégáktól: nyisd meg őket jobbra, és válaszd a helyes megoldást, mielőtt lejár az idő!<br>Cél: magas <b>rendelkezésre állás</b> és <b>elégedett felhasználók</b> 90 másodpercen át.</p>
       <button class="btn go" id="o-start" style="font-size:28px">MŰSZAK KEZDÉSE ▶</button></div>`;
     $('#o-start').onclick = start;
   }
@@ -346,22 +347,26 @@ App.add((() => {
   }
   S.build = root => {
     root.innerHTML = `<style>
-      #o-wrap{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) 340px 280px;grid-template-rows:minmax(0,1fr) auto;gap:12px;padding:12px}
-      #o-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start;overflow:auto}
-      .o-srv{background:#15171c;border:2px solid var(--line);border-radius:16px;padding:12px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+      #o-wrap{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-rows:minmax(0,1fr) auto;gap:12px;padding:12px}
+      #o-grid{grid-column:1;grid-row:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:12px;min-height:0}
+      @media (max-width:1100px){#o-wrap{grid-template-columns:minmax(0,1fr) 280px}#o-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:auto;overflow:auto}}
+      .o-srv{position:relative;display:flex;flex-direction:column;gap:6px;background:#15171c;border:2px solid var(--line);border-radius:16px;padding:10px 12px;cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;min-height:0;overflow:hidden}
       .o-srv:hover{border-color:var(--cyan)}.o-srv.sel{border-color:var(--yellow);box-shadow:0 0 20px #fbbf2466}
-      .o-srv.bad{border-color:var(--red);animation:obad 1s infinite}
-      @keyframes obad{50%{box-shadow:0 0 30px #f87171aa;background:#2a0f1e}}
-      .o-h{display:flex;gap:10px;align-items:center;margin-bottom:8px}.o-ic{display:grid;place-items:center}.o-os{font-size:12px;color:var(--muted)}
-      .o-led{margin-left:auto;width:14px;height:14px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}.bad .o-led{background:var(--red);box-shadow:0 0 12px var(--red)}
-      .o-m{display:grid;grid-template-columns:48px 1fr 40px;gap:6px;align-items:center;font-size:12px;margin:3px 0}.o-b{height:9px;background:#1c1f26;border-radius:5px;overflow:hidden}.o-b i{display:block;height:100%;transition:width .4s}
-      .o-c{font-size:13px;color:var(--cyan);margin-top:4px}.o-c span{color:var(--muted)}
-      .o-p{margin-top:8px;font-weight:800;font-size:15px;color:var(--green)}.bad .o-p{color:#ff8080}
-      #o-side{display:flex;flex-direction:column;gap:10px;min-height:0}
-      #o-mon{flex:none}#o-mon h3{margin:0;font-size:16px;color:var(--cyan)}#o-av{font-size:38px;font-weight:900}#o-hc{width:100%;height:90px;display:block}
-      #o-log{flex:1;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.5;background:#08090b;border-radius:12px;padding:8px;color:#a3a8b3;min-height:80px}
+      .o-srv.bad{border-color:var(--red);background:#1f1218;animation:obad 1s infinite}
+      @keyframes obad{50%{box-shadow:0 0 30px #f87171aa}}
+      .o-h{display:flex;gap:10px;align-items:center}.o-h b{font-size:16px}.o-ic{display:grid;place-items:center}.o-os{font-size:12px;color:var(--muted)}
+      .o-led{margin-left:auto;width:14px;height:14px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);flex:none}.bad .o-led{background:var(--red);box-shadow:0 0 12px var(--red)}
+      .o-ms{display:flex;flex-direction:column;gap:2px}
+      .o-m{display:grid;grid-template-columns:44px 1fr 36px;gap:6px;align-items:center;font-size:12px}.o-m>span:last-child{text-align:right;font-variant-numeric:tabular-nums}.o-b{height:8px;background:#1c1f26;border-radius:5px;overflow:hidden}.o-b i{display:block;height:100%;transition:width .4s}
+      .o-c{color:var(--cyan)}
+      .o-ok{margin-top:auto;display:flex;gap:6px;align-items:center;font-weight:800;font-size:15px;color:var(--green)}
+      .o-p{margin-top:auto;display:flex;gap:8px;align-items:center;font-weight:900;font-size:15.5px;line-height:1.2;color:#fff;background:#b91c1c;border-radius:10px;padding:7px 10px}.o-p svg{flex:none}
+      .o-drop{display:flex;gap:6px;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fecaca;border:2px dashed #f87171;border-radius:10px;padding:6px 8px;text-align:center}.o-drop b{color:#fde68a}
+      #o-side{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;gap:10px;min-height:0}
+      #o-mon{flex:none;padding:10px 12px}#o-mon h3{margin:0;font-size:14px;color:var(--cyan);display:flex;justify-content:space-between;align-items:baseline}#o-mon h3 span{font-size:12px;color:var(--muted);font-weight:600}#o-av{font-size:32px;font-weight:900;line-height:1.1}#o-hc{width:100%;height:56px;display:block}
+      #o-log{flex:none;height:120px;overflow:auto;font-family:var(--mono);font-size:11.5px;line-height:1.45;background:#08090b;border-radius:12px;padding:8px;color:#a3a8b3}
       #o-log .err{color:#ff8080}#o-log .ok{color:#4ade80}
-      #o-inbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:6px}
+      #o-inbox{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:6px}
       .o-ih{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between}.o-ih span{background:var(--red);color:#fff;border-radius:999px;padding:0 8px}
       .o-tk{display:flex;gap:10px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:9px;cursor:pointer}
       .o-tk:hover{border-color:var(--line2)}.o-tk.urg{border-color:var(--red);animation:obad 1s infinite}
@@ -376,11 +381,17 @@ App.add((() => {
       .o-q{font-size:13px;font-weight:700;color:var(--yellow);margin-top:8px}.o-opt{text-align:left;height:auto!important;padding:9px 11px!important;font-size:14px!important;line-height:1.35;white-space:normal}
       .o-satw{height:8px;background:#1c1f26;border-radius:4px;overflow:hidden;margin-top:4px}#o-sat{height:100%;transition:width .4s}
       .o-hint{margin-top:6px;font-size:13px;color:#fde68a;background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.35);border-radius:8px;padding:4px 8px}
-      #o-tools{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-      .o-tool{font-size:16px;padding:10px 14px}.o-tool b{font-size:22px;margin-right:4px}
-      .o-tool{cursor:grab;touch-action:none;user-select:none}.o-tool.drag{opacity:.4}
-      .o-ghost{position:fixed;z-index:9999;pointer-events:none;transform:translate(-50%,-50%) rotate(-3deg) scale(1.05);box-shadow:0 12px 30px #000a,0 0 0 2px var(--yellow);cursor:grabbing}
-      .o-srv.drop{border-color:var(--yellow)!important;box-shadow:0 0 26px #fbbf24aa;transform:scale(1.02)}
+      #o-tbox{grid-column:1;grid-row:2;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 10px 10px}
+      .o-tt{font-size:12.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 4px 6px;display:flex;gap:8px;align-items:center}.o-tt b{color:var(--yellow);text-transform:none;letter-spacing:0;font-size:13.5px}
+      #o-tools{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}@media (max-width:1100px){#o-tools{grid-template-columns:repeat(3,minmax(0,1fr))}}
+      .o-tool{all:unset;box-sizing:border-box;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;text-align:center;padding:8px 6px;border-radius:14px;border:2px solid color-mix(in srgb,var(--c) 55%,transparent);background:color-mix(in srgb,var(--c) 12%,#14161b);color:var(--text);cursor:grab;touch-action:none;user-select:none;transition:transform .15s,box-shadow .15s}
+      .o-tool:hover{transform:translateY(-3px);box-shadow:0 10px 24px -10px var(--c)}.o-tool.sel{border-color:var(--c);box-shadow:0 0 22px var(--c);transform:translateY(-4px)}
+      .o-tool .o-ti{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--c);color:#0b0c10}.o-tool b{font-size:13.5px;line-height:1.2}.o-tool small{font-size:11.5px;color:var(--muted);line-height:1.25}
+      .o-tool kbd{position:absolute;top:5px;right:7px;font:700 11px var(--mono);color:var(--muted)}
+      .o-tool.drag{opacity:.35}
+      .o-ghost{position:fixed;z-index:9999;pointer-events:none;width:150px;transform:translate(-50%,-50%) rotate(-4deg) scale(1.05);box-shadow:0 14px 34px #000c,0 0 0 3px var(--c);cursor:grabbing}
+      body.o-dragging .o-srv{outline:2px dashed #ffffff33;outline-offset:-6px}body.o-dragging .o-srv.bad .o-drop{background:#7f1d1d;color:#fff;animation:oDz .7s ease-in-out infinite}@keyframes oDz{50%{transform:scale(1.04)}}
+      .o-srv.drop{border-color:var(--yellow)!important;box-shadow:0 0 30px #fbbf24cc!important;transform:scale(1.03)}
       #k-wrap{position:absolute;inset:0;display:flex;flex-direction:column}#k-cv{flex:1;min-height:0;width:100%;display:block;touch-action:none}
       #k-hud{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:10px;align-items:stretch;pointer-events:none}
       .k-box{background:#0f172acc;border:1px solid var(--line2);border-radius:16px;padding:6px 16px;text-align:center;min-width:96px;backdrop-filter:blur(6px)}.k-box small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.k-box b{font-size:30px;font-variant-numeric:tabular-nums}
@@ -400,9 +411,10 @@ App.add((() => {
       @media (max-width:760px){.k-modes{grid-template-columns:1fr}.k-tool{min-width:86px;padding:8px}.k-tool span{width:44px;height:44px}#k-msg{font-size:15px}.k-box{min-width:64px;padding:4px 8px}.k-box b{font-size:22px}}
     </style>
     <div id="o-wrap"><div id="o-grid"></div>
-      <div id="o-inbox"></div>
-      <div id="o-side"><div class="panel" id="o-mon"><h3>Monitorozás</h3><div id="o-av">100%</div><div style="font-size:12px;color:var(--muted)">rendelkezésre állás • <b id="o-t">60</b> mp</div><canvas id="o-hc"></canvas><div style="font-size:12px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between"><span>felhasználói elégedettség</span><b id="o-satv">80%</b></div><div class="o-satw"><div id="o-sat"></div></div></div><div id="o-log"></div></div>
-      <div id="o-tools">${TOOLS.map((t, i) => `<button class="btn o-tool" data-t="${t[0]}">${icon(t[1], 20)}${t[2]} <small style="color:var(--muted)">[${i + 1}]</small></button>`).join('')}</div></div>
+      <div id="o-side"><div class="panel" id="o-mon"><h3>Monitorozás <span><b id="o-t">60</b> mp van hátra</span></h3><div id="o-av">100%</div><div style="font-size:12px;color:var(--muted)">rendelkezésre állás (mennyi ideig működtek a szerverek)</div><canvas id="o-hc"></canvas><div style="font-size:12px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between"><span>felhasználói elégedettség</span><b id="o-satv">80%</b></div><div class="o-satw"><div id="o-sat"></div></div></div>
+        <div id="o-inbox"></div><div id="o-log"></div></div>
+      <div id="o-tbox"><div class="o-tt">${icon('hand', 16, 2)} Szerszámosláda <b>– fogd meg, és húzd rá a piros szerverre!</b></div>
+        <div id="o-tools">${TOOLS.map((t, i) => `<button class="o-tool" data-t="${t[0]}" style="--c:${t[4]}"><kbd>${i + 1}</kbd><span class="o-ti">${icon(t[1], 22, 2.2)}</span><b>${t[2]}</b><small>${t[3]}</small></button>`).join('')}</div></div></div>
     <div id="k-wrap" style="display:none"><canvas id="k-cv"></canvas>
       <div id="k-hud"><div class="k-box"><small>Idő</small><b id="k-time">60</b></div><div class="k-msgw"><div id="k-msg"></div><div class="k-tb"><i id="k-tbar"></i></div></div><div class="k-box"><small>Megmentve</small><b id="k-fix">0</b></div><div class="k-box"><small>Pont</small><b id="k-pts">0</b></div></div>
       <div id="k-tools">${KT.map(t => `<button class="k-tool" data-k="${t[0]}" style="--c:${t[2]}"><span>${icon(t[0], 34, 2.2)}</span><b>${t[1]}</b></button>`).join('')}</div></div>
@@ -418,14 +430,14 @@ App.add((() => {
         const srvAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('.o-srv') };
         const mark = el => { $$('.o-srv.drop').forEach(s => s !== el && s.classList.remove('drop')); el && el.classList.add('drop') };
         const mv = ev => {
-          if (!gh) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return; gh = b.cloneNode(true); gh.className = 'btn o-tool o-ghost'; document.body.appendChild(gh); b.classList.add('drag'); G.tool = null; G.sel = null; $$('.o-tool').forEach(t => t.classList.remove('sel')) }
+          if (!gh) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return; gh = b.cloneNode(true); gh.className = 'o-tool o-ghost'; document.body.appendChild(gh); document.body.classList.add('o-dragging'); b.classList.add('drag'); G.tool = null; G.sel = null; $$('.o-tool').forEach(t => t.classList.remove('sel')) }
           gh.style.left = ev.clientX + 'px'; gh.style.top = ev.clientY + 'px';
           over = srvAt(ev.clientX, ev.clientY); mark(over);
         };
         const up = ev => {
           removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
           if (!gh) return; // sima kattintás: a click esemény kezeli
-          gh.remove(); b.classList.remove('drag'); mark(null); oDragged = true; setTimeout(() => oDragged = false, 0);
+          gh.remove(); document.body.classList.remove('o-dragging'); b.classList.remove('drag'); mark(null); oDragged = true; setTimeout(() => oDragged = false, 0);
           const el = ev.type === 'pointerup' ? srvAt(ev.clientX, ev.clientY) : null;
           if (el && G.on) { G.tool = tool; G.sel = +el.dataset.i; tryFix() }
         };
