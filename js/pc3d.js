@@ -20,7 +20,7 @@ App.add((() => {
   let paste = { state: 'none', p: null }, blob = null, os = new Set(), sel = null, ghosts = [], hover = null, tool = 'hand', auto = !!window.EASY, driver = null, busy = false;
   let powered = false, load = 0, monitorTex = null, monitorCtx = null, mode = 'orders', order = null, wallet = store.get('pc-wallet', 0), spent = 0, lastPost = null, sensors = null, shopCat = 'case', cart = [], filt = { col: 'all', rgb: false };
   const META = new WeakMap(), meta = o => META.get(o) || {};
-  const G = () => { const [W, H, D] = caseP.dim; return { W, H, D, bx: -W / 2 + .17, ay: H - .8, az: -D / 2 + .32 } };
+  const G = () => { const [W, H, D] = caseP.dim; return { W, H, D, bx: -W / 2 + .17, ay: H - .55, az: -D / 2 + .32, st: caseP.psu === 'SFX' ? .8 : 1.0 } };
 
   /* ---------- anyag- és geometria-segédek ---------- */
   function mat(c, o = {}) { return new THREE.MeshStandardMaterial({ color: c, roughness: o.r ?? .55, metalness: o.m ?? .15, map: o.map || null, transparent: !!o.op, opacity: o.op ?? 1, emissive: o.e ?? 0x000000, emissiveIntensity: o.ei ?? 1, depthWrite: !o.op }) }
@@ -145,7 +145,7 @@ App.add((() => {
   /* ---------- gépház ---------- */
   function buildCase(p) {
     if (caseG) { scene.remove(caseG); const old = caseFans.map(f => f.r); rotors = rotors.filter(r => !old.includes(r)) }
-    caseP = p; caseFans = []; const { W, H, D, az, ay } = G(); caseG = new THREE.Group(); scene.add(caseG);
+    caseP = p; caseFans = []; const { W, H, D, az, ay, st: sT } = G(); caseG = new THREE.Group(); scene.add(caseG);
     const st = mat(p.col, { m: light(p.col) ? .15 : .35, r: .42 }), dark = mat(light(p.col) ? '#d0d3d9' : '#0f1013', { m: .3, r: .5 });
     shell = [];
     const sh = (m, n) => { m.material = m.material.clone(); m.material.transparent = true; shell.push({ m, n }); return m };
@@ -155,8 +155,11 @@ App.add((() => {
     else if (p.wood) { sh(box(W, H, .08, st, 0, H / 2, D / 2, caseG), V(0, 0, 1)); box(W * .55, H * .92, .03, mat('#ffffff', { map: woodTex(), r: .7 }), -W * .1, H / 2, D / 2 + .05, caseG) }
     else sh(box(W, H, .08, mat(p.col, { r: .7, map: meshTex(p.col) }), 0, H / 2, D / 2, caseG), V(0, 0, 1));
     for (const [x, y, z, w, h, d] of [[W / 2, H, 0, .06, .06, D], [W / 2, .04, 0, .06, .06, D], [W / 2, H / 2, D / 2, .06, H, .06], [W / 2, H / 2, -D / 2, .06, H, .06]]) box(w, h, d, st, x, y, z, caseG);
-    box(W - .1, .85, D - 1.9, dark, 0, .45, D / 2 - (D - 1.9) / 2 - .05, caseG);
-    decal(caseG, 1.1, .4, textPanel(512, 180, light(p.col) ? '#d0d3d9' : '#0f1013', [{ t: p.name.split(' (')[0].toUpperCase(), s: 40, y: .5, c: light(p.col) ? '#55595f' : '#6b7180' }]), W / 2 - .045, .5, D / 2 - .9, Math.PI / 2);
+    // táptakaró: üreges doboz a ház alján, hátul benne a tápegység (oldalt ablak, hogy látszódjon)
+    const sz0 = -D / 2 + .04, sz1 = D / 2 - .42, pEnd = -D / 2 + (p.psu === 'SFX' ? 1.25 : 1.65);
+    box(W - .08, .04, sz1 - sz0, dark, 0, sT, (sz0 + sz1) / 2, caseG); box(W - .08, sT, .04, dark, 0, sT / 2, sz1, caseG);
+    box(.04, sT, sz1 - pEnd, dark, W / 2 - .07, sT / 2, (pEnd + sz1) / 2, caseG); box(.04, .1, pEnd - sz0, dark, W / 2 - .07, sT - .05, (sz0 + pEnd) / 2, caseG);
+    decal(caseG, Math.min(1.1, sz1 - pEnd - .2), .4, textPanel(512, 180, light(p.col) ? '#d0d3d9' : '#0f1013', [{ t: p.name.split(' (')[0].toUpperCase(), s: 40, y: .5, c: light(p.col) ? '#55595f' : '#6b7180' }]), W / 2 - .045, sT / 2, (pEnd + sz1) / 2, Math.PI / 2);
     box(.02, 1.0, .5, mat('#0b0c0f'), -W / 2 + .03, ay - .75, az - .15, caseG);
     for (let i = 0; i < 7; i++) box(.02, .1, .05, mat('#3a3f48', { m: .6 }), -W / 2 + .3, ay - 1.55 - i * .2, -D / 2 + .04, caseG);
     const fcol = p.fans.col || '#16181d';
@@ -177,13 +180,28 @@ App.add((() => {
   }
 
   /* ---------- tárgyak ---------- */
-  const ANCH = { mb: [4.4, -1.6], gpu: [4.2, 1.95], psu: [6.6, .4], cooler: [2.6, -.6], rad: [6.4, -2.3], cpu: [2.6, 1.0], paste: [3.2, 1.0], ram: [5.0, .35], storage: [6.7, 2.4], fans: [2.9, 2.7] };
+  const ANCH = { mb: [3.4, -2.6], gpu: [6.0, 2.6], psu: [7.9, -.2], cooler: [2.4, .5], rad: [8.2, -3.2], cpu: [3.0, 2.0], paste: [3.0, 3.0], ram: [4.3, .6], storage: [8.2, 2.4], fans: [3.6, 4.4] };
   const BQ = { mb: Q(0, 0, 90 * DEG), cpu: Q(0, 0, 90 * DEG), cooler: Q(0, 0, 90 * DEG), pump: Q(0, 0, 90 * DEG), rad: Q(), ram: Q(90 * DEG, 0, 0), m2: Q(0, 0, 90 * DEG), disk: Q(), gpu: Q(), psu: Q(0, .5, 0), fan: Q(90 * DEG, 0, 0), paste: Q() };
-  function benchPose(o, q, sx, sz) { const t = o.clone(); t.position.set(0, 0, 0); t.quaternion.copy(q); t.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(t), c = b.getCenter(V(0, 0, 0)); return { p: V(sx - c.x, -b.min.y + .03, sz - c.z), q: q.clone() } }
+  function benchPose(o, q, sx, sz, taken = [], loose = taken) {
+    const t = o.clone(); t.position.set(0, 0, 0); t.quaternion.copy(q); t.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(t), c = b.getCenter(V(0, 0, 0)), hx = (b.max.x - b.min.x) / 2 + .08, hz = (b.max.z - b.min.z) / 2 + .08;
+    // szabad hely keresése: előbb a szőnyegen és környékén (x 1,5…8,8; z −4,8…4,8), aztán az egész asztalon,
+    // végül úgy, hogy a gépházba beszerelt alkatrészek „asztali helyét” már nem tartjuk fenn
+    const tries = [[1.5, 8.8, -4.8, 4.8, taken], [1.5, 9.25, -5.15, 5.55, taken], [1.5, 8.8, -4.8, 4.8, loose], [1.5, 9.25, -5.15, 5.55, loose]];
+    let best = null;
+    for (const [x0, x1, z0, z1, tk] of tries) {
+      const free = (x, z) => x - hx >= x0 && x + hx <= x1 && z - hz >= z0 && z + hz <= z1 && tk.every(r => Math.abs(x - r.x) >= hx + r.hx || Math.abs(z - r.z) >= hz + r.hz);
+      if (free(sx, sz)) { best = [sx, sz]; break }
+      let bd = 1e9; for (let x = x0 + hx; x <= x1 - hx; x += .1) for (let z = z0 + hz; z <= z1 - hz; z += .1) { const d = (x - sx) ** 2 + (z - sz) ** 2; if (d < bd && free(x, z)) { bd = d; best = [x, z] } }
+      if (best) break;
+    }
+    best = best || [sx, sz];
+    return { p: V(best[0] - c.x, -b.min.y + .03, best[1] - c.z), q: q.clone(), fp: { x: best[0], z: best[1], hx, hz } };
+  }
+  const benchTaken = (extra, onlyLoose) => items.concat(extra ? [extra] : []).flatMap(i => i === panel || (onlyLoose && i.slot && i !== extra) ? [] : i.objs.map(ob => ob.bench && ob.bench.fp).filter(Boolean));
   const countCat = cat => items.filter(i => i.cat === cat && i !== panel).length;
   function newItem(cat, p) {
     const it = { uid: uidN++, cat, p, objs: [], screws: [], slot: null }, k = countCat(cat), [ax, az] = ANCH[cat] || [3, 0], off = cat === 'ram' ? [k * .32, 0] : cat === 'storage' ? [0, -k * .6] : [k * .35, k * .35];
-    const add = (o, bq, sx, sz) => { const bp = benchPose(o, bq, sx, sz); scene.add(o); o.traverse(m => { if (m.isMesh) META.set(m, { item: it }) }); const ob = { o, bench: bp, inst: null }; it.objs.push(ob); return ob };
+    const add = (o, bq, sx, sz) => { const bp = benchPose(o, bq, sx, sz, benchTaken(it), benchTaken(it, true)); scene.add(o); o.traverse(m => { if (m.isMesh) META.set(m, { item: it }) }); const ob = { o, bench: bp, inst: null }; it.objs.push(ob); return ob };
     if (cat === 'cooler' && p.type === 'aio') { const a = aioModels(p); add(a.pump, BQ.pump, ax + off[0], az + off[1]); add(a.rad, BQ.rad, ANCH.rad[0] + off[0], ANCH.rad[1] + off[1]); it.L = a.L; a.pumpScrews.forEach(s => addScrew(it, a.pump, ...s)); a.radScrews.forEach(s => addScrew(it, a.rad, ...s)); return finish(it) }
     if (cat === 'fans') { for (let i = 0; i < p.n; i++) { const f = makeFan(1.2, .25, { col: p.col, blade: p.blade, rgb: p.rgb }); add(f, BQ.fan, ax + off[0] + i * 1.3 - 1.3, az + off[1]);[[.5, .5], [-.5, .5], [.5, -.5], [-.5, -.5]].forEach(([x, y]) => addScrew(it, f, x, y, -.13, [0, 0, -1])) } return finish(it) }
     const r = { mb: () => mbModel(p, it), cpu: () => cpuModel(p), ram: () => ramModel(p), storage: () => storageModel(p), gpu: () => gpuModel(p), psu: () => psuModel(p), paste: () => pasteModel(p), cooler: () => airModel(p) }[cat]();
@@ -203,7 +221,7 @@ App.add((() => {
     const g = G(), m = mb(), out = [];
     if (it.cat === 'mb') out.push({ slot: 'mb', poses: [{ p: V(g.bx, g.ay, g.az), q: Q() }] });
     if (it.cat === 'psu') { const [x, y, z] = it.dims; out.push({ slot: 'psu', poses: [{ p: V(-g.W / 2 + .1 + x / 2, .06 + y / 2, -g.D / 2 + .08 + z / 2), q: Q() }] }) }
-    if (it.cat === 'storage' && it.p.kind !== 'm2' && !slots.sata) out.push({ slot: 'sata', poses: [{ p: V(.15, .88 + (it.p.kind === 'hdd' ? .13 : .035), g.D / 2 - 1.0), q: Q() }] });
+    if (it.cat === 'storage' && it.p.kind !== 'm2' && !slots.sata) out.push({ slot: 'sata', poses: [{ p: V(.15, g.st + .02 + (it.p.kind === 'hdd' ? .13 : .035), g.D / 2 - 1.2), q: Q() }] });
     if (it.cat === 'fans') { const ys = [1.6, 2.9, 4.2].filter(y => y < g.H - .5); out.push({ slot: 'fans', poses: it.objs.map((_, i) => ({ p: V(0, ys[Math.min(i, ys.length - 1)], g.D / 2 - .22 - (i >= ys.length ? .3 : 0)), q: Q() })) }) }
     if (!m) return out;
     const M = (x, y, z) => V(g.bx + x, g.ay + y, g.az + z), pf = m.p.form === 'ITX' ? -1.5 : -1.62;
@@ -782,5 +800,7 @@ App.add((() => {
     if (powered) { accP += dt; if (accP > .6) { accP = 0; if (lastPost && lastPost.lvl >= 4) paintScreen() } }
     renderer.render(scene, camera);
   };
+  // tesztekhez: az asztalon heverő tárgyak átfedései
+  S._dbg = () => ({ items, newItem, find, uninstall, startOrder: id => startOrder(ORDERS.find(o => o.id === id)), benchOverlaps: () => { const bs = items.filter(i => i !== panel && !i.slot).flatMap(i => i.objs.map(ob => ({ n: i.p.name, b: new THREE.Box3().setFromObject(ob.o) }))), out = []; for (let x = 0; x < bs.length; x++) for (let y = x + 1; y < bs.length; y++) if (bs[x].b.intersectsBox(bs[y].b) && bs[x].n !== bs[y].n) out.push(bs[x].n + " × " + bs[y].n); return out } });
   return S;
 })());

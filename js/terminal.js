@@ -367,6 +367,7 @@ App.add((() => {
   S.enter = () => setTimeout(() => inp.focus(), 50);
   S.tick = dt => { if (CT.on) { CT.t += dt; const e = $('#ts-time'); if (e) e.textContent = `${Math.floor(CT.t / 60)}:${String(Math.floor(CT.t % 60)).padStart(2, '0')}` } if (ST.on && ST.step < MS.length) { ST.t += dt; const e = $('#ts-time'); if (e) e.textContent = `${Math.floor(ST.t / 60)}:${String(Math.floor(ST.t % 60)).padStart(2, '0')}` } };
   S.comp = { rules: 'Éjszakai riasztás: oldd meg a 6 egymás utáni feladatot valódi parancsokkal, a lehető leggyorsabban! Minden másodperc és minden kért tipp pontlevonással jár.', start: () => startStory(true) };
+  S.comp.live = () => ST.on && ST.race ? Math.round(Math.max(100, 2400 - ST.t * 4 - ST.hints * 100) * ST.step / MS.length) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best;
   S.leave = () => { clearInterval(matrix); $('#t-mx').style.display = 'none' };
   return S;

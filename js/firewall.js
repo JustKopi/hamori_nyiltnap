@@ -127,6 +127,7 @@ App.add((() => {
   S.tick = dt => { T += dt; step(dt); draw(dt) };
   S.leave = () => { if (G) G.on = false };
   S.comp = { rules: '60 másodpercig védd a három szervert! Blokkold a támadásokat, a hasznos forgalmat engedd át. Három egyre nehezebb szint.', start: () => start() };
+  S.comp.live = () => G && G.on ? G.score : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best;
   return S;
 })());

@@ -129,6 +129,8 @@ input[type=range]{accent-color:var(--accent)}
 .cmp-tbl{text-align:left;margin-top:12px}.cmp-tbl div{display:grid;grid-template-columns:36px 1fr auto;gap:8px;padding:7px 10px;border-radius:9px;font-size:15px}.cmp-tbl div:nth-child(odd){background:var(--bg2)}
 .cmp-tbl div.me{background:color-mix(in srgb,var(--green) 18%,transparent);font-weight:700}.cmp-tbl b{font-variant-numeric:tabular-nums}
 .cmp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;text-align:left;margin-top:10px}.cmp-grid h3{font-size:15px;margin:6px 0 0;color:var(--muted)}
+.cmp-tabs{display:flex;gap:8px;justify-content:center;margin:4px 0 10px}.cmp-tabs .btn{height:38px;font-size:14px;padding:0 14px}.cmp-net{min-height:1.4em;font-size:14px;color:var(--muted)}
+.cmp-del{margin-left:6px;width:22px;height:22px;border-radius:6px;border:1px solid var(--line2);background:transparent;color:var(--muted);cursor:pointer;line-height:1}.cmp-del:hover{color:var(--red);border-color:var(--red)}
 
 /* ---------- nyitólap ---------- */
 #hub{overflow:auto;scroll-behavior:smooth}
@@ -188,9 +190,9 @@ input[type=range]{accent-color:var(--accent)}
 .tile-tt{font-size:21px;font-weight:800;letter-spacing:-.02em}
 .tile-body{position:relative;flex:1;min-height:0}
 .tile-ds{position:absolute;inset:0;font-size:14px;color:#b9bec8;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;transition:opacity .25s,transform .35s}
-.tile-how{position:absolute;inset:0;display:flex;flex-direction:column;gap:5px;opacity:0;transform:translateY(16px);transition:opacity .3s,transform .4s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.tile-how{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;gap:5px;padding:2px 0 10px;opacity:0;transform:translateY(16px);transition:opacity .3s,transform .4s cubic-bezier(.2,.8,.2,1);pointer-events:none}
 .tile-how b{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
-.tile-how span{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600;color:#eef0f3;opacity:0;transform:translateX(-10px);transition:opacity .3s,transform .35s;transition-delay:calc(var(--k) * 70ms + 80ms)}
+.tile-how span{display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;color:#eef0f3;opacity:0;transform:translateX(-10px);transition:opacity .3s,transform .35s;transition-delay:calc(var(--k) * 70ms + 80ms)}
 .tile-how i{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800;color:#0b0c0f;background:var(--accent)}
 .tile:hover .tile-ds,.tile:focus-visible .tile-ds{opacity:0;transform:translateY(-12px)}
 .tile:hover .tile-how,.tile:focus-visible .tile-how{opacity:1;transform:none}.tile:hover .tile-how span,.tile:focus-visible .tile-how span{opacity:1;transform:none}
@@ -252,6 +254,7 @@ input[type=range]{accent-color:var(--accent)}
 <script src="js/core.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/vendor/qrcode.min.js"></script>
+<script src="js/board.js"></script>
 <script src="js/comp.js"></script>
 <script src="js/extras.js"></script>
 <script src="js/net.js"></script>

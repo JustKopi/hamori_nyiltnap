@@ -262,5 +262,5 @@ const Lab = (() => {
     best = Math.max(best, sc); Comp.finish(sc, `${n}/3 feladat, ${Math.floor(t / 60)} perc ${Math.round(t % 60)} mp`);
   }
   let best = 0;
-  return { mount, tick, resize: () => C && C.resize(), startRace, stopRace: () => { race = null }, get best() { return Math.max(best, Object.keys(done).length * 300) }, _dbg: { add, connect, doPing, get devs() { return devs }, get links() { return links }, ping, dhcpAll, done: () => done } };
+  return { mount, tick, resize: () => C && C.resize(), startRace, stopRace: () => { race = null }, liveScore: () => race ? MISS.filter(m => done[m.k]).length * 400 : 0, get best() { return Math.max(best, Object.keys(done).length * 300) }, _dbg: { add, connect, doPing, get devs() { return devs }, get links() { return links }, ping, dhcpAll, done: () => done } };
 })();

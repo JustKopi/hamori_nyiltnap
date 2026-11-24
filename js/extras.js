@@ -16,7 +16,7 @@ const Tut = (() => {
     kapcsolo: [['Két fül', 'Fent választhatsz: <b>VLAN és STP bemutató</b> vagy <b>Szabad labor</b>.'], ['Szabad labor', 'Tegyél le eszközöket, a <b>Kábel</b> eszközzel kösd össze őket, és adj IP-címet.'], ['Ping', 'A <b>Ping</b> eszközzel kattints két gépre: kiderül, látják-e egymást.']],
     wifi: [['Válassz nehézséget', '<b>Könnyű</b> vagy <b>Nehéz</b> mód – a nehéz tényleg nehéz!'], ['Tervezés', 'Húzd a routert, vegyél eszközöket, húzz kábelt, válassz sávot és csatornát.'], ['Teszt', 'A <b>Teszt</b> alatt élőben zavar a mikró, a szomszéd WiFi és az emberek.']],
     tuzfal: [['Te vagy a tűzfal', 'Csomagok jönnek a szerverek felé.'], ['Irányítás', 'Kattints vagy húzd az egeret a <b>veszélyes</b> csomagokon – a lézer megsemmisíti őket.'], ['Vigyázz', 'A hasznos forgalmat engedd át, különben a szerverek megsínylik!']],
-    jelszo: [['Jelszó-mérő', 'Írj be egy <b>kitalált</b> jelszót (ne a sajátodat!).'], ['Figyeld', 'Megmutatja, mennyi idő alatt törhetné fel egy erős gép.'], ['Tipp', 'A hossz és a véletlenszerűség számít a legjobban.']],
+    jelszo: [['Etikus hekker', 'Hat <b>kitalált</b> fiókot kell tesztelned: melyik törhető fel, és melyik biztonságos?'], ['Módszerek', 'Gyakori jelszavak listája, tipp a profil adataiból, nyers erő – vagy jelöld biztonságosnak!'], ['Labor', 'A végén a Jelszó-labor fülön kipróbálhatod a saját jelszóötletedet.']],
     terminal: [['Parancssor', 'Itt <b>gépeléssel</b> irányítod a gépet, mint a rendszergazdák.'], ['Küldetések', 'Jobbra választhatsz: <b>Éjszakai riasztás</b> vagy <b>Kódfejtő</b>.'], ['Elakadtál?', 'Kattints a <b>Tipp</b> gombra, vagy írd be: <b>help</b>.']],
     ugyelet: [['Két mód', 'Kicsiknek a <b>Szervermentő</b>, nagyobbaknak a <b>Profi ügyelet</b>.'], ['Szervermentő', 'Ha egy szerver fölött színes buborék jelenik meg, húzd rá az ugyanolyan színű szerszámot!'], ['Profi ügyelet', 'Hat szerver mérőszámokkal, közben e-mailek, chatek és hívások.']],
     pc: [['Gépépítés', 'Vegyél alkatrészeket a <b>Webáruházban</b>, vagy teljesíts egy megrendelést.'], ['Szerelés', 'Kattints egy alkatrészre, majd a kék helyre – vagy <b>húzd rá</b>. A sárgán villogó csavarokat csavarhúzóval [S] kezeld.'], ['Kamera', 'Bal gomb: forgatás • jobb gomb: mozgatás • görgő: közelítés • X: röntgen.']],
@@ -47,7 +47,7 @@ const Tut = (() => {
   return { show, reset: () => { seen = {} }, close: () => { const m = $('#tut'); if (m) m.classList.remove('show') } };
 })();
 
-const SITE_URL = 'https://justkopi.github.io/hamori_nyiltnap/';
+const SITE_URL = /^https?:$/.test(location.protocol) && !/claude\.ai|claudeusercontent/.test(location.host) ? new URL('.', location.href).href : 'https://justkopi.github.io/hamori_nyiltnap/';
 const QR = { svg(text, margin = 2) { try { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin, scalable: true }) } catch (e) { return '' } } };
 const Settings = (() => {
   let kiosk = store.get('kiosk', false);

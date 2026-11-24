@@ -134,7 +134,7 @@ const HOW = {
   kapcsolo: ['Tegyél le gépeket, kapcsolót, routert', 'Kösd össze őket kábellel', 'Adj IP-címet, és pingeld meg a másik gépet'],
   wifi: ['Tegyél le routert, jelerősítőt, kábelt', 'Kerüld ki a mikrót és a vastag falakat', 'Legyen mindenhol erős a jel!'],
   tuzfal: ['Csomagok száguldanak a hálózat felé', 'Engedd át a jókat, állítsd meg a támadókat', 'Egyre gyorsabb lesz!'],
-  jelszo: ['Írj be egy jelszót', 'Nézd meg, mennyire erős', 'Tanuld meg, milyen a jó jelszó'],
+  jelszo: ['Törd fel a gyenge fiókokat', 'Ismerd fel a biztonságosakat', 'Teszteld a saját jelszóötletedet'],
   terminal: ['Írj parancsokat, mint egy filmbeli hekker', 'Fejts meg rejtett kódokat', 'Mentsd meg a szervert!'],
   ugyelet: ['Bajba kerülnek a szerverek', 'Húzd rájuk a jó szerszámot', 'Mentsd meg őket, mielőtt leállnak!'],
   pc: ['Vásárolj alkatrészeket', 'Szereld össze 3D-ben, csavarhúzóval', 'Telepíts rendszert, és játssz rajta!'],
@@ -148,7 +148,7 @@ const HOW = {
   phish: ['E-mailek, SMS-ek, üzenetek érkeznek', 'Döntsd el: valódi vagy csaló?', 'Ne dőlj be a trükköknek!'],
   detektiv: ['Valakinek elromlott a gépe', 'Nyomozz vizsgálatokkal', 'Találd meg, mi a hiba!'],
 };
-const MINS = { evo: 5, trend: 4, internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 2, terminal: 4, ugyelet: 1, pc: 2, felho: 2, szakma: 3, ai: 5, rj45: 2, phish: 2, detektiv: 3, robot: 5, weblap: 3, kviz: 3 };
+const MINS = { evo: 5, trend: 4, internet: 2, router: 1, kapcsolo: 4, wifi: 3, tuzfal: 1, jelszo: 3, terminal: 4, ugyelet: 1, pc: 2, felho: 2, szakma: 3, ai: 5, rj45: 2, phish: 2, detektiv: 3, robot: 5, weblap: 3, kviz: 3 };
 
 /* ---- nyitólap: élő hálózat-illusztráció ---- */
 const Hero = {

@@ -359,6 +359,7 @@ App.add((() => {
   S.enter = () => { M3.dirty = true };
   S.leave = () => { F.racing = false };
   S.comp = { rules: 'Divatkód verseny: 3 téma egymás után, mindegyikre 90 másodperc. A három AI-zsűritag pontjai összeadódnak (téma, színek, CSS-minták).', start: () => { setTab('ds'); F.racing = true; F.round = 0; F.total = 0; F.run = null; $('#ds-over').style.display = 'none'; F.L = look(); M3.dirty = true; renderEd(); renderCode(); newTheme() } };
+  S.comp.live = () => F.racing ? F.total : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => F.best;
   S._dbg = () => ({ F, Y, M3, judge, runway, nextVideo });
   return S;

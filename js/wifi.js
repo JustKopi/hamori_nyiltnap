@@ -370,6 +370,7 @@ App.add((() => {
   };
   S.leave = () => { racing = false; test = null };
   S.comp = { rules: 'Válassz nehézséget, és tervezd meg az összes pálya hálózatát! Pont jár a megfelelésért, a csillagokért és a megspórolt keretért. Az összpontszám kerül a ranglistára.', start: () => { racing = true; totT = 0; results = []; menu() } };
+  S.comp.live = () => racing ? results.reduce((a, b) => a + (b || 0), 0) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => results.reduce((a, b) => a + (b || 0), 0) || best;
   // teszteléshez: gyors szimuláció
   S._dbg = {

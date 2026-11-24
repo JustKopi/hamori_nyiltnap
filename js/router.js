@@ -164,6 +164,7 @@ App.add((() => {
   };
   S.enter = intro;
   S.comp = { rules: '60 másodperc, három szint egyre bonyolultabb útvonaltáblával. Rossz válasz: −3 másodperc. Kombóért és a nehezebb szinteken több pont jár.', start: () => start() };
+  S.comp.live = () => G.on ? G.score : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best;
   S.tick = dt => {
     if (G.lock > 0) G.lock -= dt;

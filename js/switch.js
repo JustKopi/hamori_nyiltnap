@@ -222,6 +222,7 @@ App.add((() => {
   S.tick = dt => { if (tab === 'demo') { T += dt; step(dt); draw() } else Lab.tick(dt) };
   S.leave = () => Lab.stopRace();
   S.comp = { rules: 'Szabad laborban kell megoldanod a 3 feladatot (két gép egy kapcsolón, két hálózat routerrel, DHCP). Feladatonként 400 pont, és ha mindhárom kész, időbónusz is jár.', start: () => { setTab('lab'); Lab.startRace() } };
+  S.comp.live = () => Lab.liveScore(); // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => Lab.best;
   return S;
 })());

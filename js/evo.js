@@ -395,6 +395,7 @@ App.add((() => {
     draw(); uiT += dt; if (uiT > .25) { uiT = 0; panel(); drawStats(); drawBrain() }
   };
   S.comp = { rules: 'Túlélés: állítsd be a fajod kezdő tulajdonságait és kezdőhelyét, hetente adj nekik új gént, és nézd, hány napig élik túl a csapásokat és a 3 nagy katasztrófát! Aki eléri a 150. napot, felsőbbrendű entitást teremtett. Pont: túlélt napok × 100 + nemzedékek.', start: () => { if (GM.mode !== 'game') setMode('game'); else gameSetup(); GM.racing = true } };
+  S.comp.live = () => GM.on ? (E.day - 1) * 100 + GM.maxGen * 20 : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => GM.best * 100;
   S._dbg = () => ({ E, CFG, step, GM, gameStart, gameSetup, setMode, skipToEnd, giftPick });
   return S;

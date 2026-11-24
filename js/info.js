@@ -11,7 +11,7 @@ App.add((() => {
     ['kapcsolo', 'Kapcsoló-labor', 'VLAN-ok, STP, DHCP, és szabad hálózatépítés IP-címzéssel, átjáróval, pinggel'],
     ['wifi', 'WiFi-tervező', 'Vezeték nélküli hálózatok, csatornatervezés, interferencia, mesh, kábelezés, költségkeret'],
     ['tuzfal', 'Te vagy a tűzfal!', 'Hálózatbiztonság, támadástípusok, tűzfal, vírusvédelem'],
-    ['jelszo', 'Jelszó-törő', 'Biztonsági alapelvek, erős jelszavak, hitelesítés'],
+    ['jelszo', 'Jelszó-detektív', 'Biztonsági alapelvek, erős jelszavak, szótáras és nyers erős támadás, kétlépcsős azonosítás'],
     ['terminal', 'Parancssor-kaland', 'Linux/Windows parancssor: hibakeresés, átjáró, DNS, naplóelemzés, tűzfal, szolgáltatások, mentés'],
     ['ugyelet', 'Rendszergazda-ügyelet', 'Alkalmazás-üzemeltetés, monitorozás, virtualizáció, konténerek, mentés'],
     ['pc', 'Gépépítő műhely 3D', 'Számítógép felépítése, összeszerelés, alkatrészcsere, hibakeresés'],

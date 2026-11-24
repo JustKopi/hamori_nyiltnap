@@ -113,7 +113,7 @@ App.add((() => {
   function proIntro() {
     if (G.on) return; const o = $('#o-over'); o.style.display = 'flex';
     o.innerHTML = `<div class="card"><h2>Rendszergazda-ügyelet</h2>
-      <p>Te felelsz az iskola 6 szerveréért! Ha valamelyik <b style="color:var(--red)">pirosan villog</b>, olvasd el a hibát, válaszd ki a <b>megfelelő eszközt</b> lent, majd kattints a szerverre (vagy fordítva).<br>Közben <b>e-mailek, chatek és telefonhívások</b> is jönnek a kollégáktól: nyisd meg őket jobbra, és válaszd a helyes megoldást, mielőtt lejár az idő!<br>Cél: magas <b>rendelkezésre állás</b> és <b>elégedett felhasználók</b> 90 másodpercen át.</p>
+      <p>Te felelsz az iskola 6 szerveréért! Ha valamelyik <b style="color:var(--red)">pirosan villog</b>, olvasd el a hibát, <b>húzd rá a megfelelő eszközt</b> lentről (vagy kattints az eszközre, majd a szerverre).<br>Közben <b>e-mailek, chatek és telefonhívások</b> is jönnek a kollégáktól: nyisd meg őket jobbra, és válaszd a helyes megoldást, mielőtt lejár az idő!<br>Cél: magas <b>rendelkezésre állás</b> és <b>elégedett felhasználók</b> 90 másodpercen át.</p>
       <button class="btn go" id="o-start" style="font-size:28px">MŰSZAK KEZDÉSE ▶</button></div>`;
     $('#o-start').onclick = start;
   }
@@ -378,6 +378,9 @@ App.add((() => {
       .o-hint{margin-top:6px;font-size:13px;color:#fde68a;background:rgba(250,204,21,.1);border:1px solid rgba(250,204,21,.35);border-radius:8px;padding:4px 8px}
       #o-tools{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
       .o-tool{font-size:16px;padding:10px 14px}.o-tool b{font-size:22px;margin-right:4px}
+      .o-tool{cursor:grab;touch-action:none;user-select:none}.o-tool.drag{opacity:.4}
+      .o-ghost{position:fixed;z-index:9999;pointer-events:none;transform:translate(-50%,-50%) rotate(-3deg) scale(1.05);box-shadow:0 12px 30px #000a,0 0 0 2px var(--yellow);cursor:grabbing}
+      .o-srv.drop{border-color:var(--yellow)!important;box-shadow:0 0 26px #fbbf24aa;transform:scale(1.02)}
       #k-wrap{position:absolute;inset:0;display:flex;flex-direction:column}#k-cv{flex:1;min-height:0;width:100%;display:block;touch-action:none}
       #k-hud{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:10px;align-items:stretch;pointer-events:none}
       .k-box{background:#0f172acc;border:1px solid var(--line2);border-radius:16px;padding:6px 16px;text-align:center;min-width:96px;backdrop-filter:blur(6px)}.k-box small{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.k-box b{font-size:30px;font-variant-numeric:tabular-nums}
@@ -405,11 +408,35 @@ App.add((() => {
       <div id="k-tools">${KT.map(t => `<button class="k-tool" data-k="${t[0]}" style="--c:${t[2]}"><span>${icon(t[0], 34, 2.2)}</span><b>${t[1]}</b></button>`).join('')}</div></div>
     <div class="big-overlay" id="o-over"></div>`;
     hcv = $('#o-hc'); reset(); render(); renderInbox(); renderSat(); kcv = $('#k-cv'); kReset(); kBind();
-    $$('.o-tool', root).forEach(b => b.onclick = () => { G.tool = G.tool === b.dataset.t ? null : b.dataset.t; sfx.click(); tryFix() });
+    let oDragged = false; // húzás után a gomb click eseményét el kell nyelni
+    $$('.o-tool', root).forEach(b => {
+      b.onclick = () => { if (oDragged) { oDragged = false; return } G.tool = G.tool === b.dataset.t ? null : b.dataset.t; sfx.click(); tryFix() };
+      // Fogd és vidd: a szerszámot rá lehet húzni a hibás szerverre
+      b.onpointerdown = e => {
+        if (!G.on || e.button > 0) return; e.preventDefault(); oDragged = false;
+        const tool = b.dataset.t, x0 = e.clientX, y0 = e.clientY; let gh = null, over = null;
+        const srvAt = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('.o-srv') };
+        const mark = el => { $$('.o-srv.drop').forEach(s => s !== el && s.classList.remove('drop')); el && el.classList.add('drop') };
+        const mv = ev => {
+          if (!gh) { if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return; gh = b.cloneNode(true); gh.className = 'btn o-tool o-ghost'; document.body.appendChild(gh); b.classList.add('drag'); G.tool = null; G.sel = null; $$('.o-tool').forEach(t => t.classList.remove('sel')) }
+          gh.style.left = ev.clientX + 'px'; gh.style.top = ev.clientY + 'px';
+          over = srvAt(ev.clientX, ev.clientY); mark(over);
+        };
+        const up = ev => {
+          removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', up);
+          if (!gh) return; // sima kattintás: a click esemény kezeli
+          gh.remove(); b.classList.remove('drag'); mark(null); oDragged = true; setTimeout(() => oDragged = false, 0);
+          const el = ev.type === 'pointerup' ? srvAt(ev.clientX, ev.clientY) : null;
+          if (el && G.on) { G.tool = tool; G.sel = +el.dataset.i; tryFix() }
+        };
+        addEventListener('pointermove', mv); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+      };
+    });
     addEventListener('keydown', e => { if (App.cur !== S || !G.on) return; const k = +e.key; if (k >= 1 && k <= 6) { G.tool = TOOLS[k - 1][0]; tryFix() } });
   };
   S.enter = intro;
   S.comp = { rules: '90 másodperces műszak: hárítsd el a szerverhibákat, és válaszolj helyesen az e-mailekre, chatekre és hívásokra, mielőtt lejár az idő! Pont jár a rendelkezésre állásért, a megoldott kérésekért és az elégedettségért.', start: () => { if (window.EASY) kStart(); else { setMode('pro'); $('#o-over').style.display = 'none'; start() } } };
+  S.comp.live = () => K.on ? K.pts : G.on ? Math.round(((G.tot ? G.up / G.tot * 100 : 100) * 10 + G.sat * 3) * Math.min(1, (DUR - G.t) / DUR) + G.fixes * 25 + G.tpts) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S._dbg = () => K;
   S.leave = () => { if (K.on) { K.on = false; K.sv.forEach(s => s.p = null) } };
   S.score = () => best;

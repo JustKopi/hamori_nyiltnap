@@ -28,5 +28,5 @@ Ha nincs kép, a kártya kép nélkül, színátmenettel jelenik meg.
 | `terminal.jpg` | Parancssor-kaland | Retro green terminal screen with glowing command lines, a secret vault door opening in the background, hacker movie atmosphere |
 | `kapcsolo.jpg` | Kapcsoló-labor | Network switches and computers connected with glowing colored patch cables on a dark lab table, blinking port lights |
 | `szakma.jpg` | Melyik IT-szakma való nekem? | A young student standing at a glowing crossroads, signposts with icons of servers, code, robots, shields and games, hopeful light |
-| `jelszo.jpg` | Jelszó-törő | A giant glowing padlock made of characters and symbols, a timer counting, a vault in the background, gold and violet light |
+| `jelszo.jpg` | Jelszó-detektív | A giant glowing padlock made of characters and symbols, a timer counting, a vault in the background, gold and violet light |
 | `kviz.jpg` | Villámkvíz | Lightning bolts striking colorful quiz cards with question marks, game show stage lights, energetic and fun |

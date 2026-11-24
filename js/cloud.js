@@ -176,6 +176,7 @@ App.add((() => {
   S.tick = tick;
   S.leave = () => { G.on = false };
   S.comp = { rules: 'A 90 másodperces műszakban: szolgáld ki a lehető legtöbb ügyfelet, kapcsold ki az üres szervereket, és mentsd át a gépeket a hibás szerverről! Az eredmény a megkeresett pénz.', start: () => { endless = false; start() } };
+  S.comp.live = () => G && G.on ? Math.max(0, Math.round(G.money * Math.min(1, (DUR - G.t) / DUR))) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best;
   return S;
 })());

@@ -268,6 +268,7 @@ App.add((() => {
   S.tick = dt => { if (racing) { rT += dt; if (Math.random() < .05) render() } if (rtab === 'intro') introTick(dt); if (rtab === 'ports' && G.on && $('#rp-over').style.display !== 'flex') { const s0 = Math.round(G.t); G.t += dt; if (Math.round(G.t) !== s0) { const h = $('#rp-h span'); if (h) h.textContent = `${Math.round(G.t)} mp • ${G.miss} rossz próba` } } };
   S.enter = () => { if (I.cv) { I.sc = 0; I.t = 0; I.play = true; introBtns() } };
   S.comp = { rules: 'Készíts el 3 hibátlan T568B csatlakozót a lehető leggyorsabban! Minden rossz krimpelés pontlevonással jár.', start: () => { setRTab('crimp'); racing = true; rT = 0; done = 0; mist = 0; newPlug() } };
+  S.comp.live = () => racing ? Math.round(Math.max(50, 1500 - rT * 8 - mist * 150) * done / 3) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => Math.max(best || done * 100, portBest);
   S.leave = () => { racing = false };
   return S;
@@ -335,6 +336,7 @@ App.add((() => {
   };
   S.tick = dt => { if (racing && i < deck.length) t += dt };
   S.comp = { rules: '10 üzenet: döntsd el mindegyikről, hogy valódi vagy csaló! A helyes válasz pontot ér, a hibás levonást, és gyorsaságért bónusz jár.', start: () => { racing = true; start() } };
+  S.comp.live = () => racing ? Math.max(0, ok * 150 - bad * 100) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best || ok * 150;
   S.leave = () => { racing = false };
   return S;
@@ -440,6 +442,7 @@ App.add((() => {
   };
   S.tick = dt => { if (racing && i < deck.length) t += dt };
   S.comp = { rules: '5 hibás gép: nyomozz, és találd meg a hibát a lehető legkevesebb vizsgálattal és leggyorsabban!', start: () => { racing = true; start() } };
+  S.comp.live = () => racing ? pts : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best || pts;
   S.leave = () => { racing = false };
   return S;

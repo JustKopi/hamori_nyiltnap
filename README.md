@@ -9,12 +9,12 @@ Nyílt napra készült: a gyerekek játékosan kipróbálhatják, mit tanulnak a
 
 | Állomás | Témakör |
 |---|---|
-| Az internet útja | Netfaló: 5 pályás túlterheléses játék (sávszélesség, szűk keresztmetszet, gyorsítótár, QoS, tartalék vonal) |
+| Az internet útja | Netfaló: könnyű (7 pálya) és nehéz (6 pálya) mód, túlterheléses játék (sávszélesség, szűk keresztmetszet, gyorsítótár, QoS, tartalék vonal) |
 | Légy te a router! | IPv4, CIDR, útvonaltábla, leghosszabb egyezés, TTL |
 | Kapcsoló-labor | VLAN, STP, DHCP + szabad hálózatépítő labor (IP, átjáró, ping) |
 | WiFi-tervező | könnyű és nehéz mód: router, mesh, jelismétlő, kábeles AP, powerline, kábelezés, csatornák, valós idejű zavarok |
 | Te vagy a tűzfal! | támadástípusok, portok, DDoS |
-| Jelszó-törő | erős jelszavak, hitelesítés |
+| Jelszó-detektív | erős jelszavak, támadási módszerek, kétlépcsős azonosítás |
 | Parancssor-kaland | „Éjszakai riasztás” küldetéssor: átjáró, DNS, napló, tűzfal, szolgáltatások, mentés; Kódfejtő kihívás (Caesar, Base64, bináris, hex) |
 | Rendszergazda-ügyelet | Szervermentő (kicsiknek) és Profi ügyelet: szerverhibák + e-mail, chat, telefonos kérések |
 | Gépépítő műhely 3D | alkatrészek, összeszerelés, hibakeresés, rendszertelepítés, röntgen-nézet, játék a kész gépen |

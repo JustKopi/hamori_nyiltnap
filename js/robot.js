@@ -193,6 +193,7 @@ App.add((() => {
     draw(); if (racing && Math.random() < .1) $('#rb-time').textContent = `Verseny: ${Math.round(totT)} mp`;
   };
   S.comp = { rules: 'Oldd meg mind a 8 pályát egymás után! Pályánként csillag jár a rövid programért, és időbónusz a gyorsaságért. Az összpontszám kerül a ranglistára.', start: () => { racing = true; totT = 0; results = []; load(0) } };
+  S.comp.live = () => racing ? results.reduce((a, b) => a + (b || 0), 0) : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => results.reduce((a, b) => a + (b || 0), 0) || best;
   S._dbg = { set: p => { prog = p; render() }, mk, load: i => load(i), start, get run() { return run }, get msg() { return msg } };
   return S;

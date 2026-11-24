@@ -98,6 +98,7 @@ App.add((() => {
   };
   S.enter = () => { if (!G.on) intro() };
   S.comp = { rules: '10 kérdés, kérdésenként 15 másodperc. A gyors helyes válasz több pontot ér!', start: () => start() };
+  S.comp.live = () => G.on ? G.score : 0; // verseny közbeni részeredmény (élő ranglista-mentés)
   S.score = () => best;
   S.tick = dt => {
     if (!G.on || G.locked) return; G.t -= dt; const b = $('#q-t'); if (b) b.style.width = (G.t / (window.EASY ? 25 : 15) * 100) + '%';
